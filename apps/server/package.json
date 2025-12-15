@@ -1,5 +1,5 @@
 {
-  "name": "server",
+  "name": "@repo/server",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
@@ -7,9 +7,13 @@
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
-    "hono": "^4.11.0"
+    "drizzle-orm": "^0.45.1",
+    "hono": "^4.11.0",
+    "pg": "^8.16.3"
   },
   "devDependencies": {
+    "@types/pg": "^8.16.0",
+    "drizzle-kit": "^0.31.8",
     "wrangler": "^4.4.0"
   }
 }

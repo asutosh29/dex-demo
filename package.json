@@ -7,15 +7,25 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
-    "ui-add": "pnpm --filter @repo/ui ui-add"
+    "ui-add": "pnpm --filter @repo/ui ui-add",
+    "db:up": "docker compose -f docker/docker-compose.db.yml up -d",
+    "db:down": "docker compose -f docker/docker-compose.db.yml down",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.7.4",
     "turbo": "^2.6.3",
     "typescript": "5.9.2"
   },
-  "packageManager": "pnpm@10.9.0",
+  "packageManager": "pnpm@10.25.0",
   "engines": {
     "node": ">=22"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx,js,jsx,json,md,css}": [
+      "prettier --write"
+    ]
   }
 }
