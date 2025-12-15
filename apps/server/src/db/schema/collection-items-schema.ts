@@ -13,7 +13,6 @@ export const collectionItemsTable = pgTable(
     itemId: text()
       .notNull()
       .references(() => itemsTable.id, { onDelete: "cascade" }),
-    order: integer("order").notNull().default(0),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.collectionId, table.itemId] }),

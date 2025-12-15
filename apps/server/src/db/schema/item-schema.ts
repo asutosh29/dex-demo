@@ -1,10 +1,19 @@
-import { index, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
-import { SQL, sql } from "drizzle-orm";
+import { customType, index, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import { relations, sql, SQL } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 import { collectionItemsTable } from "./collection-items-schema";
+import { timestamps } from "./helpers/timestamp-schema";
 
-export const itemTypeEnum = pgEnum("item_type", ["link", "image", "document"]);
+export const itemTypeEnum = pgEnum("item_type", ["link"]); // for now, just links, later on images and documents
+
+// Custom tsvector type for Drizzle
+export const tsvector = customType<{
+  data: string;
+}>({
+  dataType() {
+    return "tsvector";
+  },
+});
 
 export const itemsTable = pgTable(
   "items",
@@ -19,16 +28,14 @@ export const itemsTable = pgTable(
     tags: text().array().default([]).notNull(),
     favicon: text(),
     image: text(),
+    searchVector: tsvector("search_vector").generatedAlwaysAs(
+      sql`setweight(to_tsvector('english', coalesce(title, '')), 'A') ||
+          setweight(to_tsvector('english', coalesce(tldr, '')), 'B')`,
+    ),
+    ...timestamps,
   },
   (table) => ({
-    searchIdx: index("items_search_idx").using(
-      "gin",
-      sql`(
-          setweight(to_tsvector('english', coalesce(${table.title}, '')), 'A') ||
-          setweight(to_tsvector('english', coalesce(array_to_string(${table.tags}, ' ', ''), '')), 'B') ||
-          setweight(to_tsvector('english', coalesce(${table.tldr}, '')), 'C')
-      )`,
-    ),
+    searchIdx: index("items_search_idx").using("gin", table.searchVector),
   }),
 );
 

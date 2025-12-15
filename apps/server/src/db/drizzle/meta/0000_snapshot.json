@@ -1,5 +1,5 @@
 {
-  "id": "5f49d9b2-3722-41dc-beee-4195e76b73ce",
+  "id": "001168fd-25f3-493e-aada-37c31b35398a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -19,13 +19,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "order": {
-          "name": "order",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
         }
       },
       "indexes": {},
@@ -75,6 +68,19 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -139,6 +145,29 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "search_vector": {
+          "name": "search_vector",
+          "type": "tsvector",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "as": "setweight(to_tsvector('english', coalesce(title, '')), 'A') ||\n          setweight(to_tsvector('english', coalesce(tldr, '')), 'B')",
+            "type": "stored"
+          }
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {
@@ -146,9 +175,9 @@
           "name": "items_search_idx",
           "columns": [
             {
-              "expression": "(\n          setweight(to_tsvector('english', coalesce(\"title\", '')), 'A') ||\n          setweight(to_tsvector('english', coalesce(array_to_string(\"tags\", ' ', ''), '')), 'B') ||\n          setweight(to_tsvector('english', coalesce(\"tldr\", '')), 'C')\n      )",
+              "expression": "search_vector",
+              "isExpression": false,
               "asc": true,
-              "isExpression": true,
               "nulls": "last"
             }
           ],
@@ -170,7 +199,7 @@
     "public.item_type": {
       "name": "item_type",
       "schema": "public",
-      "values": ["link", "image", "document"]
+      "values": ["link"]
     }
   },
   "schemas": {},
