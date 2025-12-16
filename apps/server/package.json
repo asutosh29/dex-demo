@@ -11,14 +11,16 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
+    "cheerio": "^1.1.2",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.11.0",
-    "pg": "^8.16.3",
-    "uuidv7": "^1.1.0"
+    "postgres": "^3.4.7",
+    "uuidv7": "^1.1.0",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
-    "@types/pg": "^8.16.0",
     "drizzle-kit": "^0.31.8",
     "wrangler": "^4.4.0"
   }
