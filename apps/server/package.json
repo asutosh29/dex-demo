@@ -2,16 +2,19 @@
   "name": "@repo/server",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy --minify",
-    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "dev": "tsx watch src/index.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.0.2",
+    "@ai-sdk/groq": "^2.0.33",
+    "@hono/node-server": "^1.19.7",
+    "@hono/zod-openapi": "^1.1.5",
+    "@voltagent/core": "^1.2.21",
+    "@voltagent/mcp-server": "^1.0.3",
+    "@voltagent/server-hono": "^1.2.8",
     "cheerio": "^1.1.2",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
@@ -22,6 +25,6 @@
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.8",
-    "wrangler": "^4.4.0"
+    "tsx": "^4.21.0"
   }
 }

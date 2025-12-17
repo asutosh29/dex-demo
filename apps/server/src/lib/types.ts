@@ -35,3 +35,9 @@ export interface TagResponse {
   tldr: string;
   tags: string[];
 }
+
+export interface AgentResponse {
+  title?: string;
+  tldr: string;
+  tags: string[];
+}
