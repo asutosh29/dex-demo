@@ -1,11 +1,25 @@
-import { Hono } from "hono";
-import { createCollection } from "./services/collection.crud";
-import { addItemToCollection } from "./services/item.crud";
-import { dexAgent } from "./voltagent";
-import { serve } from "@hono/node-server";
 import "dotenv/config";
+import { serve } from "@hono/node-server";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { auth } from "~/lib/auth";
+import { createCollection } from "~/services/collection.crud";
+import { addItemToCollection } from "~/services/item.crud";
+import { dexAgent } from "~/voltagent";
+import { trustedOrigins } from "./lib/constants";
 
 const app = new Hono();
+
+app.use(
+  "*",
+  cors({
+    origin: trustedOrigins,
+    allowHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  }),
+);
+
+app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
 app.get("/", (c) => {
   return c.text("Hello Hono!");
@@ -33,7 +47,11 @@ app.post("/add-item", async (c) => {
   return c.json({ item });
 });
 
+// Start the VoltAgent server (mcp)
 dexAgent.getServerInstance()?.isRunning() ?? dexAgent.startServer();
-
+console.log(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
 console.log("Starting app server on http://localhost:8787");
-serve(app);
+serve({
+  fetch: app.fetch,
+  port: 8787,
+});

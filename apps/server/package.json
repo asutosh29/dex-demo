@@ -15,6 +15,7 @@
     "@voltagent/core": "^1.2.21",
     "@voltagent/mcp-server": "^1.0.3",
     "@voltagent/server-hono": "^1.2.8",
+    "better-auth": "^1.4.7",
     "cheerio": "^1.1.2",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",

@@ -58,7 +58,7 @@ export async function fetchYouTubeContent(
 
     if (!response.ok) return null;
 
-    const data: YouTubeVideoResponse = await response.json();
+    const data = (await response.json()) as YouTubeVideoResponse;
     const video = data.items?.[0];
 
     if (!video?.snippet) return null;
