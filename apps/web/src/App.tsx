@@ -3,7 +3,7 @@ import Login from "./pages/login";
 import Dashboard from "./pages/dashboard";
 import Collection from "./pages/collection";
 import ProtectedRoute from "./components/navigation/protected-route";
-import DashboardLayout from "./layouts/dashboard-layout";
+import DashboardLayout from "./components/layouts/dashboard-layout";
 
 function App() {
   return (
