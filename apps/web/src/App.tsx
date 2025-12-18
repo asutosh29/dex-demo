@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/login";
 import Dashboard from "./pages/dashboard";
+import Collection from "./pages/collection";
 import ProtectedRoute from "./components/navigation/protected-route";
+import DashboardLayout from "./layouts/dashboard-layout";
 
 function App() {
   return (
@@ -9,7 +11,10 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard/:collectionId" element={<Collection />} />
+          </Route>
         </Route>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>

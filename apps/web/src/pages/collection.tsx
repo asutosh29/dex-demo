@@ -1,4 +1,4 @@
-export default function Dashboard() {
+export default function Collection() {
   return (
     <>
       <div className="grid auto-rows-min gap-4 md:grid-cols-3">

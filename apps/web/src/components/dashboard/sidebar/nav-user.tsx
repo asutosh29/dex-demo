@@ -1,14 +1,4 @@
-"use client";
-
-import {
-  BadgeCheck,
-  Bell,
-  ChevronsUpDown,
-  CreditCard,
-  LogOut,
-  Sparkles,
-} from "@repo/ui/icons";
-
+import { ChevronsUpDown, LogOut } from "@repo/ui/icons";
 import {
   Avatar,
   AvatarFallback,
@@ -17,7 +7,6 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -30,9 +19,18 @@ import {
   useSidebar,
 } from "@repo/ui/components/ui/sidebar";
 import type { User } from "better-auth";
+import { authClient } from "~/lib/auth-client";
+import { useNavigate } from "react-router-dom";
 
 export function NavUser({ user }: { user: User }) {
   const { isMobile } = useSidebar();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await authClient.signOut();
+    navigate("/login");
+  };
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -74,29 +72,7 @@ export function NavUser({ user }: { user: User }) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notifications
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleSignOut}>
               <LogOut />
               Log out
             </DropdownMenuItem>
