@@ -1,7 +1,7 @@
 import { pgTable, text, primaryKey, integer } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { collectionsTable } from "./collection-schema";
-import { itemsTable } from "./item-schema";
+import { collectionsTable } from "../collection-schema";
+import { itemsTable } from "../item-schema";
 
 // Junction table for many-to-many relationship between collections and items
 export const collectionItemsTable = pgTable(
@@ -14,9 +14,7 @@ export const collectionItemsTable = pgTable(
       .notNull()
       .references(() => itemsTable.id, { onDelete: "cascade" }),
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.collectionId, table.itemId] }),
-  }),
+  (table) => [primaryKey({ columns: [table.collectionId, table.itemId] })],
 );
 
 export const collectionItemsRelations = relations(

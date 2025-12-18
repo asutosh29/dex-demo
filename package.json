@@ -7,6 +7,7 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
+    "reinstall": "bash scripts/clean-install.sh",
     "ui-add": "pnpm --filter @repo/ui ui-add",
     "db:up": "docker compose -f docker/docker-compose.db.yml up -d",
     "db:down": "docker compose -f docker/docker-compose.db.yml down",

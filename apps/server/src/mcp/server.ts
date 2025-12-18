@@ -1,9 +1,20 @@
 import { createTool } from "@voltagent/core";
 import { MCPServer } from "@voltagent/mcp-server";
 import { z } from "zod";
-import { createCollection } from "~/services/collection.crud";
-import { addItemToCollection } from "~/services/item.crud";
+// TODO: Update MCP server to work with new service classes that require userId
+// import { collectionService } from "../services/collection.service";
+// import { itemService } from "../services/item.service";
 
+// Temporarily disabled until we add auth context to MCP
+export const mcpServer = new MCPServer({
+  name: "dex-mcp-server",
+  version: "0.1.0",
+  description: "MCP server for dex - temporarily disabled",
+  tools: {},
+});
+
+/*
+// Old implementation - needs userId context
 const createCollectionTool = createTool({
   name: "create collection",
   description: "Create a new collection with a given a title",
@@ -29,13 +40,4 @@ const addItemToCollectionTool = createTool({
     return `Item with URL: ${url} added to Collection ID: ${collectionId}`;
   },
 });
-
-export const mcpServer = new MCPServer({
-  name: "dex-mcp-server",
-  version: "0.1.0",
-  description: "MCP server for dex, you can add collections and items.",
-  tools: {
-    createCollectionTool,
-    addItemToCollectionTool,
-  },
-});
+*/

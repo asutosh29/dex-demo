@@ -20,6 +20,10 @@
     "ui-add": {
       "cache": false,
       "interactive": true
+    },
+    "clean-install": {
+      "cache": false,
+      "outputs": []
     }
   }
 }

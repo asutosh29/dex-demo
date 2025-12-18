@@ -1,40 +1,58 @@
-import { authClient } from "~/lib/auth-client";
-import { Button } from "@repo/ui/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { SidebarProvider } from "@repo/ui/components/ui/sidebar";
+import { trpc } from "~/lib/trpc";
+import { useState } from "react";
+import { AppSidebar } from "~/components/dashboard/app-sidebar";
+import { DashboardHeader } from "~/components/dashboard/dashboard-header";
+import { ItemsGrid } from "~/components/dashboard/items-grid";
 
 export default function Dashboard() {
-  const navigate = useNavigate();
-  const { data: session } = authClient.useSession();
+  const [selectedCollection, setSelectedCollection] = useState<string | null>(
+    null,
+  );
 
-  const handleSignOut = async () => {
-    await authClient.signOut();
-    navigate("/login");
-  };
+  // Queries
+  const { data: items, isLoading: loadingItems } = trpc.items.getAll.useQuery();
+  const { data: selectedCollectionData, isLoading: loadingCollection } =
+    trpc.collections.get.useQuery(
+      { id: selectedCollection! },
+      { enabled: !!selectedCollection },
+    );
+
+  const displayItems = selectedCollection
+    ? selectedCollectionData?.items || []
+    : items || [];
+
+  const headerTitle = selectedCollection
+    ? selectedCollectionData?.title || "Collection"
+    : "All Items";
 
   return (
-    <div className="w-full min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              {session?.user?.email}
-            </span>
-            <Button onClick={handleSignOut} variant="outline">
-              Sign Out
-            </Button>
-          </div>
-        </div>
-      </header>
+    <SidebarProvider>
+      <div className="flex h-screen w-full">
+        <AppSidebar
+          selectedCollection={selectedCollection}
+          onCollectionSelect={setSelectedCollection}
+          allItemsCount={items?.length || 0}
+        />
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Welcome to your dashboard!</h2>
-          <p className="text-muted-foreground">
-            You're successfully authenticated with better-auth.
-          </p>
-        </div>
-      </main>
-    </div>
+        <main className="flex-1 overflow-auto">
+          <div className="container mx-auto p-6 max-w-7xl">
+            <DashboardHeader
+              title={headerTitle}
+              itemCount={displayItems.length}
+              selectedCollection={selectedCollection}
+            />
+
+            <ItemsGrid
+              items={displayItems}
+              selectedCollection={selectedCollection}
+              isLoading={
+                loadingItems || (selectedCollection ? loadingCollection : false)
+              }
+            />
+          </div>
+        </main>
+      </div>
+    </SidebarProvider>
   );
 }

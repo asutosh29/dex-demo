@@ -1,8 +1,10 @@
 import { customType, index, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { relations, sql, SQL } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
-import { collectionItemsTable } from "./collection-items-schema";
+import { collectionItemsTable } from "./junctions/collection-items-schema";
 import { timestamps } from "./helpers/timestamp-schema";
+import { user } from "./auth-schema";
+import { userItemsTable } from "./junctions/user-items-schema";
 
 export const itemTypeEnum = pgEnum("item_type", ["link"]); // for now, just links, later on images and documents
 
@@ -32,13 +34,17 @@ export const itemsTable = pgTable(
       sql`setweight(to_tsvector('english', coalesce(title, '')), 'A') ||
           setweight(to_tsvector('english', coalesce(tldr, '')), 'B')`,
     ),
+    creatorId: text().references(() => user.id, { onDelete: "cascade" }),
     ...timestamps,
   },
-  (table) => ({
-    searchIdx: index("items_search_idx").using("gin", table.searchVector),
-  }),
+  (table) => [index("items_search_idx").using("gin", table.searchVector)],
 );
 
-export const itemsRelations = relations(itemsTable, ({ many }) => ({
+export const itemsRelations = relations(itemsTable, ({ many, one }) => ({
   collections: many(collectionItemsTable),
+  creator: one(user, {
+    fields: [itemsTable.creatorId],
+    references: [user.id],
+  }),
+  users: many(userItemsTable),
 }));
