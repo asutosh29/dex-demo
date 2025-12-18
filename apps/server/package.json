@@ -2,11 +2,15 @@
   "name": "@repo/server",
   "type": "module",
   "exports": {
-    "./trpc": "./src/trpc/index.ts"
+    "./trpc": {
+      "types": "./dist/trpc/index.d.ts",
+      "default": "./src/trpc/index.ts"
+    }
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "db:generate": "drizzle-kit generate",
+    "trpc-typegen": "tsc -p tsconfig.json --emitDeclarationOnly --declaration --outDir ./dist",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
@@ -33,6 +37,7 @@
   "devDependencies": {
     "drizzle-kit": "^0.31.8",
     "tsconfig-paths": "^4.2.0",
-    "tsx": "^4.21.0"
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   }
 }

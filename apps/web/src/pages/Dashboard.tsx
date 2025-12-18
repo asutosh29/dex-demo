@@ -1,58 +1,53 @@
-import { SidebarProvider } from "@repo/ui/components/ui/sidebar";
-import { trpc } from "~/lib/trpc";
-import { useState } from "react";
 import { AppSidebar } from "~/components/dashboard/app-sidebar";
-import { DashboardHeader } from "~/components/dashboard/dashboard-header";
-import { ItemsGrid } from "~/components/dashboard/items-grid";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@repo/ui/components/ui/breadcrumb";
+import { Separator } from "@repo/ui/components/ui/separator";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@repo/ui/components/ui/sidebar";
 
 export default function Dashboard() {
-  const [selectedCollection, setSelectedCollection] = useState<string | null>(
-    null,
-  );
-
-  // Queries
-  const { data: items, isLoading: loadingItems } = trpc.items.getAll.useQuery();
-  const { data: selectedCollectionData, isLoading: loadingCollection } =
-    trpc.collections.get.useQuery(
-      { id: selectedCollection! },
-      { enabled: !!selectedCollection },
-    );
-
-  const displayItems = selectedCollection
-    ? selectedCollectionData?.items || []
-    : items || [];
-
-  const headerTitle = selectedCollection
-    ? selectedCollectionData?.title || "Collection"
-    : "All Items";
-
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full">
-        <AppSidebar
-          selectedCollection={selectedCollection}
-          onCollectionSelect={setSelectedCollection}
-          allItemsCount={items?.length || 0}
-        />
-
-        <main className="flex-1 overflow-auto">
-          <div className="container mx-auto p-6 max-w-7xl">
-            <DashboardHeader
-              title={headerTitle}
-              itemCount={displayItems.length}
-              selectedCollection={selectedCollection}
-            />
-
-            <ItemsGrid
-              items={displayItems}
-              selectedCollection={selectedCollection}
-              isLoading={
-                loadingItems || (selectedCollection ? loadingCollection : false)
-              }
-            />
+      <AppSidebar variant="inset" />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator
+            orientation="vertical"
+            className="mr-2 data-[orientation=vertical]:h-4"
+          />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink href="#">
+                  Building Your Application
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </header>
+        <div className="flex flex-1 flex-col gap-4 p-4">
+          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
+            <div className="bg-muted/50 aspect-video rounded-xl" />
+            <div className="bg-muted/50 aspect-video rounded-xl" />
+            <div className="bg-muted/50 aspect-video rounded-xl" />
           </div>
-        </main>
-      </div>
+          <div className="bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min" />
+        </div>
+      </SidebarInset>
     </SidebarProvider>
   );
 }

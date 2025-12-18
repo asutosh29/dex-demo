@@ -7,5 +7,5 @@ export const appRouter = router({
   collections: collectionRouter,
 });
 
-export type AppRouter = typeof appRouter;
 export { createContext } from "./trpc";
+export type AppRouter = typeof appRouter;

@@ -1,156 +1,64 @@
-import { Plus, FolderIcon } from "@repo/ui/icons";
+import * as React from "react";
+
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
 } from "@repo/ui/components/ui/sidebar";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@repo/ui/components/ui/dialog";
-import { Button } from "@repo/ui/components/ui/button";
-import { Input } from "@repo/ui/components/ui/input";
-import { Badge } from "@repo/ui/components/ui/badge";
-import { authClient } from "~/lib/auth-client";
-import { useNavigate } from "react-router-dom";
+import { Loader2, NotebookTabs, Plus } from "@repo/ui/icons";
+import { NavUser } from "./nav-user";
 import { trpc } from "~/lib/trpc";
-import { useState } from "react";
+import { authClient } from "~/lib/auth-client";
 
-interface AppSidebarProps {
-  selectedCollection: string | null;
-  onCollectionSelect: (id: string | null) => void;
-  allItemsCount: number;
-}
-
-export function AppSidebar({
-  selectedCollection,
-  onCollectionSelect,
-  allItemsCount,
-}: AppSidebarProps) {
-  const navigate = useNavigate();
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session } = authClient.useSession();
-  const [newCollectionTitle, setNewCollectionTitle] = useState("");
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-
-  const utils = trpc.useUtils();
 
   const { data: collections, isLoading } = trpc.collections.getAll.useQuery();
 
-  const createCollection = trpc.collections.create.useMutation({
-    onSuccess: () => {
-      utils.collections.getAll.invalidate();
-      setNewCollectionTitle("");
-      setIsCreateDialogOpen(false);
-    },
-  });
-
-  const handleSignOut = async () => {
-    await authClient.signOut();
-    navigate("/login");
-  };
-
-  const handleCreateCollection = () => {
-    if (newCollectionTitle.trim()) {
-      createCollection.mutate({ title: newCollectionTitle });
-    }
-  };
-
   return (
-    <Sidebar>
-      <SidebarHeader className="border-b">
+    <Sidebar {...props}>
+      <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center justify-between px-2 py-1">
-              <SidebarGroupLabel className="text-lg font-semibold">
-                Collections
-              </SidebarGroupLabel>
-              <Dialog
-                open={isCreateDialogOpen}
-                onOpenChange={setIsCreateDialogOpen}
-              >
-                <DialogTrigger asChild>
-                  <Button size="icon-sm" variant="ghost">
-                    <Plus className="size-4" />
-                    <span className="sr-only">Add Collection</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create Collection</DialogTitle>
-                    <DialogDescription>
-                      Create a new collection to organize your items
-                    </DialogDescription>
-                  </DialogHeader>
-                  <Input
-                    placeholder="Collection title"
-                    value={newCollectionTitle}
-                    onChange={(e) => setNewCollectionTitle(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleCreateCollection();
-                      }
-                    }}
-                  />
-                  <DialogFooter>
-                    <Button
-                      onClick={handleCreateCollection}
-                      disabled={createCollection.isPending}
-                    >
-                      {createCollection.isPending ? "Creating..." : "Create"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
+            <SidebarMenuButton>
+              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                <NotebookTabs className="size-4" />
+              </div>
+              <p className="font-medium text-base">Dex</p>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-
       <SidebarContent>
         <SidebarGroup>
+          <SidebarGroupLabel>Collections</SidebarGroupLabel>
+          <SidebarGroupAction title="Add Collection">
+            <Plus /> <span className="sr-only">Add Collection</span>
+          </SidebarGroupAction>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => onCollectionSelect(null)}
-                  isActive={!selectedCollection}
-                >
-                  <FolderIcon className="size-4" />
-                  <span>All Items</span>
-                  <Badge variant="secondary" className="ml-auto">
-                    {allItemsCount}
-                  </Badge>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
               {isLoading ? (
-                <div className="px-4 py-2 text-sm text-muted-foreground">
-                  Loading collections...
-                </div>
+                <SidebarMenuItem>
+                  <SidebarMenuButton>
+                    <Loader2 className="animate-spin text-muted-foreground" />
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               ) : (
                 collections?.map((collection) => (
                   <SidebarMenuItem key={collection.id}>
-                    <SidebarMenuButton
-                      onClick={() => onCollectionSelect(collection.id)}
-                      isActive={selectedCollection === collection.id}
-                    >
-                      <FolderIcon className="size-4" />
-                      <span>{collection.title}</span>
-                      <Badge variant="secondary" className="ml-auto">
-                        {collection.itemCount}
-                      </Badge>
+                    <SidebarMenuButton asChild>
+                      <a href={`/dashboard/${collection.id}`}>
+                        {collection.title}
+                      </a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))
@@ -159,21 +67,12 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-
-      <SidebarFooter className="border-t">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <div className="flex items-center justify-between px-2 py-2">
-              <span className="text-sm text-muted-foreground truncate max-w-[160px]">
-                {session?.user?.email}
-              </span>
-              <Button onClick={handleSignOut} variant="ghost" size="sm">
-                Sign Out
-              </Button>
-            </div>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+      {session?.user && (
+        <SidebarFooter>
+          <NavUser user={session.user} />
+        </SidebarFooter>
+      )}
+      <SidebarRail />
     </Sidebar>
   );
 }
