@@ -13,11 +13,11 @@ import { Button } from "@repo/ui/components/ui/button";
 
 import { trpc } from "~/lib/trpc";
 
-export const AddCollectionDialogTrigger = ({
+export function AddCollectionDialogTrigger({
   children,
 }: {
   children: React.ReactNode;
-}) => {
+}) {
   const [newCollectionTitle, setNewCollectionTitle] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const utils = trpc.useUtils();
@@ -67,4 +67,4 @@ export const AddCollectionDialogTrigger = ({
       </DialogContent>
     </Dialog>
   );
-};
+}

@@ -1,12 +1,28 @@
+import { authClient } from "~/lib/auth-client";
+
+const getTimeBasedGreeting = () => {
+  const hour = new Date().getHours();
+
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+};
+
 export default function Dashboard() {
+  const greeting = getTimeBasedGreeting();
+  const { data: session } = authClient.useSession();
+  const firstName = session?.user.name?.split(" ")[0];
+
   return (
     <>
-      <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-        <div className="bg-muted/50 aspect-video rounded-xl" />
-        <div className="bg-muted/50 aspect-video rounded-xl" />
-        <div className="bg-muted/50 aspect-video rounded-xl" />
+      <div className="text-center space-y-1 mt-2">
+        <h1 className="text-3xl font-semibold">
+          {greeting}, {firstName}!
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Explore your collections, add items, search, anything!
+        </p>
       </div>
-      <div className="bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min" />
     </>
   );
 }
