@@ -1,5 +1,5 @@
 import { db } from "~/db/client";
-import { itemsTable, userItemsTable } from "~/db/schema";
+import { collectionItemsTable, itemsTable, userItemsTable } from "~/db/schema";
 import { eq, and, sql, getTableColumns } from "drizzle-orm";
 import { extractOpenGraphData, getOembedData } from "./utils/ogp";
 import { parseHtmlContent } from "./utils/html-parser";
@@ -14,6 +14,7 @@ export class ItemService {
     userId: string,
     data: {
       url: string;
+      collectionId?: string;
     },
   ) {
     const [ogp, oembed] = await Promise.all([
@@ -64,6 +65,14 @@ export class ItemService {
         itemId: item.id,
         role: "owner",
       });
+
+      // If collectionId is provided, add item to collection
+      if (data.collectionId) {
+        await tx.insert(collectionItemsTable).values({
+          collectionId: data.collectionId,
+          itemId: item.id,
+        });
+      }
 
       return item;
     });

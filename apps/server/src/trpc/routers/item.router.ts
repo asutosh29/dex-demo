@@ -19,7 +19,8 @@ export const itemRouter = router({
   create: protectedProcedure
     .input(
       z.object({
-        url: z.string().url(),
+        url: z.url(),
+        collectionId: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
