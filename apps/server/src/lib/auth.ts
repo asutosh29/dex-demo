@@ -6,7 +6,7 @@ import { trustedOrigins } from "~/lib/constants";
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:8787",
-  database: drizzleAdapter(db(), {
+  database: drizzleAdapter(db, {
     provider: "pg",
     schema,
   }),

@@ -11,7 +11,7 @@ export class CollectionService {
    * Create a new collection for a user
    */
   async createCollection(userId: string, title: string) {
-    const result = await db().transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       // Create collection
       const [collection] = await tx
         .insert(collectionsTable)
@@ -35,7 +35,7 @@ export class CollectionService {
    * Get all collections for a user
    */
   async getUserCollections(userId: string) {
-    const userCollections = await db().query.userCollectionsTable.findMany({
+    const userCollections = await db.query.userCollectionsTable.findMany({
       where: eq(userCollectionsTable.userId, userId),
       with: {
         collection: {
@@ -57,7 +57,7 @@ export class CollectionService {
    * Get a single collection with items
    */
   async getCollection(collectionId: string, userId: string) {
-    const userCollection = await db().query.userCollectionsTable.findFirst({
+    const userCollection = await db.query.userCollectionsTable.findFirst({
       where: and(
         eq(userCollectionsTable.collectionId, collectionId),
         eq(userCollectionsTable.userId, userId),
@@ -95,7 +95,7 @@ export class CollectionService {
     userId: string,
   ) {
     // Check user has access
-    const userCollection = await db().query.userCollectionsTable.findFirst({
+    const userCollection = await db.query.userCollectionsTable.findFirst({
       where: and(
         eq(userCollectionsTable.collectionId, collectionId),
         eq(userCollectionsTable.userId, userId),
@@ -107,7 +107,7 @@ export class CollectionService {
     }
 
     // Add item to collection
-    await db()
+    await db
       .insert(collectionItemsTable)
       .values({
         collectionId,
@@ -127,7 +127,7 @@ export class CollectionService {
     userId: string,
   ) {
     // Check user has access
-    const userCollection = await db().query.userCollectionsTable.findFirst({
+    const userCollection = await db.query.userCollectionsTable.findFirst({
       where: and(
         eq(userCollectionsTable.collectionId, collectionId),
         eq(userCollectionsTable.userId, userId),
@@ -138,7 +138,7 @@ export class CollectionService {
       throw new Error("Insufficient permissions");
     }
 
-    await db()
+    await db
       .delete(collectionItemsTable)
       .where(
         and(
@@ -155,7 +155,7 @@ export class CollectionService {
    */
   async deleteCollection(collectionId: string, userId: string) {
     // Check user is owner
-    const userCollection = await db().query.userCollectionsTable.findFirst({
+    const userCollection = await db.query.userCollectionsTable.findFirst({
       where: and(
         eq(userCollectionsTable.collectionId, collectionId),
         eq(userCollectionsTable.userId, userId),
@@ -166,7 +166,7 @@ export class CollectionService {
       throw new Error("Only owners can delete collections");
     }
 
-    await db()
+    await db
       .delete(collectionsTable)
       .where(eq(collectionsTable.id, collectionId));
 
@@ -178,7 +178,7 @@ export class CollectionService {
    */
   async updateCollection(collectionId: string, userId: string, title: string) {
     // Check user has access
-    const userCollection = await db().query.userCollectionsTable.findFirst({
+    const userCollection = await db.query.userCollectionsTable.findFirst({
       where: and(
         eq(userCollectionsTable.collectionId, collectionId),
         eq(userCollectionsTable.userId, userId),
@@ -189,7 +189,7 @@ export class CollectionService {
       throw new Error("Insufficient permissions");
     }
 
-    const [updated] = await db()
+    const [updated] = await db
       .update(collectionsTable)
       .set({ title })
       .where(eq(collectionsTable.id, collectionId))

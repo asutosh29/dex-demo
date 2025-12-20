@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { trpc } from "~/lib/trpc";
-import { CollectionCard, type CollectionItem } from "./collection-card";
+import { CollectionCard } from "./collection-card";
 import { CollectionEmptyState } from "./collection-empty-state";
 import { CollectionSkeleton } from "./collection-skeleton";
 
@@ -26,7 +26,7 @@ export function CollectionGrid({ collectionId }: { collectionId: string }) {
 
   return (
     <div className="flex flex-wrap gap-4">
-      {items.map((item: CollectionItem) => (
+      {items.map((item) => (
         <CollectionCard key={item.id} item={item} />
       ))}
     </div>

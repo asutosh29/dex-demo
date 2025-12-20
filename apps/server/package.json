@@ -3,7 +3,7 @@
   "type": "module",
   "exports": {
     "./trpc": {
-      "types": "./dist/trpc/index.d.ts",
+      "types": "./dist/src/trpc/index.d.ts",
       "default": "./src/trpc/index.ts"
     }
   },

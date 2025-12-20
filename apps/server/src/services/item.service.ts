@@ -1,6 +1,6 @@
 import { db } from "~/db/client";
 import { itemsTable, userItemsTable } from "~/db/schema";
-import { eq, and, or, sql, ilike } from "drizzle-orm";
+import { eq, and, sql, getTableColumns } from "drizzle-orm";
 import { extractOpenGraphData, getOembedData } from "./utils/ogp";
 import { parseHtmlContent } from "./utils/html-parser";
 import { WebpageTaggerAgent, WebpageTaggerAgentWithTitle } from "./agent/tag";
@@ -43,7 +43,7 @@ export class ItemService {
     const { title: agentTitle, tldr, tags } = agentData as AgentResponse;
     const title = ogp.title || agentTitle;
 
-    const res = await db().transaction(async (tx) => {
+    const res = await db.transaction(async (tx) => {
       // Create item
       const [item] = await tx
         .insert(itemsTable)
@@ -75,7 +75,7 @@ export class ItemService {
    * Get all items for a user
    */
   async getUserItems(userId: string) {
-    const items = await db().query.userItemsTable.findMany({
+    const items = await db.query.userItemsTable.findMany({
       where: eq(userItemsTable.userId, userId),
       with: {
         item: {
@@ -103,7 +103,7 @@ export class ItemService {
    * Get a single item
    */
   async getItem(itemId: string, userId: string) {
-    const userItem = await db().query.userItemsTable.findFirst({
+    const userItem = await db.query.userItemsTable.findFirst({
       where: and(
         eq(userItemsTable.itemId, itemId),
         eq(userItemsTable.userId, userId),
@@ -144,34 +144,21 @@ export class ItemService {
    * Search items by title, tldr, or tags
    */
   async searchItems(userId: string, query: string) {
-    // Get user's accessible items
-    const userItems = await db().query.userItemsTable.findMany({
-      where: eq(userItemsTable.userId, userId),
-      with: {
-        item: true,
-      },
-    });
-
-    const itemIds = userItems.map((ui) => ui.itemId);
-
-    if (itemIds.length === 0) return [];
-
-    // Search using full-text search
-    const items = await db()
-      .select()
+    const results = await db
+      .select(getTableColumns(itemsTable))
       .from(itemsTable)
+      .innerJoin(userItemsTable, eq(itemsTable.id, userItemsTable.itemId))
       .where(
         and(
-          sql`${itemsTable.id} = ANY(${itemIds})`,
-          or(
-            ilike(itemsTable.title, `%${query}%`),
-            ilike(itemsTable.tldr, `%${query}%`),
-            sql`${itemsTable.tags}::text ILIKE ${"%" + query + "%"}`,
-          ),
+          eq(userItemsTable.userId, userId),
+          sql`${itemsTable.searchVector} @@ plainto_tsquery('english', ${query})`,
         ),
+      )
+      .orderBy(
+        sql`ts_rank(${itemsTable.searchVector}, plainto_tsquery('english', ${query})) DESC`,
       );
 
-    return items;
+    return results;
   }
 
   /**
@@ -189,7 +176,7 @@ export class ItemService {
     },
   ) {
     // Check user is owner
-    const userItem = await db().query.userItemsTable.findFirst({
+    const userItem = await db.query.userItemsTable.findFirst({
       where: and(
         eq(userItemsTable.itemId, itemId),
         eq(userItemsTable.userId, userId),
@@ -200,7 +187,7 @@ export class ItemService {
       throw new Error("Only owners can edit items");
     }
 
-    const [updated] = await db()
+    const [updated] = await db
       .update(itemsTable)
       .set(data)
       .where(eq(itemsTable.id, itemId))
@@ -214,7 +201,7 @@ export class ItemService {
    */
   async deleteItem(itemId: string, userId: string) {
     // Check user is owner
-    const userItem = await db().query.userItemsTable.findFirst({
+    const userItem = await db.query.userItemsTable.findFirst({
       where: and(
         eq(userItemsTable.itemId, itemId),
         eq(userItemsTable.userId, userId),
@@ -225,7 +212,7 @@ export class ItemService {
       throw new Error("Only owners can delete items");
     }
 
-    await db().delete(itemsTable).where(eq(itemsTable.id, itemId));
+    await db.delete(itemsTable).where(eq(itemsTable.id, itemId));
 
     return { success: true };
   }
@@ -240,7 +227,7 @@ export class ItemService {
     role: "owner" | "viewer" = "viewer",
   ) {
     // Check current user is owner
-    const userItem = await db().query.userItemsTable.findFirst({
+    const userItem = await db.query.userItemsTable.findFirst({
       where: and(
         eq(userItemsTable.itemId, itemId),
         eq(userItemsTable.userId, ownerId),
@@ -251,7 +238,7 @@ export class ItemService {
       throw new Error("Only owners can share items");
     }
 
-    await db()
+    await db
       .insert(userItemsTable)
       .values({
         userId: targetUserId,
