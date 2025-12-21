@@ -24,33 +24,29 @@ export const AddItem = () => {
   const [url, setUrl] = useState("");
   const [open, setOpen] = useState(false);
 
-  const { mutateAsync: createItem } = trpc.items.create.useMutation();
-  const { mutateAsync: addItemToCollection } =
-    trpc.collections.addItem.useMutation();
+  const { mutate: createItem } = trpc.items.create.useMutation();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const loadingToast = toast.loading("Adding item...");
     setOpen(false);
 
-    try {
-      const item = await createItem({ url });
-      if (item) {
-        await addItemToCollection({
-          collectionId: collectionId!,
-          itemId: item.id,
-        });
-        await utils.collections.get.invalidate({ id: collectionId! });
-        await utils.collections.getAll.invalidate();
-        toast.dismiss(loadingToast);
-        toast.success("Item added successfully!");
-        setUrl("");
-      }
-    } catch (error) {
-      console.log(error);
-      toast.dismiss(loadingToast);
-      toast.error("Failed to add item. Please try again.");
-    }
+    createItem(
+      { url, collectionId: collectionId },
+      {
+        onSuccess: async () => {
+          await utils.collections.get.invalidate({ id: collectionId! });
+          toast.dismiss(loadingToast);
+          toast.success("Item added successfully!");
+          setUrl("");
+        },
+        onError: (error) => {
+          console.log(error);
+          toast.dismiss(loadingToast);
+          toast.error("Failed to add item. Please try again.");
+        },
+      },
+    );
   };
 
   return (

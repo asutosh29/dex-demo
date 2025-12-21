@@ -153,6 +153,13 @@ export class ItemService {
    * Search items by title, tldr, or tags
    */
   async searchItems(userId: string, query: string) {
+    // Format query for prefix matching - add :* to each word
+    const formattedQuery = query
+      .trim()
+      .split(/\s+/)
+      .map((word) => `${word}:*`)
+      .join(" & ");
+
     const results = await db
       .select(getTableColumns(itemsTable))
       .from(itemsTable)
@@ -160,11 +167,11 @@ export class ItemService {
       .where(
         and(
           eq(userItemsTable.userId, userId),
-          sql`${itemsTable.searchVector} @@ plainto_tsquery('english', ${query})`,
+          sql`${itemsTable.searchVector} @@ to_tsquery('english', ${formattedQuery})`,
         ),
       )
       .orderBy(
-        sql`ts_rank(${itemsTable.searchVector}, plainto_tsquery('english', ${query})) DESC`,
+        sql`ts_rank(${itemsTable.searchVector}, to_tsquery('english', ${formattedQuery})) DESC`,
       );
 
     return results;

@@ -2,6 +2,23 @@ import { OEmbedData, OpenGraphData, Provider } from "~/lib/types";
 import * as cheerio from "cheerio";
 import providers from "~/assets/oembed-providers.json";
 
+function extractGoogleDriveFileId(url: string): string | null {
+  // Match various Google Drive URL formats
+  const patterns = [
+    /\/file\/d\/([a-zA-Z0-9_-]+)/i,
+    /[?&]id=([a-zA-Z0-9_-]+)/i,
+    /\/folders\/([a-zA-Z0-9_-]+)/i,
+    /\/d\/([a-zA-Z0-9_-]+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) return match[1];
+  }
+
+  return null;
+}
+
 export async function extractOpenGraphData(
   url: string,
 ): Promise<OpenGraphData> {
@@ -23,6 +40,14 @@ export async function extractOpenGraphData(
       url: $('meta[property="og:url"]').attr("content") || url,
       type: $('meta[property="og:type"]').attr("content"),
     };
+
+    // Have to handle google drive separately
+    // TODO: Make a special cases handler
+    if (url.includes("drive.google.com")) {
+      const fileId = extractGoogleDriveFileId(url);
+      console.log("Extracted Google Drive file ID:", fileId);
+      ogp.image = `https://lh3.googleusercontent.com/d/${fileId}?authuser=0`;
+    }
 
     // Extract favicon
     let favicon =
@@ -79,6 +104,19 @@ export function matchUrlToProvider(
 }
 
 export async function getOembedData(url: string): Promise<OEmbedData | null> {
+  // Handle Google Drive separately, kinda ugly implementation, but works for now
+  // TODO: Make a special cases handler
+  if (url.includes("drive.google.com")) {
+    const fileId = extractGoogleDriveFileId(url);
+    if (fileId) {
+      return {
+        title: "Google Drive File",
+        provider_name: "Google Drive",
+        html: `<iframe src="https://drive.google.com/file/d/${fileId}/preview" width="640" height="720" allow="autoplay"></iframe>`,
+        description: "Embedded Google Drive file",
+      };
+    }
+  }
   const match = matchUrlToProvider(url);
   if (!match) return null;
 
