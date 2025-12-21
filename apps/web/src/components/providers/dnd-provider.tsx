@@ -8,10 +8,11 @@ import {
   type DragStartEvent,
   defaultDropAnimationSideEffects,
 } from "@dnd-kit/core";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "~/lib/trpc";
 import { toast } from "@repo/ui/components/ui/sonner";
-import { Globe } from "@repo/ui/icons";
+import { ArrowUpFromDotIcon, CopyIcon, Globe } from "@repo/ui/icons";
+import { Badge } from "@repo/ui/components/ui/badge";
 
 interface DraggedItem {
   id: string;
@@ -22,9 +23,33 @@ interface DraggedItem {
   collectionId: string;
 }
 
-function DragPreview({ item }: { item: DraggedItem }) {
+function DragPreview({
+  item,
+  isShiftPressed,
+}: {
+  item: DraggedItem;
+  isShiftPressed: boolean;
+}) {
   return (
-    <div className="max-w-64 rotate-2 bg-background/50 backdrop-blur-md shadow-2xl rounded-lg overflow-hidden">
+    <div className="max-w-64 rotate-5 bg-background/70 backdrop-blur-md shadow-2xl rounded-lg overflow-hidden relative">
+      <Badge
+        variant={"secondary"}
+        className="z-10 absolute top-2 left-2 flex items-center gap-1 px-2 py-1 text-xs"
+      >
+        <span className="animate-pulse flex items-center gap-1">
+          {isShiftPressed ? (
+            <>
+              <ArrowUpFromDotIcon className="size-3" />
+              Moving...
+            </>
+          ) : (
+            <>
+              <CopyIcon className="size-3" />
+              Copying...
+            </>
+          )}
+        </span>
+      </Badge>
       <div className="relative aspect-[16/9] bg-muted">
         {item.image ? (
           <img
@@ -60,8 +85,10 @@ function DragPreview({ item }: { item: DraggedItem }) {
 
 export function DndProvider({ children }: { children: React.ReactNode }) {
   const [activeItem, setActiveItem] = useState<DraggedItem | null>(null);
+  const [isShiftPressed, setIsShiftPressed] = useState(false);
   const utils = trpc.useUtils();
   const moveItemMutation = trpc.collections.moveItem.useMutation();
+  const copyItemMutation = trpc.collections.copyItem.useMutation();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -70,6 +97,29 @@ export function DndProvider({ children }: { children: React.ReactNode }) {
       },
     }),
   );
+
+  // Track shift key state
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Shift") {
+        setIsShiftPressed(true);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "Shift") {
+        setIsShiftPressed(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -104,9 +154,15 @@ export function DndProvider({ children }: { children: React.ReactNode }) {
       // Clear immediately to allow drop animation
       setActiveItem(null);
 
-      const loadingToast = toast.loading("Moving item...");
+      // Use shift key to determine copy vs move (default is copy)
+      const isMoving = isShiftPressed;
+      const loadingToast = toast.loading(
+        isMoving ? "Moving item..." : "Copying item...",
+      );
 
-      moveItemMutation.mutate(
+      const mutation = isMoving ? moveItemMutation : copyItemMutation;
+
+      mutation.mutate(
         {
           itemId,
           fromCollectionId,
@@ -118,13 +174,19 @@ export function DndProvider({ children }: { children: React.ReactNode }) {
             utils.collections.get.invalidate({ id: fromCollectionId });
             utils.collections.get.invalidate({ id: toCollectionId });
             toast.dismiss(loadingToast);
-            toast.success("Item moved successfully");
+            toast.success(
+              isMoving ? "Item moved successfully" : "Item copied successfully",
+            );
           },
           onError: (error) => {
-            console.error("Error moving item:", error);
+            console.error(
+              isMoving ? "Error moving item:" : "Error copying item:",
+              error,
+            );
             toast.dismiss(loadingToast);
             toast.error(
-              error?.message ?? "Failed to move item. Please try again.",
+              error?.message ??
+                `Failed to ${isMoving ? "move" : "copy"} item. Please try again.`,
             );
           },
         },
@@ -155,7 +217,9 @@ export function DndProvider({ children }: { children: React.ReactNode }) {
       {children}
 
       <DragOverlay dropAnimation={dropAnimation}>
-        {activeItem ? <DragPreview item={activeItem} /> : null}
+        {activeItem ? (
+          <DragPreview isShiftPressed={isShiftPressed} item={activeItem} />
+        ) : null}
       </DragOverlay>
     </DndContext>
   );

@@ -15,6 +15,7 @@ export enum Action {
 
   // Items
   ITEM_ADD = "item:add",
+  ITEM_COPY = "item:copy",
   ITEM_MOVE = "item:move",
   ITEM_DELETE_OWN = "item:delete_own",
   ITEM_DELETE_ANY = "item:delete_any",
@@ -34,6 +35,7 @@ export const RolePermissions: Record<Role, readonly Action[]> = {
     Action.COLLECTION_LEAVE,
 
     Action.ITEM_ADD,
+    Action.ITEM_COPY,
     Action.ITEM_DELETE_OWN,
   ],
 
@@ -44,6 +46,7 @@ export const RolePermissions: Record<Role, readonly Action[]> = {
     Action.COLLECTION_LEAVE,
 
     Action.ITEM_ADD,
+    Action.ITEM_COPY,
     Action.ITEM_DELETE_OWN,
 
     // admin-specific
@@ -65,6 +68,7 @@ export const RolePermissions: Record<Role, readonly Action[]> = {
     Action.COLLECTION_LEAVE,
 
     Action.ITEM_ADD,
+    Action.ITEM_COPY,
     Action.ITEM_DELETE_OWN,
     Action.ITEM_DELETE_ANY,
     Action.ITEM_SHARE,

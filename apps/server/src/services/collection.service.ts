@@ -198,6 +198,43 @@ export class CollectionService {
   }
 
   /**
+   * Copy item to another collection
+   */
+  async copyItemToCollection(
+    itemId: string,
+    fromCollectionId: string,
+    toCollectionId: string,
+    userId: string,
+  ) {
+    // Check permissions: need ITEM_COPY on source and ITEM_ADD on target
+    const fromActor = await getActor(userId, fromCollectionId);
+    const toActor = await getActor(userId, toCollectionId);
+
+    assertCan(fromActor, Action.ITEM_COPY);
+    assertCan(toActor, Action.ITEM_ADD);
+
+    // Check if item already exists in target collection
+    const existing = await db.query.collectionItemsTable.findFirst({
+      where: and(
+        eq(collectionItemsTable.collectionId, toCollectionId),
+        eq(collectionItemsTable.itemId, itemId),
+      ),
+    });
+
+    if (existing) {
+      throw new Error("Item already exists in target collection");
+    }
+
+    // Add item to target collection (creates new relationship)
+    await db.insert(collectionItemsTable).values({
+      collectionId: toCollectionId,
+      itemId,
+    });
+
+    return { success: true };
+  }
+
+  /**
    * Move item from one collection to another
    */
   async moveItemBetweenCollections(
@@ -212,6 +249,18 @@ export class CollectionService {
 
     assertCan(fromActor, Action.ITEM_MOVE);
     assertCan(toActor, Action.ITEM_ADD);
+
+    // Check if item already exists in target collection
+    const existing = await db.query.collectionItemsTable.findFirst({
+      where: and(
+        eq(collectionItemsTable.collectionId, toCollectionId),
+        eq(collectionItemsTable.itemId, itemId),
+      ),
+    });
+
+    if (existing) {
+      throw new Error("Item already exists in target collection");
+    }
 
     // Perform the move in a transaction
     await db.transaction(async (tx) => {

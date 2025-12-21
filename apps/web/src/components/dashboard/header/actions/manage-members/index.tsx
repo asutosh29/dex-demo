@@ -7,8 +7,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@repo/ui/components/ui/dialog";
+import { Kbd } from "@repo/ui/components/ui/kbd";
 import { Users } from "@repo/ui/icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { trpc } from "~/lib/trpc";
 import { MemberManagementContent } from "./member-management-content";
@@ -24,13 +25,34 @@ export function ManageMembers() {
   // Show button for all members (members can view, admin/owner can manage)
   const canView = !!currentCollection?.role;
 
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "m" && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
+        // Only trigger if not in an input/textarea
+        const target = e.target as HTMLElement;
+        if (
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+        e.preventDefault();
+        setOpen(!open);
+      }
+    };
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, [open]);
+
   if (!canView || !collectionId) return null;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon">
+        <Button variant="outline">
           <Users className="h-4 w-4" />
+          <Kbd className="ml-1">M</Kbd>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -42,7 +64,7 @@ export function ManageMembers() {
         </DialogHeader>
         <MemberManagementContent
           collectionId={collectionId}
-          currentUserRole={currentCollection?.role!}
+          currentUserRole={currentCollection?.role}
         />
       </DialogContent>
     </Dialog>

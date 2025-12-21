@@ -88,7 +88,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Private Collections</SidebarGroupLabel>
+          <SidebarGroupLabel>Private</SidebarGroupLabel>
           <AddCollectionDialogTrigger>
             <SidebarGroupAction title="Add Collection">
               <Plus /> <span className="sr-only">Add Collection</span>
@@ -117,7 +117,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
         {sharedCollections.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>Shared with Me</SidebarGroupLabel>
+            <SidebarGroupLabel>Shared</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {sharedCollections.map((collection) => (
