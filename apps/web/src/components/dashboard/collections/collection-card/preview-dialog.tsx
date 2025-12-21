@@ -10,36 +10,35 @@ import { Badge } from "@repo/ui/components/ui/badge";
 import type { CollectionItem } from ".";
 import { trpc } from "~/lib/trpc";
 
-interface PreviewDialogProps extends CollectionItem {
+interface PreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  url: string;
+  item: CollectionItem;
 }
 
 export default function PreviewDialog({
   open,
   onOpenChange,
-  title,
-  url,
-  image,
-  favicon,
-  tldr,
-  tags,
+  item,
 }: PreviewDialogProps) {
   const { data: oembedData, isLoading: isLoadingEmbed } =
-    trpc.ogp.getOembed.useQuery({ url }, { enabled: !!url });
+    trpc.ogp.getOembed.useQuery({ url: item.url }, { enabled: !!item.url });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex flex-col max-w-none! w-[80vw] ">
         <DialogHeader>
           <DialogTitle className="flex items-center truncate w-[72ch] truncate-ellipsis">
-            {favicon ? (
-              <img src={favicon} alt="favicon" className="inline size-5 mr-2" />
+            {item.favicon ? (
+              <img
+                src={item.favicon}
+                alt="favicon"
+                className="inline size-5 mr-2"
+              />
             ) : (
               <GlobeIcon className="inline size-5 mr-2 text-muted-foreground" />
             )}{" "}
-            {title || url}
+            {item.title || item.url}
           </DialogTitle>
         </DialogHeader>
 
@@ -54,10 +53,10 @@ export default function PreviewDialog({
                 html={oembedData!.html}
                 className="max-h-full *:my-auto"
               />
-            ) : image ? (
+            ) : item.image ? (
               <img
-                src={image}
-                alt={title || "Preview Image"}
+                src={item.image}
+                alt={item.title || "Preview Image"}
                 className="max-w-full max-h-full object-contain rounded-lg"
               />
             ) : (
@@ -71,11 +70,11 @@ export default function PreviewDialog({
 
           <div className="basis-2/7 w-full overflow-y-auto">
             <h3 className="font-semibold mb-2">TL;DR</h3>
-            <p className="mb-4 text-sm">{tldr}</p>
+            <p className="mb-4 text-sm">{item.tldr}</p>
 
             <h3 className="font-semibold mb-2">Tags</h3>
             <div className="flex flex-row gap-2 flex-wrap">
-              {tags?.map((tag, index) => (
+              {item.tags?.map((tag, index) => (
                 <Badge key={index} variant={"secondary"}>
                   {tag}
                 </Badge>

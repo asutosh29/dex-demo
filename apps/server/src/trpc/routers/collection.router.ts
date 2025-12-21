@@ -81,4 +81,22 @@ export const collectionRouter = router({
         ctx.user.id,
       );
     }),
+
+  // Move item between collections
+  moveItem: protectedProcedure
+    .input(
+      z.object({
+        itemId: z.string(),
+        fromCollectionId: z.string(),
+        toCollectionId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      return await collectionService.moveItemBetweenCollections(
+        input.itemId,
+        input.fromCollectionId,
+        input.toCollectionId,
+        ctx.user.id,
+      );
+    }),
 });

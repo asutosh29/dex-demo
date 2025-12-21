@@ -20,6 +20,44 @@ import { trpc } from "~/lib/trpc";
 import { authClient } from "~/lib/auth-client";
 import { AddCollectionDialogTrigger } from "./add-collection-dialog";
 import { Link, useLocation } from "react-router-dom";
+import { useDroppable } from "@dnd-kit/core";
+import { cn } from "@repo/ui/lib/utils";
+
+function CollectionMenuItem({
+  collection,
+  isActive,
+}: {
+  collection: { id: string; title: string };
+  isActive: boolean;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: collection.id,
+    data: {
+      type: "collection",
+      collection,
+    },
+  });
+
+  return (
+    <SidebarMenuItem ref={setNodeRef}>
+      <SidebarMenuButton
+        isActive={isActive}
+        asChild
+        className={cn(
+          "transition-all",
+          isOver && "animate-pulse bg-secondary border-b-1",
+        )}
+      >
+        <Link to={`/dashboard/${collection.id}`}>
+          <span>
+            <Hash className="size-4" />
+          </span>
+          {collection.title}
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session } = authClient.useSession();
@@ -55,21 +93,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </SidebarMenuItem>
               ) : (
                 collections?.map((collection) => (
-                  <SidebarMenuItem key={collection.id}>
-                    <SidebarMenuButton
-                      isActive={pathname.includes(
-                        `/dashboard/${collection.id}`,
-                      )}
-                      asChild
-                    >
-                      <Link to={`/dashboard/${collection.id}`}>
-                        <span>
-                          <Hash className="size-4" />
-                        </span>
-                        {collection.title}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  <CollectionMenuItem
+                    key={collection.id}
+                    collection={collection}
+                    isActive={pathname.includes(`/dashboard/${collection.id}`)}
+                  />
                 ))
               )}
             </SidebarMenu>

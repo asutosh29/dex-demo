@@ -197,6 +197,32 @@ export class CollectionService {
 
     return updated;
   }
+
+  /**
+   * Move item from one collection to another
+   */
+  async moveItemBetweenCollections(
+    itemId: string,
+    fromCollectionId: string,
+    toCollectionId: string,
+    userId: string,
+  ) {
+    // Perform the move in a transaction
+    await db.transaction(async (tx) => {
+      // Update the collection ID for the item
+      await tx
+        .update(collectionItemsTable)
+        .set({ collectionId: toCollectionId })
+        .where(
+          and(
+            eq(collectionItemsTable.collectionId, fromCollectionId),
+            eq(collectionItemsTable.itemId, itemId),
+          ),
+        );
+    });
+
+    return { success: true };
+  }
 }
 
 export const collectionService = new CollectionService();

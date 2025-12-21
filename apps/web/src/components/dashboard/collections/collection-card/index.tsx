@@ -2,18 +2,51 @@ import { Globe } from "@repo/ui/icons";
 import { useState } from "react";
 import PreviewDialog from "./preview-dialog";
 import type { RouterOutputs } from "~/lib/trpc";
+import { useDraggable } from "@dnd-kit/core";
+import { cn } from "@repo/ui/lib/utils";
 
 export type CollectionItem =
   RouterOutputs["collections"]["get"]["items"][number];
 
-export function CollectionCard({ item }: { item: CollectionItem }) {
+interface CollectionCardProps {
+  item: CollectionItem;
+  collectionId: string;
+  className?: string;
+}
+
+export function CollectionCard({
+  item,
+  collectionId,
+  className,
+}: CollectionCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const { attributes, listeners, setNodeRef, isDragging, active } =
+    useDraggable({
+      id: item.id,
+      data: {
+        type: "item",
+        item,
+        collectionId,
+      },
+    });
 
   return (
     <>
       <div
-        className="rounded-lg space-y-3 p-1 cursor-pointer group transition-colors w-full sm:w-[calc(50%-0.75rem)] xl:w-[calc(33.333%-1rem)] flex-shrink-0"
-        onClick={() => setDialogOpen(true)}
+        ref={setNodeRef}
+        {...attributes}
+        {...listeners}
+        className={cn(
+          "group w-full flex-shrink-0 rounded-lg bg-card p-1 space-y-3",
+          "cursor-grab active:cursor-grabbing transition-colors",
+          (isDragging || active?.id === item.id) && "opacity-50",
+          className,
+        )}
+        onClick={() => {
+          if (!isDragging) {
+            setDialogOpen(true);
+          }
+        }}
       >
         <div className="relative w-full aspect-[16/9] rounded-md overflow-hidden">
           {item.image ? (
@@ -46,7 +79,11 @@ export function CollectionCard({ item }: { item: CollectionItem }) {
         </div>
       </div>
 
-      <PreviewDialog open={dialogOpen} onOpenChange={setDialogOpen} {...item} />
+      <PreviewDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        item={item}
+      />
     </>
   );
 }

@@ -10,27 +10,30 @@ import {
   CollectionBreadcrumbs,
   HeaderActions,
 } from "~/components/dashboard/header";
+import { DndProvider } from "~/components/providers/dnd-provider";
 
 export default function DashboardLayout() {
   return (
-    <SidebarProvider>
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator
-            orientation="vertical"
-            className="mr-2 data-[orientation=vertical]:h-4"
-          />
-          <CollectionBreadcrumbs />
-          <div className="ml-auto">
-            <HeaderActions />
+    <DndProvider>
+      <SidebarProvider>
+        <AppSidebar variant="inset" />
+        <SidebarInset>
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator
+              orientation="vertical"
+              className="mr-2 data-[orientation=vertical]:h-4"
+            />
+            <CollectionBreadcrumbs />
+            <div className="ml-auto">
+              <HeaderActions />
+            </div>
+          </header>
+          <div className="flex flex-1 flex-col gap-4 p-4">
+            <Outlet />
           </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">
-          <Outlet />
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </SidebarInset>
+      </SidebarProvider>
+    </DndProvider>
   );
 }
