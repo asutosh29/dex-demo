@@ -27,12 +27,7 @@ export function CollectionGrid({ collectionId }: { collectionId: string }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {items.map((item) => (
-        <CollectionCard
-          className="basis-1/3 p-2"
-          key={item.id}
-          item={item}
-          collectionId={collectionId}
-        />
+        <CollectionCard key={item.id} item={item} collectionId={collectionId} />
       ))}
     </div>
   );

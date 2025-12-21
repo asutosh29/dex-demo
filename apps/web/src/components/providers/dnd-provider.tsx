@@ -24,7 +24,7 @@ interface DraggedItem {
 
 function DragPreview({ item }: { item: DraggedItem }) {
   return (
-    <div className="max-w-64 rotate-2 bg-background backdrop-blur-md shadow-2xl rounded-lg overflow-hidden">
+    <div className="max-w-64 rotate-2 bg-background/50 backdrop-blur-md shadow-2xl rounded-lg overflow-hidden">
       <div className="relative aspect-[16/9] bg-muted">
         {item.image ? (
           <img

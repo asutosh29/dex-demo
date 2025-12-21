@@ -7,10 +7,11 @@ import {
 } from "@repo/ui/components/ui/popover";
 import { Label } from "@repo/ui/components/ui/label";
 import { Input } from "@repo/ui/components/ui/input";
+import { Kbd } from "@repo/ui/components/ui/kbd";
 import { toast } from "@repo/ui/components/ui/sonner";
 import { useParams } from "react-router-dom";
 import { trpc } from "~/lib/trpc";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export const AddItem = () => {
   const { collectionId } = useParams();
@@ -25,6 +26,26 @@ export const AddItem = () => {
   const [open, setOpen] = useState(false);
 
   const { mutate: createItem } = trpc.items.create.useMutation();
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "a" && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
+        // Only trigger if not in an input/textarea
+        const target = e.target as HTMLElement;
+        if (
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+        e.preventDefault();
+        setOpen(!open);
+      }
+    };
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -52,8 +73,9 @@ export const AddItem = () => {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button disabled={!collectionId} size={"icon"} variant={"outline"}>
+        <Button disabled={!collectionId} variant={"outline"}>
           <BookmarkPlus />
+          <Kbd className="ml-1">A</Kbd>
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={2} className="w-80">

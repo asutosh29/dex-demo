@@ -87,16 +87,9 @@ export function Search() {
             <CommandGroup
               heading={`${results.length} result${results.length !== 1 ? "s" : ""}`}
             >
-              <div className="flex flex-row gap-2 flex-wrap">
+              <div className="grid grid-cols-2 gap-3 p-2">
                 {results.map((item) => (
-                  <CommandItem
-                    asChild
-                    key={item.id}
-                    value={item.title}
-                    onSelect={() => {
-                      setOpen(false);
-                    }}
-                  >
+                  <CommandItem key={item.id} value={item.title}>
                     <CollectionCard item={item} />
                   </CommandItem>
                 ))}

@@ -10,7 +10,7 @@ export type CollectionItem =
 
 interface CollectionCardProps {
   item: CollectionItem;
-  collectionId: string;
+  collectionId?: string;
   className?: string;
 }
 
@@ -28,18 +28,22 @@ export function CollectionCard({
         item,
         collectionId,
       },
+      disabled: !collectionId,
     });
 
   return (
     <>
       <div
-        ref={setNodeRef}
-        {...attributes}
-        {...listeners}
+        ref={collectionId ? setNodeRef : undefined}
+        {...(collectionId ? attributes : {})}
+        {...(collectionId ? listeners : {})}
         className={cn(
           "group w-full flex-shrink-0 rounded-lg bg-card p-1 space-y-3",
-          "cursor-grab active:cursor-grabbing transition-colors",
-          (isDragging || active?.id === item.id) && "opacity-50",
+          collectionId && "cursor-grab active:cursor-grabbing",
+          "transition-all duration-200 ease-in-out",
+          collectionId &&
+            (isDragging || active?.id === item.id) &&
+            "opacity-50 scale-95",
           className,
         )}
         onClick={() => {

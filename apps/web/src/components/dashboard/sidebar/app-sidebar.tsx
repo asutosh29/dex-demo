@@ -43,12 +43,12 @@ function CollectionMenuItem({
       <SidebarMenuButton
         isActive={isActive}
         asChild
-        className={cn(
-          "transition-all",
-          isOver && "animate-pulse bg-secondary border-b-1",
-        )}
+        className={cn("transition-all", isOver && "bg-secondary border-b-1")}
       >
-        <Link to={`/dashboard/${collection.id}`}>
+        <Link
+          to={`/dashboard/${collection.id}`}
+          className={cn(isOver && "animate-pulse")}
+        >
           <span>
             <Hash className="size-4" />
           </span>
