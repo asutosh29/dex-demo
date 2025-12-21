@@ -1,19 +1,10 @@
 import { Globe } from "@repo/ui/icons";
 import { useState } from "react";
 import PreviewDialog from "./preview-dialog";
+import type { RouterOutputs } from "~/lib/trpc";
 
-export type CollectionItem = {
-  id: string;
-  type: "link";
-  title: string;
-  url: string;
-  image: string | null;
-  favicon: string | null;
-  tldr: string;
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
-};
+export type CollectionItem =
+  RouterOutputs["collections"]["get"]["items"][number];
 
 export function CollectionCard({ item }: { item: CollectionItem }) {
   const [dialogOpen, setDialogOpen] = useState(false);
