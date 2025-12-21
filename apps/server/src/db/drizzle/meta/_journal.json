@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1765875169798,
-      "tag": "0000_yielding_killer_shrike",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1765994335548,
-      "tag": "0001_lumpy_hawkeye",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1766053453905,
-      "tag": "0002_icy_iron_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1766053582404,
-      "tag": "0003_dark_big_bertha",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1766053629648,
-      "tag": "0004_breezy_vance_astro",
+      "when": 1766357829983,
+      "tag": "0000_stiff_xavin",
       "breakpoints": true
     }
   ]
