@@ -22,9 +22,7 @@ export const userCollectionsTable = pgTable(
     role: collectionAccessRoleEnum().default("member").notNull(),
     ...timestamps,
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.userId, table.collectionId] }),
-  }),
+  (table) => [primaryKey({ columns: [table.userId, table.collectionId] })],
 );
 
 export const userCollectionsRelations = relations(

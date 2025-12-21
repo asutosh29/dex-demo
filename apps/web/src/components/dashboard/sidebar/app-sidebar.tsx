@@ -63,6 +63,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session } = authClient.useSession();
   const { data: collections, isLoading } = trpc.collections.getAll.useQuery();
   const { pathname } = useLocation();
+
+  const privateCollections = React.useMemo(
+    () => collections?.filter((c) => !c.isShared) ?? [],
+    [collections],
+  );
+
+  const sharedCollections = React.useMemo(
+    () => collections?.filter((c) => c.isShared) ?? [],
+    [collections],
+  );
+
   return (
     <Sidebar {...props}>
       <SidebarHeader>
@@ -77,7 +88,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Collections</SidebarGroupLabel>
+          <SidebarGroupLabel>Private Collections</SidebarGroupLabel>
           <AddCollectionDialogTrigger>
             <SidebarGroupAction title="Add Collection">
               <Plus /> <span className="sr-only">Add Collection</span>
@@ -92,7 +103,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ) : (
-                collections?.map((collection) => (
+                privateCollections.map((collection) => (
                   <CollectionMenuItem
                     key={collection.id}
                     collection={collection}
@@ -103,6 +114,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {sharedCollections.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Shared with Me</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {sharedCollections.map((collection) => (
+                  <CollectionMenuItem
+                    key={collection.id}
+                    collection={collection}
+                    isActive={pathname.includes(`/dashboard/${collection.id}`)}
+                  />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       {session?.user && (
         <SidebarFooter>

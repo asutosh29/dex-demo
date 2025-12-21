@@ -3,8 +3,10 @@ import {
   collectionsTable,
   collectionItemsTable,
   userCollectionsTable,
+  itemsTable,
 } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
+import { getActor, assertCan, Action } from "./rbac";
 
 export class CollectionService {
   /**
@@ -41,6 +43,7 @@ export class CollectionService {
         collection: {
           with: {
             items: true,
+            users: true,
           },
         },
       },
@@ -50,6 +53,8 @@ export class CollectionService {
       ...uc.collection,
       role: uc.role,
       itemCount: uc.collection.items.length,
+      memberCount: uc.collection.users.length,
+      isShared: uc.collection.users.length > 1,
     }));
   }
 
@@ -94,17 +99,8 @@ export class CollectionService {
     itemId: string,
     userId: string,
   ) {
-    // Check user has access
-    const userCollection = await db.query.userCollectionsTable.findFirst({
-      where: and(
-        eq(userCollectionsTable.collectionId, collectionId),
-        eq(userCollectionsTable.userId, userId),
-      ),
-    });
-
-    if (!userCollection || userCollection.role === "member") {
-      throw new Error("Insufficient permissions");
-    }
+    const actor = await getActor(userId, collectionId);
+    assertCan(actor, Action.ITEM_ADD);
 
     // Add item to collection
     await db
@@ -126,18 +122,30 @@ export class CollectionService {
     itemId: string,
     userId: string,
   ) {
-    // Check user has access
-    const userCollection = await db.query.userCollectionsTable.findFirst({
-      where: and(
-        eq(userCollectionsTable.collectionId, collectionId),
-        eq(userCollectionsTable.userId, userId),
-      ),
+    const actor = await getActor(userId, collectionId);
+
+    // Get item details to check creator
+    const item = await db.query.itemsTable.findFirst({
+      where: eq(itemsTable.id, itemId),
+      with: {
+        collections: true, // All collections this item is in
+      },
     });
 
-    if (!userCollection || userCollection.role === "member") {
-      throw new Error("Insufficient permissions");
+    if (!item) {
+      throw new Error("Item not found");
     }
 
+    // Check permissions: creator can delete own, admins can delete any
+    const isCreator = item.creatorId === userId;
+
+    if (isCreator) {
+      assertCan(actor, Action.ITEM_DELETE_OWN);
+    } else {
+      assertCan(actor, Action.ITEM_DELETE_ANY); // Admin+ only
+    }
+
+    // Remove from collection
     await db
       .delete(collectionItemsTable)
       .where(
@@ -147,6 +155,15 @@ export class CollectionService {
         ),
       );
 
+    // If item no longer in any collection, delete completely
+    const remainingCollections = item.collections.filter(
+      (ci) => ci.collectionId !== collectionId,
+    );
+
+    if (remainingCollections.length === 0) {
+      await db.delete(itemsTable).where(eq(itemsTable.id, itemId));
+    }
+
     return { success: true };
   }
 
@@ -154,17 +171,8 @@ export class CollectionService {
    * Delete a collection
    */
   async deleteCollection(collectionId: string, userId: string) {
-    // Check user is owner
-    const userCollection = await db.query.userCollectionsTable.findFirst({
-      where: and(
-        eq(userCollectionsTable.collectionId, collectionId),
-        eq(userCollectionsTable.userId, userId),
-      ),
-    });
-
-    if (!userCollection || userCollection.role !== "owner") {
-      throw new Error("Only owners can delete collections");
-    }
+    const actor = await getActor(userId, collectionId);
+    assertCan(actor, Action.COLLECTION_CHANGE_ROLES); // Owner-only
 
     await db
       .delete(collectionsTable)
@@ -177,17 +185,8 @@ export class CollectionService {
    * Update collection title
    */
   async updateCollection(collectionId: string, userId: string, title: string) {
-    // Check user has access
-    const userCollection = await db.query.userCollectionsTable.findFirst({
-      where: and(
-        eq(userCollectionsTable.collectionId, collectionId),
-        eq(userCollectionsTable.userId, userId),
-      ),
-    });
-
-    if (!userCollection || userCollection.role === "member") {
-      throw new Error("Insufficient permissions");
-    }
+    const actor = await getActor(userId, collectionId);
+    assertCan(actor, Action.COLLECTION_UPDATE);
 
     const [updated] = await db
       .update(collectionsTable)
@@ -207,6 +206,13 @@ export class CollectionService {
     toCollectionId: string,
     userId: string,
   ) {
+    // Check permissions on BOTH collections
+    const fromActor = await getActor(userId, fromCollectionId);
+    const toActor = await getActor(userId, toCollectionId);
+
+    assertCan(fromActor, Action.ITEM_MOVE);
+    assertCan(toActor, Action.ITEM_ADD);
+
     // Perform the move in a transaction
     await db.transaction(async (tx) => {
       // Update the collection ID for the item
