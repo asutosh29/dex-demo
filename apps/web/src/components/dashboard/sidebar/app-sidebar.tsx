@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@repo/ui/components/ui/sidebar";
-import { Hash, Hexagon, Loader2, Plus } from "@repo/ui/icons";
+import { DexLogo, Hash, Loader2, Plus } from "@repo/ui/icons";
 import { NavUser } from "./nav-user";
 import { trpc } from "~/lib/trpc";
 import { authClient } from "~/lib/auth-client";
@@ -31,9 +31,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton>
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-6 items-center justify-center rounded-lg">
-                <Hexagon className="size-4" />
-              </div>
+              <DexLogo className="size-6" />
               <p className="font-medium text-base">Dex</p>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -12,7 +12,7 @@
     ],
     "./components/*": "./src/components/*.tsx",
     "./postcss.config": "./postcss.config.mjs",
-    "./icons": "./src/icons.ts"
+    "./icons": "./src/icons/index.ts"
   },
   "scripts": {
     "ui-add": "pnpm dlx shadcn@latest add"
