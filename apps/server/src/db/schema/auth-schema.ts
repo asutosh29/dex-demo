@@ -6,7 +6,13 @@ import {
   boolean,
   integer,
   index,
+  pgEnum,
 } from "drizzle-orm/pg-core";
+
+export const apiKeyModeEnum = pgEnum("api_key_mode", [
+  "full_access",
+  "collection_specific",
+]);
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -91,6 +97,7 @@ export const apikey = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    mode: apiKeyModeEnum("mode").notNull().default("collection_specific"),
     refillInterval: integer("refill_interval"),
     refillAmount: integer("refill_amount"),
     lastRefillAt: timestamp("last_refill_at"),

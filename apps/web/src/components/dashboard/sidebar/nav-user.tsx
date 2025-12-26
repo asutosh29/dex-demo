@@ -1,4 +1,4 @@
-import { ChevronsUpDown, LogOut } from "@repo/ui/icons";
+import { ChevronsUpDown, LogOut, Key } from "@repo/ui/icons";
 import {
   Avatar,
   AvatarFallback,
@@ -74,6 +74,10 @@ export function NavUser({ user }: { user: User }) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate("/dashboard/api-keys")}>
+              <Key />
+              API Keys
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={handleSignOut}>
               <LogOut />
               Log out

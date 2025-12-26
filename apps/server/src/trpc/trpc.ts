@@ -10,6 +10,7 @@ export async function createContext(opts: FetchCreateContextFnOptions) {
   return {
     session,
     user: session?.user,
+    headers: opts.req.headers,
   };
 }
 

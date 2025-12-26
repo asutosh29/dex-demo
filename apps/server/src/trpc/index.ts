@@ -4,6 +4,7 @@ import { collectionRouter } from "./routers/collection.router";
 import { collectionAccessRouter } from "./routers/collection-access.router";
 import { userRouter } from "./routers/user.router";
 import { ogpRouter } from "./routers/ogp.router";
+import { apiKeyRouter } from "./routers/api-key.router";
 
 export const appRouter = router({
   items: itemRouter,
@@ -11,6 +12,7 @@ export const appRouter = router({
   collectionAccess: collectionAccessRouter,
   users: userRouter,
   ogp: ogpRouter,
+  apiKeys: apiKeyRouter,
 });
 
 export { createContext } from "./trpc";

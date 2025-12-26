@@ -1,9 +1,19 @@
-import { Globe } from "@repo/ui/icons";
+import { Globe, MoreHorizontal, MoreVertical, Trash2 } from "@repo/ui/icons";
 import { useState } from "react";
 import PreviewDialog from "./preview-dialog";
 import type { RouterOutputs } from "~/lib/trpc";
 import { useDraggable } from "@dnd-kit/core";
 import { cn } from "@repo/ui/lib/utils";
+import { Button } from "@repo/ui/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@repo/ui/components/ui/dropdown-menu";
+import { trpc } from "~/lib/trpc";
+import { toast } from "@repo/ui/components/ui/sonner";
+import { authClient } from "~/lib/auth-client";
 
 export type CollectionItem =
   RouterOutputs["collections"]["get"]["items"][number];
@@ -31,6 +41,27 @@ export function CollectionCard({
       disabled: !collectionId,
     });
 
+  const utils = trpc.useUtils();
+
+  const deleteMutation = trpc.collections.removeItem.useMutation({
+    onSuccess: () => {
+      utils.collections.get.invalidate({ id: collectionId! });
+      toast.success("Item deleted successfully");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to delete item");
+    },
+  });
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    deleteMutation.mutate({
+      collectionId: collectionId!,
+      itemId: item.id,
+    });
+  };
+
   return (
     <>
       <div
@@ -53,6 +84,33 @@ export function CollectionCard({
         }}
       >
         <div className="relative w-full aspect-[16/9] rounded-md overflow-hidden">
+          {collectionId && (
+            <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  asChild
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="size-8 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem
+                    onClick={handleDelete}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
           {item.image ? (
             <img
               src={item.image || item.favicon || "/placeholder.png"}

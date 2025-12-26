@@ -3,12 +3,7 @@ import { relations } from "drizzle-orm";
 import { collectionsTable } from "../collection-schema";
 import { user } from "../auth-schema";
 import { timestamps } from "../helpers/timestamp-schema";
-
-export const collectionAccessRoleEnum = pgEnum("collection_access_role", [
-  "owner",
-  "admin",
-  "member",
-]);
+import { collectionAccessRoleEnum } from "../helpers/access-enums-schema";
 
 export const userCollectionsTable = pgTable(
   "user_collections",

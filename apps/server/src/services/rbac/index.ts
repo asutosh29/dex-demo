@@ -1,11 +1,17 @@
-import { collectionAccessRoleEnum, userCollectionsTable } from "~/db/schema";
+import {
+  collectionAccessRoleEnum,
+  userCollectionsTable,
+  apiKeyModeEnum,
+} from "~/db/schema";
 import { db } from "~/db/client";
 import { and, eq } from "drizzle-orm";
 
 export type Role = (typeof collectionAccessRoleEnum.enumValues)[number];
+export type ApiKeyMode = (typeof apiKeyModeEnum.enumValues)[number];
 
 export enum Action {
   // Collection
+  COLLECTION_CREATE = "collection:create",
   COLLECTION_READ = "collection:read",
   COLLECTION_UPDATE = "collection:update",
   COLLECTION_VIEW_MEMBERS = "collection:view_members",
@@ -20,13 +26,27 @@ export enum Action {
   ITEM_DELETE_OWN = "item:delete_own",
   ITEM_DELETE_ANY = "item:delete_any",
   ITEM_SHARE = "item:share",
+  ITEM_SEARCH = "item:search",
 
   // API keys (collection-scoped)
   // TODO: implement these after shared collections
-  //   API_KEY_ADD_COLLECTION_ACCESS = "api_key:add_collection_access",
-  //   API_KEY_REMOVE_COLLECTION_ACCESS = "api_key:remove_collection_access",
-  //   API_KEY_CONFIGURE_ACCESS_SCOPE = "api_key:configure_access_scope",
+  API_KEY_ADD_COLLECTION_ACCESS = "api_key:add_collection_access",
+  API_KEY_REMOVE_COLLECTION_ACCESS = "api_key:remove_collection_access",
+  API_KEY_CONFIGURE_ACCESS_SCOPE = "api_key:configure_access_scope",
 }
+
+// API Key specific permissions
+export const ApiKeyPermissions = {
+  // Permissions for collection_specific mode when granted access to a collection
+  COLLECTION_SPECIFIC: [
+    Action.COLLECTION_READ,
+    Action.ITEM_ADD,
+    Action.COLLECTION_VIEW_MEMBERS,
+  ] as const,
+
+  // Permissions for full_access mode (inherits all collections + create)
+  FULL_ACCESS: [Action.COLLECTION_CREATE, Action.ITEM_SEARCH] as const,
+} as const;
 
 export const RolePermissions: Record<Role, readonly Action[]> = {
   member: [
@@ -57,8 +77,8 @@ export const RolePermissions: Record<Role, readonly Action[]> = {
 
     Action.COLLECTION_CHANGE_ROLES,
 
-    // Action.API_KEY_ADD_COLLECTION_ACCESS,
-    // Action.API_KEY_REMOVE_COLLECTION_ACCESS,
+    Action.API_KEY_ADD_COLLECTION_ACCESS,
+    Action.API_KEY_REMOVE_COLLECTION_ACCESS,
   ],
 
   owner: [
@@ -77,12 +97,12 @@ export const RolePermissions: Record<Role, readonly Action[]> = {
     Action.ITEM_MOVE,
     Action.COLLECTION_MANAGE_MEMBERS,
 
-    // Action.API_KEY_ADD_COLLECTION_ACCESS,
-    // Action.API_KEY_REMOVE_COLLECTION_ACCESS,
+    Action.API_KEY_ADD_COLLECTION_ACCESS,
+    Action.API_KEY_REMOVE_COLLECTION_ACCESS,
 
-    // owner-only
     Action.COLLECTION_CHANGE_ROLES,
-    // Action.API_KEY_CONFIGURE_ACCESS_SCOPE,
+    // owner-only
+    Action.API_KEY_CONFIGURE_ACCESS_SCOPE,
   ],
 } as const;
 
@@ -95,13 +115,52 @@ export type Actor =
   | {
       type: "api_key";
       apiKeyId: string;
-      allowedActions: Action[];
+      userId: string;
+      mode: ApiKeyMode;
+      // For collection_specific mode
+      allowedActions?: Action[];
+      grantedCollectionIds?: string[];
+      // For full_access mode
+      userCollections?: Array<{ collectionId: string; role: Role }>;
     };
 
-/* ─────────────────────────────────────────────
- * Actor resolution
- * ───────────────────────────────────────────── */
+// Helper to build API key actor with appropriate permissions
+export function createApiKeyActor(
+  apiKeyId: string,
+  userId: string,
+  mode: ApiKeyMode,
+  grantedCollectionIds: string[] = [],
+  userCollections: Array<{ collectionId: string; role: Role }> = [],
+): Actor {
+  if (mode === "full_access") {
+    return {
+      type: "api_key",
+      apiKeyId,
+      userId,
+      mode,
+      userCollections,
+    };
+  }
 
+  // collection_specific mode
+  const allowedActions: Action[] = [];
+
+  // If granted collection access, add collection-specific permissions
+  if (grantedCollectionIds.length > 0) {
+    allowedActions.push(...ApiKeyPermissions.COLLECTION_SPECIFIC);
+  }
+
+  return {
+    type: "api_key",
+    apiKeyId,
+    userId,
+    mode,
+    allowedActions,
+    grantedCollectionIds,
+  };
+}
+
+// actor represents the user or api key performing an action within a collection
 export async function getActor(
   userId: string,
   collectionId: string,
@@ -124,45 +183,42 @@ export async function getActor(
   };
 }
 
-/* ─────────────────────────────────────────────
- * Authorization helper
- * (NO business logic here)
- * ───────────────────────────────────────────── */
-
-export function can(actor: Actor, action: Action): boolean {
+export function can(
+  actor: Actor,
+  action: Action,
+  collectionId?: string,
+): boolean {
   if (actor.type === "api_key") {
-    return actor.allowedActions.includes(action);
+    if (actor.mode === "full_access") {
+      // Full access mode: check if user has access to the collection
+      if (collectionId && actor.userCollections) {
+        const userCollection = actor.userCollections.find(
+          (uc) => uc.collectionId === collectionId,
+        );
+        if (userCollection) {
+          return RolePermissions[userCollection.role].includes(action);
+        }
+        return false;
+      }
+      // For non-collection-specific actions (like COLLECTION_CREATE, ITEM_SEARCH)
+      return (
+        action === Action.COLLECTION_CREATE || action === Action.ITEM_SEARCH
+      );
+    }
+
+    // collection_specific mode
+    return actor.allowedActions?.includes(action) ?? false;
   }
 
   return RolePermissions[actor.role].includes(action);
 }
 
-/* ─────────────────────────────────────────────
- * Authorization guard (preferred)
- * ───────────────────────────────────────────── */
-
-export function assertCan(actor: Actor, action: Action): void {
-  if (!can(actor, action)) {
+export function assertCan(
+  actor: Actor,
+  action: Action,
+  collectionId?: string,
+): void {
+  if (!can(actor, action, collectionId)) {
     throw new Error(`Forbidden: missing permission ${action}`);
   }
 }
-
-/* ─────────────────────────────────────────────
- * IMPORTANT NOTES
- * ─────────────────────────────────────────────
- *
- * - This file intentionally does NOT encode:
- *   - role transitions
- *   - ownership invariants
- *   - target role validation
- *
- * - Role transitions MUST live in domain services:
- *   - promoteMemberToAdmin()
- *   - demoteAdminToMember()
- *   - transferOwnership()
- *
- * - RBAC answers: "may this actor attempt?"
- * - Services answer: "is this transition valid?"
- *
- * This separation is deliberate and non-negotiable.
- */
