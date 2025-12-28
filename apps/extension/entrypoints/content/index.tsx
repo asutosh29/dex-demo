@@ -27,6 +27,30 @@ export default defineContentScript({
       },
     });
 
-    ui.mount();
+    let mounted = false;
+
+    const mountUI = () => {
+      if (mounted) return;
+      ui.mount();
+      mounted = true;
+    };
+
+    const unmountUI = () => {
+      if (!mounted) return;
+      ui.remove();
+      mounted = false;
+    };
+
+    browser.runtime.onMessage.addListener((event) => {
+      if (event.type === "MOUNT_UI") {
+        mounted ? unmountUI() : mountUI();
+      }
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        unmountUI();
+      }
+    });
   },
 });

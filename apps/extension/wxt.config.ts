@@ -7,4 +7,17 @@ export default defineConfig({
   vite: () => ({
     plugins: [tailwindcss()],
   }),
+  manifest: {
+    // Required, don't open popup, only action
+    action: {},
+    commands: {
+      "toggle-ui": {
+        description: "Toggle the extension UI",
+        suggested_key: {
+          default: "Ctrl+Shift+X",
+          mac: "Command+Shift+X",
+        },
+      },
+    },
+  },
 });
