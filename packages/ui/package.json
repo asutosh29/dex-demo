@@ -12,6 +12,7 @@
     ],
     "./components/*": "./src/components/*.tsx",
     "./postcss.config": "./postcss.config.mjs",
+    "./postcss-rem-to-px": "./postcss-rem-to-px.js",
     "./icons": "./src/icons/index.ts"
   },
   "scripts": {

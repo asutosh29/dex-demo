@@ -16,17 +16,9 @@ export default defineContentScript({
       anchor: "body",
       append: "last",
       onMount: (container) => {
-        // Inject base styles to isolate from host page
-        const baseStyle = document.createElement("style");
-        baseStyle.textContent = `
-          :host, html {
-            font-size: 16px !important;
-          }
-        `;
-        container.append(baseStyle);
-
         // Don't mount react app directly on <body>
         const wrapper = document.createElement("div");
+        wrapper.id = "shadow-root-wrapper";
         container.append(wrapper);
 
         const root = ReactDOM.createRoot(wrapper);

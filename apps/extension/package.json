@@ -15,11 +15,12 @@
     "postinstall": "wxt prepare"
   },
   "dependencies": {
-    "@repo/ui": "workspace:*",
     "@repo/server": "workspace:*",
+    "@repo/ui": "workspace:*",
     "@tailwindcss/vite": "^4.1.18",
     "@trpc/client": "^11.8.0",
     "better-auth": "^1.4.7",
+    "postcss": "^8.5.6",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "tailwindcss": "^4.1.18",
