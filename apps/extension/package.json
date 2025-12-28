@@ -1,6 +1,6 @@
 {
-  "name": "@repo/extension",
-  "description": "manifest.json description",
+  "name": "dex",
+  "description": "extension for dex",
   "private": true,
   "version": "0.0.0",
   "type": "module",

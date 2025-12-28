@@ -1,64 +1,63 @@
-import { createTool } from "@voltagent/core";
-import { MCPServer } from "@voltagent/mcp-server";
-import { z } from "zod";
+import { Server } from "@modelcontextprotocol/sdk/server";
 import { collectionService } from "../services/collection.service";
 import { itemService } from "../services/item.service";
 import { validateMcpApiKey } from "../lib/mcp-auth";
 import { assertCan, Action } from "../services/rbac";
 
-const testingTool = createTool({
+type ToolHandler<T> = (input: T) => Promise<Record<string, unknown>>;
+
+let requestApiKey: string | undefined;
+
+const withActor = async () => {
+  const apiKey = requestApiKey;
+  if (!apiKey) {
+    throw new Error(
+      "API key not provided (Authorization bearer) and DEX_API_KEY not configured",
+    );
+  }
+
+  const actor = await validateMcpApiKey(apiKey);
+  if (!actor) throw new Error("Invalid API key");
+
+  const userId = actor.type === "api_key" ? actor.userId : "";
+
+  return { actor, userId };
+};
+
+const testingTool = {
   name: "testing_tool",
   description: "A simple testing tool to verify MCP server is working",
-  parameters: z.object({
-    message: z.string().describe("Message to echo back"),
-  }),
-  async execute({ message }, options) {
-    console.log(options);
+  inputSchema: {
+    type: "object",
+    properties: {
+      message: { type: "string", description: "Message to echo back" },
+    },
+    required: ["message"],
+    additionalProperties: false,
+  },
+  async execute({ message }: { message: string }) {
     return {
       echoedMessage: message,
-      options,
       timestamp: new Date().toISOString(),
     };
   },
-});
-// Tool 1: View Collections
-const viewCollectionsTool = createTool({
+};
+
+const viewCollectionsTool = {
   name: "view_collections",
   description: "Get all collections accessible to this API key",
-  parameters: z.object({}),
+  inputSchema: { type: "object", properties: {}, additionalProperties: false },
   async execute() {
-    const apiKey = process.env.DEX_API_KEY;
-    if (!apiKey) throw new Error("DEX_API_KEY not configured");
-
-    const actor = await validateMcpApiKey(apiKey);
-    if (!actor) throw new Error("Invalid API key");
-
-    // API key actor has userId
-    const userId = actor.type === "api_key" ? actor.userId : "";
-
+    const { actor, userId } = await withActor();
     const allCollections = await collectionService.getUserCollections(userId);
 
-    // Filter based on API key mode
-    if (actor.type === "api_key") {
-      // full_access mode: return all user collections
-      if (actor.mode === "full_access") {
-        return {
-          collections: allCollections.map((c) => ({
-            id: c.id,
-            title: c.title,
-            itemCount: c.itemCount,
-            memberCount: c.memberCount,
-          })),
-        };
-      }
+    if (actor.type !== "api_key") {
+      return { collections: allCollections };
+    }
 
-      // collection_specific mode: filter by granted collections
-      const accessibleCollections = allCollections.filter((c) =>
-        actor.grantedCollectionIds?.includes(c.id),
-      );
-
+    if (actor.mode === "full_access") {
       return {
-        collections: accessibleCollections.map((c) => ({
+        collections: allCollections.map((c) => ({
           id: c.id,
           title: c.title,
           itemCount: c.itemCount,
@@ -67,41 +66,54 @@ const viewCollectionsTool = createTool({
       };
     }
 
-    return { collections: allCollections };
-  },
-});
+    const accessibleCollections = allCollections.filter((c) =>
+      actor.grantedCollectionIds?.includes(c.id),
+    );
 
-const addItemToCollectionTool = createTool({
+    return {
+      collections: accessibleCollections.map((c) => ({
+        id: c.id,
+        title: c.title,
+        itemCount: c.itemCount,
+        memberCount: c.memberCount,
+      })),
+    };
+  },
+};
+
+const addItemToCollectionTool = {
   name: "add_item_to_collection",
   description: "Add a single URL to a collection",
-  parameters: z.object({
-    collectionId: z.string().describe("ID of the collection"),
-    url: z.string().url().describe("URL of the item to add"),
-  }),
-  async execute({ collectionId, url }) {
-    const apiKey = process.env.DEX_API_KEY;
-    if (!apiKey) throw new Error("DEX_API_KEY not configured");
+  inputSchema: {
+    type: "object",
+    properties: {
+      collectionId: { type: "string", description: "ID of the collection" },
+      url: {
+        type: "string",
+        format: "uri",
+        description: "URL of the item to add",
+      },
+    },
+    required: ["collectionId", "url"],
+    additionalProperties: false,
+  },
+  async execute({ collectionId, url }: { collectionId: string; url: string }) {
+    const { actor, userId } = await withActor();
 
-    const actor = await validateMcpApiKey(apiKey);
-    if (!actor) throw new Error("Invalid API key");
-
-    // Check if API key has access to this collection
     if (actor.type === "api_key") {
       if (actor.mode === "collection_specific") {
-        // For collection_specific mode, check granted collections
         if (!actor.grantedCollectionIds?.includes(collectionId)) {
           throw new Error("API key does not have access to this collection");
         }
       }
-      // For full_access mode, access is checked via can() with collectionId
       assertCan(actor, Action.ITEM_ADD, collectionId);
     }
 
-    const userId = actor.type === "api_key" ? actor.userId : "";
     const item = await itemService.createItem(userId, { url, collectionId });
     if (!item) {
       throw new Error("Failed to add item to collection");
     }
+
     return {
       message: `Item added successfully to collection ${collectionId}`,
       item: {
@@ -111,38 +123,42 @@ const addItemToCollectionTool = createTool({
       },
     };
   },
-});
+};
 
-// Tool 2: Add Items to Collection (Bulk)
-const addItemsToCollectionTool = createTool({
+const addItemsToCollectionTool = {
   name: "add_items_to_collection",
   description: "Add multiple URLs to a collection at once",
-  parameters: z.object({
-    collectionId: z.string().describe("ID of the collection"),
-    urls: z.array(z.string()).describe("JSON Array of URLs to add"),
-  }),
-  async execute({ collectionId, urls }) {
-    const apiKey = process.env.DEX_API_KEY;
-    if (!apiKey) throw new Error("DEX_API_KEY not configured");
+  inputSchema: {
+    type: "object",
+    properties: {
+      collectionId: { type: "string", description: "ID of the collection" },
+      urls: {
+        type: "array",
+        items: { type: "string", format: "uri" },
+        description: "JSON Array of URLs to add",
+      },
+    },
+    required: ["collectionId", "urls"],
+    additionalProperties: false,
+  },
+  async execute({
+    collectionId,
+    urls,
+  }: {
+    collectionId: string;
+    urls: string[];
+  }) {
+    const { actor, userId } = await withActor();
 
-    const actor = await validateMcpApiKey(apiKey);
-    if (!actor) throw new Error("Invalid API key");
-
-    // Check if API key has access to this collection
     if (actor.type === "api_key") {
       if (actor.mode === "collection_specific") {
-        // For collection_specific mode, check granted collections
         if (!actor.grantedCollectionIds?.includes(collectionId)) {
           throw new Error("API key does not have access to this collection");
         }
       }
-      // For full_access mode, access is checked via can() with collectionId
       assertCan(actor, Action.ITEM_ADD, collectionId);
     }
 
-    const userId = actor.type === "api_key" ? actor.userId : "";
-
-    // Add items in bulk
     const results = await Promise.allSettled(
       urls.map((url) => itemService.createItem(userId, { url, collectionId })),
     );
@@ -151,8 +167,8 @@ const addItemsToCollectionTool = createTool({
     const failed = results.filter((r) => r.status === "rejected").length;
 
     const items = results
-      .filter((r) => r.status === "fulfilled")
-      .map((r: any) => r.value);
+      .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled")
+      .map((r) => r.value);
 
     return {
       message: `Added ${successful} items successfully. ${failed} failed.`,
@@ -165,25 +181,24 @@ const addItemsToCollectionTool = createTool({
       })),
     };
   },
-});
+};
 
-// Tool 3: Search Items
-const searchItemsTool = createTool({
+const searchItemsTool = {
   name: "search_items",
   description: "Search through all items accessible to this API key",
-  parameters: z.object({
-    query: z.string().min(1).describe("Search query"),
-  }),
-  async execute({ query }) {
-    const apiKey = process.env.DEX_API_KEY;
-    if (!apiKey) throw new Error("DEX_API_KEY not configured");
-
-    const actor = await validateMcpApiKey(apiKey);
-    if (!actor) throw new Error("Invalid API key");
+  inputSchema: {
+    type: "object",
+    properties: {
+      query: { type: "string", minLength: 1, description: "Search query" },
+    },
+    required: ["query"],
+    additionalProperties: false,
+  },
+  async execute({ query }: { query: string }) {
+    const { actor, userId } = await withActor();
 
     assertCan(actor, Action.ITEM_SEARCH);
 
-    const userId = actor.type === "api_key" ? actor.userId : "";
     const results = await itemService.searchItems(userId, query);
 
     return {
@@ -198,46 +213,46 @@ const searchItemsTool = createTool({
       })),
     };
   },
-});
+};
 
-// Tool 4: Create Collection
-const createCollectionTool = createTool({
-  name: "create_collection",
-  description: "Create a new private collection",
-  parameters: z.object({
-    title: z.string().min(1).max(50).describe("Collection title"),
-  }),
-  async execute({ title }) {
-    const apiKey = process.env.DEX_API_KEY;
-    if (!apiKey) throw new Error("DEX_API_KEY not configured");
-
-    const actor = await validateMcpApiKey(apiKey);
-    if (!actor) throw new Error("Invalid API key");
-
-    assertCan(actor, Action.COLLECTION_CREATE);
-
-    const userId = actor.type === "api_key" ? actor.userId : "";
-    const collection = await collectionService.createCollection(userId, title);
-
-    return {
-      message: `Collection "${collection.title}" created successfully`,
-      collectionId: collection.id,
-      title: collection.title,
-    };
+const registerTool = <T extends Record<string, unknown>>(
+  server: Server,
+  tool: {
+    name: string;
+    description: string;
+    inputSchema: Record<string, unknown>;
+    execute: ToolHandler<T>;
   },
-});
+) => {
+  server.tool(
+    tool.name,
+    {
+      description: tool.description,
+      inputSchema: tool.inputSchema,
+    },
+    async (args: T) => tool.execute(args),
+  );
+};
 
-export const mcpServer = new MCPServer({
-  name: "dex-mcp-server",
-  version: "1.0.0",
-  description:
-    "MCP server for Dex CMS with API key authentication and collection access control",
-  tools: {
-    testingTool,
-    viewCollectionsTool,
-    addItemsToCollectionTool,
-    addItemToCollectionTool,
-    searchItemsTool,
-    createCollectionTool,
-  },
-});
+export const createMcpServer = (apiKeyFromRequest?: string) => {
+  requestApiKey = apiKeyFromRequest;
+  const server = new Server(
+    {
+      name: "cms-mcp-server",
+      version: "1.0.0",
+    },
+    {
+      capabilities: {
+        tools: {},
+      },
+    },
+  );
+
+  registerTool(server, testingTool);
+  registerTool(server, viewCollectionsTool);
+  registerTool(server, addItemToCollectionTool);
+  registerTool(server, addItemsToCollectionTool);
+  registerTool(server, searchItemsTool);
+
+  return server;
+};
