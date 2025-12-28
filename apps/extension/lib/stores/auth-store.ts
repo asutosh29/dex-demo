@@ -1,5 +1,6 @@
-import { Session, User } from "better-auth";
+import { User } from "better-auth";
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 interface AuthStore {
   isLoggedIn: boolean;
@@ -7,12 +8,19 @@ interface AuthStore {
   setUser: (user: User | null) => void;
 }
 
-export const useAuthStore = create<AuthStore>((set) => ({
-  isLoggedIn: false,
-  user: null,
-  setUser: (user) =>
-    set(() => ({
-      user,
-      isLoggedIn: user !== null,
-    })),
-}));
+export const useAuthStore = create<AuthStore, [["zustand/persist", AuthStore]]>(
+  persist(
+    (set) => ({
+      isLoggedIn: false,
+      user: null,
+      setUser: (user) =>
+        set(() => ({
+          user,
+          isLoggedIn: user !== null,
+        })),
+    }),
+    {
+      name: "auth-store",
+    },
+  ),
+);

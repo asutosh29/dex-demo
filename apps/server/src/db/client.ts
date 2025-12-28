@@ -1,14 +1,11 @@
 import "dotenv/config";
-import { drizzle } from "drizzle-orm/node-postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
+import postgres from "postgres";
 
 // @see https://orm.drizzle.team/docs/sql-schema-declaration#camel-and-snake-casing
 // casing enforces that you define column in camelcasing - which is common practice in ts
 // which will be automatically converted to snake_case in the database
-export const db = drizzle({
-  connection: {
-    connectionString: process.env.DB_URL!,
-  },
-  schema,
-  casing: "snake_case",
-});
+
+const client = postgres(process.env.DB_URL!);
+export const db = drizzle({ client, schema, casing: "snake_case" });

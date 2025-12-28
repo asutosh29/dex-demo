@@ -16,7 +16,9 @@
   },
   "dependencies": {
     "@repo/ui": "workspace:*",
+    "@repo/server": "workspace:*",
     "@tailwindcss/vite": "^4.1.18",
+    "@trpc/client": "^11.8.0",
     "better-auth": "^1.4.7",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
