@@ -1,5 +1,5 @@
 {
-  "id": "dae2b3d6-d78f-4646-bede-aff0de5f3484",
+  "id": "10e62d26-d848-4830-baa0-45b6bfdfe790",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -143,6 +143,21 @@
           "isUnique": false,
           "concurrently": false,
           "method": "gin",
+          "with": {}
+        },
+        "idx_items_creator_id": {
+          "name": "idx_items_creator_id",
+          "columns": [
+            {
+              "expression": "creator_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
           "with": {}
         }
       },
@@ -320,6 +335,14 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "mode": {
+          "name": "mode",
+          "type": "api_key_mode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'collection_specific'"
         },
         "refill_interval": {
           "name": "refill_interval",
@@ -779,7 +802,44 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_collection_items_item_id": {
+          "name": "idx_collection_items_item_id",
+          "columns": [
+            {
+              "expression": "item_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "uq_collection_item": {
+          "name": "uq_collection_item",
+          "columns": [
+            {
+              "expression": "collection_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "item_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "collection_items_collection_id_collections_id_fk": {
           "name": "collection_items_collection_id_collections_id_fk",
@@ -850,7 +910,38 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_user_collections_user_id": {
+          "name": "idx_user_collections_user_id",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_user_collections_collection_id": {
+          "name": "idx_user_collections_collection_id",
+          "columns": [
+            {
+              "expression": "collection_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "user_collections_user_id_user_id_fk": {
           "name": "user_collections_user_id_user_id_fk",
@@ -881,13 +972,92 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.api_key_collections": {
+      "name": "api_key_collections",
+      "schema": "",
+      "columns": {
+        "api_key_id": {
+          "name": "api_key_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "collection_id": {
+          "name": "collection_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_api_key_collections_api_key_id": {
+          "name": "idx_api_key_collections_api_key_id",
+          "columns": [
+            {
+              "expression": "api_key_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "api_key_collections_api_key_id_apikey_id_fk": {
+          "name": "api_key_collections_api_key_id_apikey_id_fk",
+          "tableFrom": "api_key_collections",
+          "tableTo": "apikey",
+          "columnsFrom": ["api_key_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "api_key_collections_collection_id_collections_id_fk": {
+          "name": "api_key_collections_collection_id_collections_id_fk",
+          "tableFrom": "api_key_collections",
+          "tableTo": "collections",
+          "columnsFrom": ["collection_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "api_key_collections_api_key_id_collection_id_pk": {
+          "name": "api_key_collections_api_key_id_collection_id_pk",
+          "columns": ["api_key_id", "collection_id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
-    "public.item_type": {
-      "name": "item_type",
+    "public.api_key_mode": {
+      "name": "api_key_mode",
       "schema": "public",
-      "values": ["link"]
+      "values": ["full_access", "collection_specific"]
     },
     "public.item_access_role": {
       "name": "item_access_role",
@@ -898,6 +1068,11 @@
       "name": "collection_access_role",
       "schema": "public",
       "values": ["owner", "admin", "member"]
+    },
+    "public.item_type": {
+      "name": "item_type",
+      "schema": "public",
+      "values": ["link"]
     }
   },
   "schemas": {},

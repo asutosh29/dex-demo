@@ -1,4 +1,4 @@
-import { Globe, MoreHorizontal, MoreVertical, Trash2 } from "@repo/ui/icons";
+import { Globe, MoreHorizontal, Trash2 } from "@repo/ui/icons";
 import { useState } from "react";
 import PreviewDialog from "./preview-dialog";
 import type { RouterOutputs } from "~/lib/trpc";
@@ -13,7 +13,6 @@ import {
 } from "@repo/ui/components/ui/dropdown-menu";
 import { trpc } from "~/lib/trpc";
 import { toast } from "@repo/ui/components/ui/sonner";
-import { authClient } from "~/lib/auth-client";
 
 export type CollectionItem =
   RouterOutputs["collections"]["get"]["items"][number];

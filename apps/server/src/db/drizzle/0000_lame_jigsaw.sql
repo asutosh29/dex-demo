@@ -1,6 +1,7 @@
-CREATE TYPE "public"."item_type" AS ENUM('link');--> statement-breakpoint
+CREATE TYPE "public"."api_key_mode" AS ENUM('full_access', 'collection_specific');--> statement-breakpoint
 CREATE TYPE "public"."item_access_role" AS ENUM('owner', 'viewer');--> statement-breakpoint
 CREATE TYPE "public"."collection_access_role" AS ENUM('owner', 'admin', 'member');--> statement-breakpoint
+CREATE TYPE "public"."item_type" AS ENUM('link');--> statement-breakpoint
 CREATE TABLE "collections" (
 	"id" text PRIMARY KEY NOT NULL,
 	"title" text NOT NULL,
@@ -47,6 +48,7 @@ CREATE TABLE "apikey" (
 	"prefix" text,
 	"key" text NOT NULL,
 	"user_id" text NOT NULL,
+	"mode" "api_key_mode" DEFAULT 'collection_specific' NOT NULL,
 	"refill_interval" integer,
 	"refill_amount" integer,
 	"last_refill_at" timestamp,
@@ -120,6 +122,14 @@ CREATE TABLE "user_collections" (
 	CONSTRAINT "user_collections_user_id_collection_id_pk" PRIMARY KEY("user_id","collection_id")
 );
 --> statement-breakpoint
+CREATE TABLE "api_key_collections" (
+	"api_key_id" text NOT NULL,
+	"collection_id" text NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "api_key_collections_api_key_id_collection_id_pk" PRIMARY KEY("api_key_id","collection_id")
+);
+--> statement-breakpoint
 ALTER TABLE "items" ADD CONSTRAINT "items_creator_id_user_id_fk" FOREIGN KEY ("creator_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "apikey" ADD CONSTRAINT "apikey_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -130,9 +140,17 @@ ALTER TABLE "collection_items" ADD CONSTRAINT "collection_items_collection_id_co
 ALTER TABLE "collection_items" ADD CONSTRAINT "collection_items_item_id_items_id_fk" FOREIGN KEY ("item_id") REFERENCES "public"."items"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_collections" ADD CONSTRAINT "user_collections_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_collections" ADD CONSTRAINT "user_collections_collection_id_collections_id_fk" FOREIGN KEY ("collection_id") REFERENCES "public"."collections"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "api_key_collections" ADD CONSTRAINT "api_key_collections_api_key_id_apikey_id_fk" FOREIGN KEY ("api_key_id") REFERENCES "public"."apikey"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "api_key_collections" ADD CONSTRAINT "api_key_collections_collection_id_collections_id_fk" FOREIGN KEY ("collection_id") REFERENCES "public"."collections"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "items_search_idx" ON "items" USING gin ("search_vector");--> statement-breakpoint
+CREATE INDEX "idx_items_creator_id" ON "items" USING btree ("creator_id");--> statement-breakpoint
 CREATE INDEX "account_userId_idx" ON "account" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "apikey_key_idx" ON "apikey" USING btree ("key");--> statement-breakpoint
 CREATE INDEX "apikey_userId_idx" ON "apikey" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "session_userId_idx" ON "session" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "verification_identifier_idx" ON "verification" USING btree ("identifier");
+CREATE INDEX "verification_identifier_idx" ON "verification" USING btree ("identifier");--> statement-breakpoint
+CREATE INDEX "idx_collection_items_item_id" ON "collection_items" USING btree ("item_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "uq_collection_item" ON "collection_items" USING btree ("collection_id","item_id");--> statement-breakpoint
+CREATE INDEX "idx_user_collections_user_id" ON "user_collections" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "idx_user_collections_collection_id" ON "user_collections" USING btree ("collection_id");--> statement-breakpoint
+CREATE INDEX "idx_api_key_collections_api_key_id" ON "api_key_collections" USING btree ("api_key_id");

@@ -1,9 +1,9 @@
-import { pgTable, text, pgEnum, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, pgEnum, primaryKey, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { collectionsTable } from "../collection-schema";
 import { user } from "../auth-schema";
 import { timestamps } from "../helpers/timestamp-schema";
-import { collectionAccessRoleEnum } from "../helpers/access-enums-schema";
+import { collectionAccessRoleEnum } from "../helpers/enums-schema";
 
 export const userCollectionsTable = pgTable(
   "user_collections",
@@ -17,7 +17,13 @@ export const userCollectionsTable = pgTable(
     role: collectionAccessRoleEnum().default("member").notNull(),
     ...timestamps,
   },
-  (table) => [primaryKey({ columns: [table.userId, table.collectionId] })],
+  (table) => [
+    primaryKey({ columns: [table.userId, table.collectionId] }),
+    // for getting user collections faster
+    index("idx_user_collections_user_id").on(table.userId),
+    // for getting a collection's members faster, e.g. checking users permissions for a collection
+    index("idx_user_collections_collection_id").on(table.collectionId),
+  ],
 );
 
 export const userCollectionsRelations = relations(

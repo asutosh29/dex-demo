@@ -4,9 +4,7 @@ import { uuidv7 } from "uuidv7";
 import { collectionItemsTable } from "./junctions/collection-items-schema";
 import { timestamps } from "./helpers/timestamp-schema";
 import { user } from "./auth-schema";
-import { userItemsTable } from "./junctions/user-items-schema";
-
-export const itemTypeEnum = pgEnum("item_type", ["link"]); // for now, just links, later on images and documents
+import { itemTypeEnum } from "./helpers/enums-schema";
 
 // Custom tsvector type for Drizzle
 export const tsvector = customType<{
@@ -37,7 +35,10 @@ export const itemsTable = pgTable(
     creatorId: text().references(() => user.id, { onDelete: "cascade" }),
     ...timestamps,
   },
-  (table) => [index("items_search_idx").using("gin", table.searchVector)],
+  (table) => [
+    index("items_search_idx").using("gin", table.searchVector),
+    index("idx_items_creator_id").on(table.creatorId),
+  ],
 );
 
 export const itemsRelations = relations(itemsTable, ({ many, one }) => ({
@@ -46,5 +47,4 @@ export const itemsRelations = relations(itemsTable, ({ many, one }) => ({
     fields: [itemsTable.creatorId],
     references: [user.id],
   }),
-  users: many(userItemsTable),
 }));
