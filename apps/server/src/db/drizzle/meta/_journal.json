@@ -15,6 +15,13 @@
       "when": 1766963287120,
       "tag": "0001_moaning_thunderbolts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768690514656,
+      "tag": "0002_classy_lucky_pierre",
+      "breakpoints": true
     }
   ]
 }
