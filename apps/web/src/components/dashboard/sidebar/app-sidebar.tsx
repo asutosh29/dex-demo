@@ -15,7 +15,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@repo/ui/components/ui/sidebar";
-import { Hash, Loader2, Plus, Users } from "@repo/ui/icons";
+import { Bookmark, Hash, Loader2, Plus, Users } from "@repo/ui/icons";
 import { cn } from "@repo/ui/lib/utils";
 import { Link, useLocation } from "react-router-dom";
 import { authClient } from "~/lib/auth-client";
@@ -61,13 +61,14 @@ function CollectionMenuItem({
             {collection.title}
           </div>
           <div className="text-muted-foreground inline-flex items-center gap-2">
-            {collection.memberCount >= 2 ? (
-              <Badge variant={"outline"}>
+            {collection.memberCount >= 2 && (
+              <Badge>
                 <Users /> {collection.memberCount}
               </Badge>
-            ) : (
-              collection.itemCount
             )}
+            <Badge variant={"secondary"}>
+              <Bookmark /> {collection.itemCount}
+            </Badge>
           </div>
         </Link>
       </SidebarMenuButton>
