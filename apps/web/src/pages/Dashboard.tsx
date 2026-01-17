@@ -39,7 +39,6 @@ function RecentItemRow({ item }: { item: RecentItem }) {
         className="group py-4 border-b border-border last:border-0 cursor-pointer hover:bg-muted/30 transition-colors -mx-4 px-4"
       >
         <div className="flex items-start gap-3">
-          <div className="w-2 h-2 rounded-full bg-destructive mt-2" />
           <div className="flex-1 min-w-0 space-y-2">
             <div className="flex items-center gap-2">
               {item.favicon ? (
@@ -53,7 +52,9 @@ function RecentItemRow({ item }: { item: RecentItem }) {
               ) : (
                 <Globe className="size-4 text-muted-foreground" />
               )}
-              <h3 className="font-semibold truncate">{item.title}</h3>
+              <h3 className="font-semibold truncate max-w-[44ch]">
+                {item.title}
+              </h3>
               <span className="text-xs text-muted-foreground">
                 {getDomain(item.url)}
               </span>
