@@ -1,6 +1,6 @@
 import { db } from "~/db/client";
-import { collectionItemsTable, itemsTable, userItemsTable } from "~/db/schema";
-import { eq, and, sql, getTableColumns } from "drizzle-orm";
+import { collectionItemsTable, itemsTable } from "~/db/schema";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { extractOpenGraphData, getOembedData } from "./utils/ogp";
 import { parseHtmlContent } from "./utils/html-parser";
 import { WebpageTaggerAgent, WebpageTaggerAgentWithTitle } from "./agent/tag";
@@ -59,13 +59,6 @@ export class ItemService {
         })
         .returning();
 
-      // Give creator owner access
-      await tx.insert(userItemsTable).values({
-        userId,
-        itemId: item.id,
-        role: "owner",
-      });
-
       // If collectionId is provided, add item to collection
       if (data.collectionId) {
         await tx.insert(collectionItemsTable).values({
@@ -81,75 +74,6 @@ export class ItemService {
   }
 
   /**
-   * Get all items for a user
-   */
-  async getUserItems(userId: string) {
-    const items = await db.query.userItemsTable.findMany({
-      where: eq(userItemsTable.userId, userId),
-      with: {
-        item: {
-          with: {
-            creator: {
-              columns: {
-                id: true,
-                name: true,
-                email: true,
-                image: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    return items.map((ui) => ({
-      ...ui.item,
-      role: ui.role,
-    }));
-  }
-
-  /**
-   * Get a single item
-   */
-  async getItem(itemId: string, userId: string) {
-    const userItem = await db.query.userItemsTable.findFirst({
-      where: and(
-        eq(userItemsTable.itemId, itemId),
-        eq(userItemsTable.userId, userId),
-      ),
-      with: {
-        item: {
-          with: {
-            creator: {
-              columns: {
-                id: true,
-                name: true,
-                email: true,
-                image: true,
-              },
-            },
-            collections: {
-              with: {
-                collection: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!userItem) {
-      throw new Error("Item not found or access denied");
-    }
-
-    return {
-      ...userItem.item,
-      role: userItem.role,
-      collections: userItem.item.collections.map((ci) => ci.collection),
-    };
-  }
-
-  /**
    * Search items by title, tldr, or tags
    */
   async searchItems(userId: string, query: string) {
@@ -161,12 +85,11 @@ export class ItemService {
       .join(" & ");
 
     const results = await db
-      .select(getTableColumns(itemsTable))
+      .select()
       .from(itemsTable)
-      .innerJoin(userItemsTable, eq(itemsTable.id, userItemsTable.itemId))
       .where(
         and(
-          eq(userItemsTable.userId, userId),
+          eq(itemsTable.creatorId, userId),
           sql`${itemsTable.searchVector} @@ to_tsquery('english', ${formattedQuery})`,
         ),
       )
@@ -177,94 +100,37 @@ export class ItemService {
     return results;
   }
 
-  /**
-   * Update an item
-   */
-  async updateItem(
-    itemId: string,
-    userId: string,
-    data: {
-      title?: string;
-      tldr?: string;
-      tags?: string[];
-      favicon?: string;
-      image?: string;
-    },
-  ) {
-    // Check user is owner
-    const userItem = await db.query.userItemsTable.findFirst({
-      where: and(
-        eq(userItemsTable.itemId, itemId),
-        eq(userItemsTable.userId, userId),
-      ),
-    });
+  async getRecents(userId: string, limit: number = 5) {
+    const results = await db
+      .select()
+      .from(itemsTable)
+      .where(eq(itemsTable.creatorId, userId))
+      .orderBy(desc(itemsTable.createdAt))
+      .limit(limit);
 
-    if (!userItem || userItem.role !== "owner") {
-      throw new Error("Only owners can edit items");
-    }
-
-    const [updated] = await db
-      .update(itemsTable)
-      .set(data)
-      .where(eq(itemsTable.id, itemId))
-      .returning();
-
-    return updated;
+    return results;
   }
 
   /**
    * Delete an item
    */
-  async deleteItem(itemId: string, userId: string) {
-    // Check user is owner
-    const userItem = await db.query.userItemsTable.findFirst({
-      where: and(
-        eq(userItemsTable.itemId, itemId),
-        eq(userItemsTable.userId, userId),
-      ),
-    });
+  // async deleteItem(itemId: string, userId: string) {
+  //   // Check user is owner
+  //   const userItem = await db.query.itemsTable.findFirst({
+  //     where: and(
+  //       eq(userItemsTable.itemId, itemId),
+  //       eq(userItemsTable.userId, userId),
+  //     ),
+  //   });
 
-    if (!userItem || userItem.role !== "owner") {
-      throw new Error("Only owners can delete items");
-    }
+  //   if (!userItem || userItem.role !== "owner") {
+  //     throw new Error("Only owners can delete items");
+  //   }
 
-    await db.delete(itemsTable).where(eq(itemsTable.id, itemId));
+  //   await db.delete(itemsTable).where(eq(itemsTable.id, itemId));
 
-    return { success: true };
-  }
-
-  /**
-   * Share item with another user
-   */
-  async shareItem(
-    itemId: string,
-    ownerId: string,
-    targetUserId: string,
-    role: "owner" | "viewer" = "viewer",
-  ) {
-    // Check current user is owner
-    const userItem = await db.query.userItemsTable.findFirst({
-      where: and(
-        eq(userItemsTable.itemId, itemId),
-        eq(userItemsTable.userId, ownerId),
-      ),
-    });
-
-    if (!userItem || userItem.role !== "owner") {
-      throw new Error("Only owners can share items");
-    }
-
-    await db
-      .insert(userItemsTable)
-      .values({
-        userId: targetUserId,
-        itemId,
-        role,
-      })
-      .onConflictDoNothing();
-
-    return { success: true };
-  }
+  //   return { success: true };
+  // }
 }
 
 export const itemService = new ItemService();

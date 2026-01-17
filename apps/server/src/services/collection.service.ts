@@ -5,8 +5,9 @@ import {
   userCollectionsTable,
   itemsTable,
 } from "~/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, countDistinct } from "drizzle-orm";
 import { getActor, assertCan, Action } from "./rbac";
+import { alias } from "drizzle-orm/pg-core";
 
 export class CollectionService {
   /**
@@ -36,26 +37,55 @@ export class CollectionService {
   /**
    * Get all collections for a user
    */
-  async getUserCollections(userId: string) {
-    const userCollections = await db.query.userCollectionsTable.findMany({
-      where: eq(userCollectionsTable.userId, userId),
-      with: {
-        collection: {
-          with: {
-            items: true,
-            users: true,
-          },
-        },
-      },
-    });
+  // async getUserCollections(userId: string) {
+  //   const userCollections = await db.query.userCollectionsTable.findMany({
+  //     where: eq(userCollectionsTable.userId, userId),
+  //     with: {
+  //       collection: {
+  //         with: {
+  //           items: true,
+  //           users: true,
+  //         },
+  //       },
+  //     },
+  //   });
 
-    return userCollections.map((uc) => ({
-      ...uc.collection,
-      role: uc.role,
-      itemCount: uc.collection.items.length,
-      memberCount: uc.collection.users.length,
-      isShared: uc.collection.users.length > 1,
-    }));
+  //   return userCollections.map((uc) => ({
+  //     ...uc.collection,
+  //     role: uc.role,
+  //     itemCount: uc.collection.items.length,
+  //     memberCount: uc.collection.users.length,
+  //     isShared: uc.collection.users.length > 1,
+  //   }));
+  // }
+
+  async getUserCollections(userId: string) {
+    // self-join to count members
+    const ucMembers = alias(userCollectionsTable, "uc_members");
+
+    const userCollections = await db
+      .select({
+        id: collectionsTable.id,
+        title: collectionsTable.title,
+        createdAt: collectionsTable.createdAt,
+        itemCount: countDistinct(collectionItemsTable.itemId),
+        memberCount: countDistinct(ucMembers.userId),
+      })
+      .from(userCollectionsTable)
+      .where(eq(userCollectionsTable.userId, userId))
+      .leftJoin(
+        collectionsTable,
+        eq(userCollectionsTable.collectionId, collectionsTable.id),
+      )
+      .leftJoin(
+        collectionItemsTable,
+        eq(collectionItemsTable.collectionId, collectionsTable.id),
+      )
+      .leftJoin(ucMembers, eq(ucMembers.collectionId, collectionsTable.id))
+      .groupBy(collectionsTable.id)
+      .orderBy(collectionsTable.createdAt);
+
+    return userCollections;
   }
 
   /**

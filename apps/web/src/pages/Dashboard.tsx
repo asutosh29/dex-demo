@@ -14,15 +14,16 @@ export default function Dashboard() {
   const firstName = session?.user.name?.split(" ")[0];
 
   return (
-    <>
-      <div className="text-center space-y-1 mt-2">
-        <h1 className="text-3xl font-semibold">
-          {greeting}, {firstName}!
+    <main className="max-w-4xl mx-auto p-4">
+      <div className="text-center space-y-1 mt-16">
+        <h1 className="text-4xl 2xl:text-5xl font-display font-light">
+          {greeting},{" "}
+          <span className="italic text-muted-foreground">{firstName}.</span>
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground mt-3 2xl:text-lg">
           Explore your collections, add items, search, anything!
         </p>
       </div>
-    </>
+    </main>
   );
 }

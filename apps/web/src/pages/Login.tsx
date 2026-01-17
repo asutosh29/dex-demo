@@ -1,7 +1,6 @@
-import { authClient } from "~/lib/auth-client";
-import { Hexagon } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
-import { DexLogo } from "@repo/ui/icons";
+import { AnimatedGroup } from "@repo/ui/components/ui/animated-group";
+import { authClient } from "~/lib/auth-client";
 
 export default function Login() {
   const handleGoogleSignIn = async () => {
@@ -11,38 +10,44 @@ export default function Login() {
     });
   };
   return (
-    <div className="grid min-h-svh lg:grid-cols-2">
-      <div className="flex flex-col gap-4 p-6 md:p-10">
-        <div className="flex justify-center gap-2 md:justify-start">
-          <a href="#" className="flex items-center gap-2 font-medium">
-            <DexLogo className="size-5" />
-            Dex
-          </a>
-        </div>
-        <div className="flex flex-col gap-6 flex-1 items-center justify-center relative">
-          <div className="flex flex-col items-center text-center gap-2">
-            <h1 className="text-lg text-muted-foreground">Welcome to</h1>
-            <h1 className="text-5xl font-bold flex gap-2 items-center">
-              <DexLogo className="size-10" />
-              Dex
-            </h1>
-            <p className="text-muted-foreground text-base text-balance mt-2">
-              Your shared second brain.
-            </p>
-          </div>
-          <Button onClick={handleGoogleSignIn} size="lg" className="mt-2">
+    <main className="flex flex-col h-screen w-full items-center justify-center">
+      <div className="absolute top-0 z-[-2] h-screen w-screen bg-background bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(255,255,255,0.15),rgba(255,255,255,0))]"></div>
+      <div className="absolute top-6 left-4 inline-flex items-center gap-2">
+        <img src="/logo.svg" className="size-6" />
+        <span className="text-lg">Dex</span>
+      </div>
+      <AnimatedGroup
+        preset="blur-slide"
+        className="flex flex-col items-center justify-center gap-4 max-w-3xl"
+      >
+        <p className="uppercase tracking-widest text-muted-foreground">
+          Your digital collections, reimagined
+        </p>
+        <h1 className="text-8xl items-center text-balance text-center font-display">
+          Capture it. Tag it.
+          <br />
+          <span className="text-muted-foreground italic">Find it forever</span>
+        </h1>
+        <p className="text-xl text-center max-w-[46ch] text-muted-foreground mt-4">
+          Save anything. Find everything. Your links, notes, and files — indexed
+          and searchable in one place.
+        </p>
+        <div className="space-y-2 text-center">
+          <Button
+            onClick={handleGoogleSignIn}
+            className="mt-8 font-medium text-base p-6"
+            size={"lg"}
+          >
             Sign in with Google
           </Button>
-          <Hexagon className="-z-10 size-80 text-muted-foreground/10 absolute animate-ping" />
+          <p className="text-sm font-medium text-muted-foreground brightness-50">
+            Join the waitlist for early access
+          </p>
         </div>
-      </div>
-      <div className="relative hidden lg:flex items-center justify-center p-10 bg-muted/50">
-        <img
-          src="/login.svg"
-          alt="Login illustration"
-          className="max-w-full max-h-full object-contain"
-        />
-      </div>
-    </div>
+      </AnimatedGroup>
+      <footer className="fixed bottom-2 p-2 text-muted-foreground brightness-50">
+        © 2026 Dex. Building the future of personal knowledge.
+      </footer>
+    </main>
   );
 }

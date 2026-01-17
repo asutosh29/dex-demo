@@ -1,5 +1,6 @@
 import * as React from "react";
 
+import { useDroppable } from "@dnd-kit/core";
 import {
   Sidebar,
   SidebarContent,
@@ -14,24 +15,27 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@repo/ui/components/ui/sidebar";
-import { DexLogo, Hash, Loader2, Plus } from "@repo/ui/icons";
-import { NavUser } from "./nav-user";
-import { trpc } from "~/lib/trpc";
-import { authClient } from "~/lib/auth-client";
-import { AddCollectionDialogTrigger } from "./add-collection-dialog";
-import { Link, useLocation } from "react-router-dom";
-import { useDroppable } from "@dnd-kit/core";
+import { Hash, Loader2, Plus, Users } from "@repo/ui/icons";
 import { cn } from "@repo/ui/lib/utils";
+import { Link, useLocation } from "react-router-dom";
+import { authClient } from "~/lib/auth-client";
+import { trpc, type RouterOutputs } from "~/lib/trpc";
+import { AddCollectionDialogTrigger } from "./add-collection-dialog";
+import { NavUser } from "./nav-user";
+import { Badge } from "@repo/ui/components/ui/badge";
+
+type UserCollection =
+  RouterOutputs["collections"]["getUserCollections"][number];
 
 function CollectionMenuItem({
   collection,
   isActive,
 }: {
-  collection: { id: string; title: string };
+  collection: UserCollection;
   isActive: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({
-    id: collection.id,
+    id: collection.id!,
     data: {
       type: "collection",
       collection,
@@ -43,16 +47,28 @@ function CollectionMenuItem({
       <SidebarMenuButton
         isActive={isActive}
         asChild
-        className={cn("transition-all", isOver && "bg-secondary border-b-1")}
+        className={cn("transition-all", isOver && "bg-secondary")}
       >
         <Link
           to={`/dashboard/${collection.id}`}
-          className={cn(isOver && "animate-pulse")}
+          className={cn(
+            isOver && "animate-pulse",
+            "flex w-full justify-between",
+          )}
         >
-          <span>
+          <div className="inline-flex items-center gap-2">
             <Hash className="size-4" />
-          </span>
-          {collection.title}
+            {collection.title}
+          </div>
+          <div className="text-muted-foreground inline-flex items-center gap-2">
+            {collection.memberCount >= 2 ? (
+              <Badge variant={"outline"}>
+                <Users /> {collection.memberCount}
+              </Badge>
+            ) : (
+              collection.itemCount
+            )}
+          </div>
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -61,18 +77,21 @@ function CollectionMenuItem({
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session } = authClient.useSession();
-  const { data: collections, isLoading } = trpc.collections.getAll.useQuery();
+  const { data: collections, isLoading } =
+    trpc.collections.getUserCollections.useQuery();
   const { pathname } = useLocation();
 
   const privateCollections = React.useMemo(
-    () => collections?.filter((c) => !c.isShared) ?? [],
+    () => collections?.filter((c) => c.memberCount < 2) ?? [],
     [collections],
   );
 
   const sharedCollections = React.useMemo(
-    () => collections?.filter((c) => c.isShared) ?? [],
+    () => collections?.filter((c) => c.memberCount >= 2) ?? [],
     [collections],
   );
+
+  console.log("Collections:", collections);
 
   return (
     <Sidebar {...props}>
@@ -80,7 +99,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton>
-              <DexLogo className="size-6" />
+              <img src="/logo.svg" className="size-6" />
               <p className="font-medium text-base">Dex</p>
             </SidebarMenuButton>
           </SidebarMenuItem>

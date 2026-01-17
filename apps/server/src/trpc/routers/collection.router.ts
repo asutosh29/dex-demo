@@ -4,7 +4,7 @@ import { collectionService } from "~/services/collection.service";
 
 export const collectionRouter = router({
   // Get all user's collections
-  getAll: protectedProcedure.query(async ({ ctx }) => {
+  getUserCollections: protectedProcedure.query(async ({ ctx }) => {
     const collections = await collectionService.getUserCollections(ctx.user.id);
     return collections;
   }),

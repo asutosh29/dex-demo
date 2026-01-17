@@ -9,7 +9,7 @@ import { Toaster } from "@repo/ui/components/ui/sonner";
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <TRPCProvider>
-      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
         <App />
         <Toaster />
       </ThemeProvider>
