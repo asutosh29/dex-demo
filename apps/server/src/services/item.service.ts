@@ -1,6 +1,10 @@
 import { db } from "~/db/client";
-import { collectionItemsTable, itemsTable } from "~/db/schema";
-import { eq, and, sql, desc } from "drizzle-orm";
+import {
+  collectionItemsTable,
+  collectionsTable,
+  itemsTable,
+} from "~/db/schema";
+import { eq, and, sql, desc, getTableColumns } from "drizzle-orm";
 import { extractOpenGraphData, getOembedData } from "./utils/ogp";
 import { parseHtmlContent } from "./utils/html-parser";
 import { WebpageTaggerAgent, WebpageTaggerAgentWithTitle } from "./agent/tag";
@@ -102,8 +106,19 @@ export class ItemService {
 
   async getRecents(userId: string, limit: number = 5) {
     const results = await db
-      .select()
+      .select({
+        ...getTableColumns(itemsTable),
+        collectionTitle: collectionsTable.title,
+      })
       .from(itemsTable)
+      .leftJoin(
+        collectionItemsTable,
+        eq(itemsTable.id, collectionItemsTable.itemId),
+      )
+      .leftJoin(
+        collectionsTable,
+        eq(collectionItemsTable.collectionId, collectionsTable.id),
+      )
       .where(eq(itemsTable.creatorId, userId))
       .orderBy(desc(itemsTable.createdAt))
       .limit(limit);

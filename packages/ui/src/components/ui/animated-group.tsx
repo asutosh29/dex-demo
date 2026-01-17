@@ -22,6 +22,7 @@ export type AnimatedGroupProps = {
     item?: Variants;
   };
   preset?: PresetType;
+  layout?: boolean;
   as?: React.ElementType;
   asChild?: React.ElementType;
 };
@@ -104,6 +105,7 @@ function AnimatedGroup({
   className,
   variants,
   preset,
+  layout = false,
   as = "div",
   asChild = "div",
 }: AnimatedGroupProps) {
@@ -129,6 +131,7 @@ function AnimatedGroup({
       animate="visible"
       variants={containerVariants}
       className={className}
+      layout={layout}
     >
       {React.Children.map(children, (child, index) => (
         <MotionChild key={index} variants={itemVariants}>
