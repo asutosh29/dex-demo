@@ -177,6 +177,17 @@
 
   --font-sans: "DM Sans", -apple-system, "system-ui", sans-serif;
   --font-display: "Playfair Display", serif, -apple-system, "system-ui";
+
+  --animate-rotate: rotate 4s linear infinite;
+
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg) scale(12);
+    }
+    to {
+      transform: rotate(-360deg) scale(12);
+    }
+  }
 }
 
 @layer base {

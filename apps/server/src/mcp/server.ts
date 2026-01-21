@@ -1,28 +1,97 @@
-// import { Server } from "@modelcontextprotocol/sdk/server";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
+
 // import { collectionService } from "../services/collection.service";
 // import { itemService } from "../services/item.service";
 // import { validateMcpApiKey } from "../lib/mcp-auth";
 // import { assertCan, Action } from "../services/rbac";
 
-// type ToolHandler<T> = (input: T) => Promise<Record<string, unknown>>;
+let requestApiKey: string | undefined;
 
-// let requestApiKey: string | undefined;
+export const createMcpServer = () => {
+  const server = new McpServer(
+    {
+      name: "dex-mcp-server",
+      version: "1.0.0",
+    },
+    {
+      capabilities: {
+        logging: {},
+        tools: {},
+      },
+    },
+  );
 
-// const withActor = async () => {
-//   const apiKey = requestApiKey;
-//   if (!apiKey) {
-//     throw new Error(
-//       "API key not provided (Authorization bearer) and DEX_API_KEY not configured",
+  // Register test echo tool
+  server.registerTool(
+    "test_echo",
+    {
+      description: "A simple test tool that echoes back your message",
+      inputSchema: {
+        message: z.string().describe("Message to echo back"),
+      },
+    },
+    async ({ message }) => {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              echoedMessage: message,
+              timestamp: new Date().toISOString(),
+              serverName: "dex-mcp-server",
+            }),
+          },
+        ],
+      };
+    },
+  );
+
+  return server;
+};
+
+//   server.registerTool(
+//     "view_collections",
+//     {
+//         description:"Get all collections accessible to this API key",
+//         inputSchema: {},
+//     },
+//     async (): CallToolResult => {
+//     const { actor, userId } = await withActor();
+//     const allCollections = await collectionService.getUserCollections(userId);
+
+//     if (actor.type !== "api_key") {
+//       return { collections: allCollections };
+//     }
+
+//     if (actor.mode === "full_access") {
+//       return {
+//         collections: allCollections.map((c) => ({
+//           id: c.id,
+//           title: c.title,
+//           itemCount: c.itemCount,
+//           memberCount: c.memberCount,
+//         })),
+//       };
+//     }
+
+//     const accessibleCollections = allCollections.filter((c) =>
+//       actor.grantedCollectionIds?.includes(c.id),
 //     );
-//   }
 
-//   const actor = await validateMcpApiKey(apiKey);
-//   if (!actor) throw new Error("Invalid API key");
+//     return {
+//       collections: accessibleCollections.map((c) => ({
+//         id: c.id,
+//         title: c.title,
+//         itemCount: c.itemCount,
+//         memberCount: c.memberCount,
+//       })),
+//     };
+//   },
 
-//   const userId = actor.type === "api_key" ? actor.userId : "";
+//   )
 
-//   return { actor, userId };
-// };
+// type ToolHandler<T> = (input: T) => Promise<Record<string, unknown>>;
 
 // const testingTool = {
 //   name: "testing_tool",

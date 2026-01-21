@@ -5,7 +5,7 @@ import {
   Hash,
   LayoutGrid,
   List,
-  Plus,
+  Loader,
 } from "@repo/ui/icons";
 import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
@@ -124,21 +124,26 @@ export function CollectionGrid({ collectionId }: { collectionId: string }) {
         </div>
 
         {/* Add Item Input */}
-        <form
-          onSubmit={handleSubmit}
-          className={cn("relative", addingItem && "animate-pulse")}
-        >
-          <BookmarkPlus className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
-          <Input
-            ref={inputRef}
-            readOnly={addingItem}
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="Add a link.."
-            className="pl-10 h-12 text-lg pr-10"
-          />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-            <Kbd>A</Kbd>
+        <form onSubmit={handleSubmit} className={cn("relative rounded-lg")}>
+          <div
+            className={cn("relative rounded-lg", addingItem && "bg-background")}
+          >
+            {addingItem ? (
+              <Loader className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground z-10 animate-spin" />
+            ) : (
+              <BookmarkPlus className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground z-10" />
+            )}{" "}
+            <Input
+              ref={inputRef}
+              disabled={addingItem}
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="Add a link.."
+              className="pl-10 h-12 text-lg pr-10 bg-transparent"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
+              <Kbd>A</Kbd>
+            </div>
           </div>
         </form>
       </div>

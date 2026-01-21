@@ -12,9 +12,15 @@ type RecentItem = RouterOutputs["items"]["getRecents"][number];
 const getTimeBasedGreeting = () => {
   const hour = new Date().getHours();
 
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
+  if (hour < 12 && hour >= 5) {
+    return "Good morning";
+  } else if (hour >= 12 && hour < 17) {
+    return "Good afternoon";
+  } else if (hour >= 17 && hour < 21) {
+    return "Good evening";
+  } else {
+    return "Good night";
+  }
 };
 
 const formatDate = (date: Date | string) => {
