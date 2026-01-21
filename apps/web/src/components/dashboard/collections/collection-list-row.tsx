@@ -101,10 +101,10 @@ export function CollectionListRow({
               alt="Favicon"
               width={16}
               height={16}
-              className="w-4 h-4 flex-shrink-0"
+              className="w-4 h-4 shrink-0"
             />
           ) : (
-            <Globe className="size-4 text-muted-foreground flex-shrink-0" />
+            <Globe className="size-4 text-muted-foreground shrink-0" />
           )}
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">

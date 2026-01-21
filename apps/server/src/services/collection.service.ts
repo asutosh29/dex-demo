@@ -5,7 +5,7 @@ import {
   userCollectionsTable,
   itemsTable,
 } from "~/db/schema";
-import { eq, and, countDistinct } from "drizzle-orm";
+import { eq, and, countDistinct, getTableColumns, desc } from "drizzle-orm";
 import { getActor, assertCan, Action } from "./rbac";
 import { alias } from "drizzle-orm/pg-core";
 
@@ -33,31 +33,6 @@ export class CollectionService {
 
     return result;
   }
-
-  /**
-   * Get all collections for a user
-   */
-  // async getUserCollections(userId: string) {
-  //   const userCollections = await db.query.userCollectionsTable.findMany({
-  //     where: eq(userCollectionsTable.userId, userId),
-  //     with: {
-  //       collection: {
-  //         with: {
-  //           items: true,
-  //           users: true,
-  //         },
-  //       },
-  //     },
-  //   });
-
-  //   return userCollections.map((uc) => ({
-  //     ...uc.collection,
-  //     role: uc.role,
-  //     itemCount: uc.collection.items.length,
-  //     memberCount: uc.collection.users.length,
-  //     isShared: uc.collection.users.length > 1,
-  //   }));
-  // }
 
   async getUserCollections(userId: string) {
     // self-join to count members
@@ -92,21 +67,15 @@ export class CollectionService {
    * Get a single collection with items
    */
   async getCollection(collectionId: string, userId: string) {
+    // TODO: optimize queries for infinite scroll
+    // First check user has access to this collection
     const userCollection = await db.query.userCollectionsTable.findFirst({
       where: and(
         eq(userCollectionsTable.collectionId, collectionId),
         eq(userCollectionsTable.userId, userId),
       ),
       with: {
-        collection: {
-          with: {
-            items: {
-              with: {
-                item: true,
-              },
-            },
-          },
-        },
+        collection: true,
       },
     });
 
@@ -114,10 +83,23 @@ export class CollectionService {
       throw new Error("Collection not found or access denied");
     }
 
+    // Fetch items ordered by createdAt (newest first)
+    const items = await db
+      .select({
+        ...getTableColumns(itemsTable),
+      })
+      .from(itemsTable)
+      .innerJoin(
+        collectionItemsTable,
+        eq(itemsTable.id, collectionItemsTable.itemId),
+      )
+      .where(eq(collectionItemsTable.collectionId, collectionId))
+      .orderBy(desc(itemsTable.createdAt));
+
     return {
       ...userCollection.collection,
       role: userCollection.role,
-      items: userCollection.collection.items.map((ci) => ci.item),
+      items,
     };
   }
 

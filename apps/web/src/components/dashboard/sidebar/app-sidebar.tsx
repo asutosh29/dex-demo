@@ -51,6 +51,7 @@ function CollectionMenuItem({
       >
         <Link
           to={`/dashboard/${collection.id}`}
+          prefetch="intent"
           className={cn(
             isOver && "animate-pulse",
             "flex w-full justify-between",

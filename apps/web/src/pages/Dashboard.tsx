@@ -5,6 +5,7 @@ import { ArrowRight, Globe } from "@repo/ui/icons";
 import { useState } from "react";
 import PreviewDialog from "~/components/dashboard/collections/collection-card/preview-dialog";
 import type { RouterOutputs } from "~/lib/trpc";
+import { AnimatedGroup } from "@repo/ui/components/ui/animated-group";
 
 type RecentItem = RouterOutputs["items"]["getRecents"][number];
 
@@ -36,7 +37,7 @@ function RecentItemRow({ item }: { item: RecentItem }) {
     <>
       <div
         onClick={() => setDialogOpen(true)}
-        className="group py-4 border-b border-border last:border-0 cursor-pointer hover:bg-muted/30 transition-colors -mx-4 px-4"
+        className="group py-4 rounded-md cursor-pointer hover:bg-muted/30 transition-colors -mx-4 px-4"
       >
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0 space-y-2">
@@ -52,9 +53,7 @@ function RecentItemRow({ item }: { item: RecentItem }) {
               ) : (
                 <Globe className="size-4 text-muted-foreground" />
               )}
-              <h3 className="font-semibold truncate max-w-[44ch]">
-                {item.title}
-              </h3>
+              <h3 className="truncate max-w-[44ch]">{item.title}</h3>
               <span className="text-xs text-muted-foreground">
                 {getDomain(item.url)}
               </span>
@@ -104,7 +103,7 @@ export default function Dashboard() {
   const firstName = session?.user.name?.split(" ")[0];
 
   const { data: recentItems, isLoading } = trpc.items.getRecents.useQuery({
-    limit: 3,
+    limit: 5,
   });
 
   const { data: collections } = trpc.collections.getUserCollections.useQuery();
@@ -116,7 +115,7 @@ export default function Dashboard() {
   return (
     <main className="max-w-4xl mx-auto p-6 space-y-12">
       {/* Header */}
-      <div className="text-center space-y-4 mt-16">
+      <div className="text-center space-y-4 mt-12">
         <h1 className="text-4xl 2xl:text-5xl font-display font-light">
           {greeting},{" "}
           <span className="italic text-muted-foreground">{firstName}.</span>
@@ -133,14 +132,14 @@ export default function Dashboard() {
 
       {/* Recent Captures Section */}
       {recentItems && recentItems.length > 0 && (
-        <section className="space-y-4">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-widest inline-flex items-center">
               Recent Captures <ArrowRight className="size-4 ml-1" />
             </h2>
           </div>
 
-          <div className="space-y-0">
+          <AnimatedGroup preset="slide-down" className="space-y-2">
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">
                 Loading...
@@ -150,8 +149,8 @@ export default function Dashboard() {
                 <RecentItemRow key={item.id} item={item} />
               ))
             )}
-          </div>
-        </section>
+          </AnimatedGroup>
+        </div>
       )}
     </main>
   );

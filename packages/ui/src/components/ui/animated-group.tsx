@@ -5,6 +5,7 @@ import React from "react";
 export type PresetType =
   | "fade"
   | "slide"
+  | "slide-down"
   | "scale"
   | "blur"
   | "blur-slide"
@@ -45,6 +46,10 @@ const presetVariants: Record<PresetType, Variants> = {
   slide: {
     hidden: { y: 20 },
     visible: { y: 0 },
+  },
+  "slide-down": {
+    hidden: { y: -10, opacity: 0 },
+    visible: { y: 0, opacity: 1 },
   },
   scale: {
     hidden: { scale: 0.8 },

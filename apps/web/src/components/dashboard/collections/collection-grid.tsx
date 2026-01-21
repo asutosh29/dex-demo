@@ -1,5 +1,12 @@
 import { useMemo, useState, useRef, useEffect } from "react";
-import { Bookmark, BookmarkPlus, LayoutGrid, List, Plus } from "@repo/ui/icons";
+import {
+  Bookmark,
+  BookmarkPlus,
+  Hash,
+  LayoutGrid,
+  List,
+  Plus,
+} from "@repo/ui/icons";
 import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
 import { Kbd } from "@repo/ui/components/ui/kbd";
@@ -12,8 +19,7 @@ import { CollectionEmptyState } from "./collection-empty-state";
 import { CollectionSkeleton } from "./collection-skeleton";
 import { useViewModeStore } from "~/lib/stores/view-mode-store";
 import { cn } from "@repo/ui/lib/utils";
-import { AnimatedGroup } from "@repo/ui/components/ui/animated-group";
-import { AnimatePresence } from "motion/react";
+import { ManageMembers } from "./manage-members";
 
 type FilterType = "all" | "link" | "note";
 
@@ -74,6 +80,9 @@ export function CollectionGrid({ collectionId }: { collectionId: string }) {
       {
         onSuccess: async () => {
           await utils.collections.get.invalidate({ id: collectionId });
+          // TODO: The whole collections list shouldn't need to be invalidated here just for a count update.
+          // Figure out a better way to sync count numbers for items and members across channels.
+          await utils.collections.getUserCollections.invalidate();
           toast.dismiss(loadingToast);
           toast.success("Item added successfully!");
           setUrl("");
@@ -101,11 +110,17 @@ export function CollectionGrid({ collectionId }: { collectionId: string }) {
     <div className="space-y-6 w-225 mx-auto">
       {/* Collection Header */}
       <div className="space-y-4">
-        <div className="flex items-center gap-4">
-          <h1 className=" text-3xl"># {collection.title}</h1>
-          <Badge variant="secondary">
-            <Bookmark /> {items.length}
-          </Badge>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="font-display text-3xl inline-flex items-baseline gap-2">
+            <Hash className="size-5" />
+            {collection.title}
+          </h1>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">
+              <Bookmark /> {items.length}
+            </Badge>
+            <ManageMembers role={collection.role} />
+          </div>
         </div>
 
         {/* Add Item Input */}
