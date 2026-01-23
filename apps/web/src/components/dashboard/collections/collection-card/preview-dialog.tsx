@@ -22,7 +22,12 @@ export default function PreviewDialog({
   item,
 }: PreviewDialogProps) {
   const { data: oembedData, isLoading: isLoadingEmbed } =
-    trpc.ogp.getOembed.useQuery({ url: item.url }, { enabled: !!item.url });
+    trpc.ogp.getOembed.useQuery({ url: item.url }, { enabled: open });
+
+  const { data: canIframe } = trpc.ogp.canIframe.useQuery(
+    { url: item.url },
+    { enabled: open },
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -50,9 +55,15 @@ export default function PreviewDialog({
               </p>
             ) : oembedData?.html ? (
               <OEmbedViewer
-                html={oembedData!.html}
+                html={oembedData.html}
                 className="max-h-full *:my-auto"
               />
+            ) : canIframe ? (
+              <iframe
+                src={item.url}
+                title={item.title || "Preview"}
+                className="w-full h-full rounded-lg border"
+              ></iframe>
             ) : item.image ? (
               <img
                 src={item.image}
@@ -60,7 +71,7 @@ export default function PreviewDialog({
                 className="max-w-full max-h-full object-contain rounded-lg"
               />
             ) : (
-              <div className="flex items-center justify-center h-64 border rounded-lg bg-muted">
+              <div className="flex items-center justify-center h-64 aspect-square border rounded-lg bg-muted">
                 <p className="text-sm text-muted-foreground">
                   No preview available
                 </p>
