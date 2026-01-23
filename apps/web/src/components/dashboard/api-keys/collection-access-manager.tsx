@@ -129,9 +129,7 @@ export function CollectionAccessManager({
                       <div className="flex-1">
                         <p className="font-medium">{collection.title}</p>
                         <p className="text-sm text-muted-foreground">
-                          {collection.itemCount} item
-                          {collection.itemCount !== 1 ? "s" : ""}
-                          {collection.isShared && " • Shared"}
+                          {(collection.isShared as boolean) && " • Shared"}
                         </p>
                       </div>
                     </div>

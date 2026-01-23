@@ -1,11 +1,10 @@
 import { Context, Next } from "hono";
 import { validateMcpApiKey } from "~/lib/mcp-auth";
-import type { Actor } from "~/services/rbac";
+import type { ApiKeyActor } from "~/services/rbac";
 
-// Extend Hono context to include actor
 export type McpContext = {
   Variables: {
-    actor: Actor;
+    actor: ApiKeyActor;
   };
 };
 

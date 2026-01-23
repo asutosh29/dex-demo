@@ -119,25 +119,32 @@ export type Actor =
       mode: ApiKeyMode;
       // For collection_specific mode
       allowedActions?: Action[];
-      grantedCollectionIds?: string[];
+      grantedCollections?: Array<{ id: string; title: string }>;
       // For full_access mode
-      userCollections?: Array<{ collectionId: string; role: Role }>;
+      userCollections?: Array<{ id: string; title: string; role: Role }>;
     };
+
+export type ApiKeyActor = Extract<Actor, { type: "api_key" }>;
+export type UserActor = Extract<Actor, { type: "user" }>;
 
 // Helper to build API key actor with appropriate permissions
 export function createApiKeyActor(
   apiKeyId: string,
   userId: string,
   mode: ApiKeyMode,
-  grantedCollectionIds: string[] = [],
-  userCollections: Array<{ collectionId: string; role: Role }> = [],
-): Actor {
+  grantedCollections: Array<{ id: string; title: string }> = [],
+  userCollections: Array<{ id: string; title: string; role: Role }> = [],
+): ApiKeyActor {
   if (mode === "full_access") {
     return {
       type: "api_key",
       apiKeyId,
       userId,
       mode,
+      allowedActions: [
+        ...ApiKeyPermissions.COLLECTION_SPECIFIC,
+        ...ApiKeyPermissions.FULL_ACCESS,
+      ],
       userCollections,
     };
   }
@@ -146,7 +153,7 @@ export function createApiKeyActor(
   const allowedActions: Action[] = [];
 
   // If granted collection access, add collection-specific permissions
-  if (grantedCollectionIds.length > 0) {
+  if (grantedCollections.length > 0) {
     allowedActions.push(...ApiKeyPermissions.COLLECTION_SPECIFIC);
   }
 
@@ -156,7 +163,7 @@ export function createApiKeyActor(
     userId,
     mode,
     allowedActions,
-    grantedCollectionIds,
+    grantedCollections,
   };
 }
 
@@ -193,7 +200,7 @@ export function can(
       // Full access mode: check if user has access to the collection
       if (collectionId && actor.userCollections) {
         const userCollection = actor.userCollections.find(
-          (uc) => uc.collectionId === collectionId,
+          (uc) => uc.id === collectionId,
         );
         if (userCollection) {
           return RolePermissions[userCollection.role].includes(action);

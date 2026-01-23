@@ -1,8 +1,8 @@
 import { AsyncLocalStorage } from "async_hooks";
-import type { Actor } from "~/services/rbac";
+import type { ApiKeyActor } from "~/services/rbac";
 
 export interface McpRequestContext {
-  actor: Actor;
+  actor: ApiKeyActor;
 }
 
 // AsyncLocalStorage maintains request-scoped context across async calls

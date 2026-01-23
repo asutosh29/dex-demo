@@ -19,7 +19,6 @@ import {
   AvatarGroupCount,
   AvatarImage,
 } from "@repo/ui/components/ui/avatar";
-import { role } from "better-auth/plugins";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
 
 type Member = RouterOutputs["collectionAccess"]["getMembers"][number];
