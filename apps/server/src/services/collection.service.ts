@@ -4,8 +4,16 @@ import {
   collectionItemsTable,
   userCollectionsTable,
   itemsTable,
+  user,
 } from "~/db/schema";
-import { eq, and, countDistinct, getTableColumns, desc } from "drizzle-orm";
+import {
+  eq,
+  and,
+  countDistinct,
+  getTableColumns,
+  desc,
+  gte,
+} from "drizzle-orm";
 import { getActor, assertCan, Action } from "./rbac";
 import { alias } from "drizzle-orm/pg-core";
 
@@ -34,6 +42,28 @@ export class CollectionService {
     return result;
   }
 
+  async getCollectionsAndItemsCount(userId: string) {
+    const result = db
+      .select({
+        id: collectionsTable.id,
+        itemCount: countDistinct(itemsTable.id),
+      })
+      .from(userCollectionsTable)
+      .innerJoin(
+        collectionsTable,
+        eq(userCollectionsTable.collectionId, collectionsTable.id),
+      )
+      .leftJoin(
+        collectionItemsTable,
+        eq(collectionsTable.id, collectionItemsTable.collectionId),
+      )
+      .leftJoin(itemsTable, eq(collectionItemsTable.itemId, itemsTable.id))
+      .where(eq(userCollectionsTable.userId, userId))
+      .groupBy(collectionsTable.id);
+
+    return result;
+  }
+
   async getUserCollections(userId: string) {
     // self-join to count members
     const ucMembers = alias(userCollectionsTable, "uc_members");
@@ -43,20 +73,16 @@ export class CollectionService {
         id: collectionsTable.id,
         title: collectionsTable.title,
         createdAt: collectionsTable.createdAt,
-        itemCount: countDistinct(collectionItemsTable.itemId),
-        memberCount: countDistinct(ucMembers.userId),
+        isShared: gte(countDistinct(ucMembers.userId), 2),
       })
       .from(userCollectionsTable)
       .where(eq(userCollectionsTable.userId, userId))
-      .leftJoin(
+      .innerJoin(
         collectionsTable,
         eq(userCollectionsTable.collectionId, collectionsTable.id),
       )
-      .leftJoin(
-        collectionItemsTable,
-        eq(collectionItemsTable.collectionId, collectionsTable.id),
-      )
       .leftJoin(ucMembers, eq(ucMembers.collectionId, collectionsTable.id))
+      .leftJoin(user, eq(user.id, ucMembers.userId))
       .groupBy(collectionsTable.id)
       .orderBy(collectionsTable.createdAt);
 

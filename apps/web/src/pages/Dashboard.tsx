@@ -109,14 +109,14 @@ export default function Dashboard() {
   const firstName = session?.user.name?.split(" ")[0];
 
   const { data: recentItems, isLoading } = trpc.items.getRecents.useQuery({
-    limit: 5,
+    limit: 3,
   });
 
-  const { data: collections } = trpc.collections.getUserCollections.useQuery();
-  const totalCollections = collections?.length ?? 0;
-  const totalItems =
-    collections?.reduce((acc: number, col) => acc + (col.itemCount ?? 0), 0) ??
-    0;
+  const { data: counts } =
+    trpc.collections.getCollectionsAndItemsCount.useQuery();
+  const totalCollections = counts?.reduce((acc, curr) => acc + 1, 0);
+  const totalItems = counts?.reduce((acc, curr) => acc + curr.itemCount, 0);
+  console.log({ counts });
 
   return (
     <main className="max-w-4xl mx-auto p-6 space-y-12">

@@ -10,7 +10,7 @@ import {
 import { ChevronRight, PlusIcon } from "@repo/ui/icons";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { trpc } from "~/lib/trpc";
+import { trpc, type RouterOutputs } from "~/lib/trpc";
 import { MemberManagementContent } from "./member-management-content";
 import {
   Avatar,
@@ -19,6 +19,10 @@ import {
   AvatarGroupCount,
   AvatarImage,
 } from "@repo/ui/components/ui/avatar";
+import { role } from "better-auth/plugins";
+import { Skeleton } from "@repo/ui/components/ui/skeleton";
+
+type Member = RouterOutputs["collectionAccess"]["getMembers"][number];
 
 export function ManageMembers({
   role,
@@ -27,9 +31,10 @@ export function ManageMembers({
 }) {
   const { collectionId } = useParams();
   const [open, setOpen] = useState(false);
-  const { data: members } = trpc.collectionAccess.getMembers.useQuery({
-    collectionId: collectionId!,
-  });
+  const { data: members, isLoading } =
+    trpc.collectionAccess.getMembers.useQuery({
+      collectionId: collectionId!,
+    });
 
   // Show button for all members (members can view, admin/owner can manage)
   const canView = !!role;
@@ -41,14 +46,7 @@ export function ManageMembers({
       <DialogTrigger asChild>
         <Button variant="ghost" className="space-x-2">
           <AvatarGroup>
-            {members?.slice(0, 3).map((member) => (
-              <Avatar key={member.userId} size="sm">
-                <AvatarImage src={member.user.image || undefined} />
-                <AvatarFallback>
-                  {member.user.name?.[0]?.toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            ))}
+            <MemberAvatarGroup members={members || []} isLoading={isLoading} />
             <AvatarGroupCount>
               {role == "member" ? <ChevronRight /> : <PlusIcon />}
             </AvatarGroupCount>
@@ -70,3 +68,41 @@ export function ManageMembers({
     </Dialog>
   );
 }
+
+export const MemberAvatarGroup = ({
+  members,
+  isLoading,
+}: {
+  members: Member[];
+  isLoading?: boolean;
+}) => {
+  // Show avatar group only if there are members
+  if (members.length === 0) return null;
+
+  if (isLoading) {
+    return (
+      <AvatarGroup>
+        {Array.from({ length: 3 }).map((_, index) => (
+          <Avatar key={index} size="sm">
+            <AvatarFallback>
+              <Skeleton className="size-4" />
+            </AvatarFallback>
+          </Avatar>
+        ))}
+      </AvatarGroup>
+    );
+  }
+
+  return (
+    <AvatarGroup>
+      {members.map((member) => (
+        <Avatar key={member.userId} size="sm">
+          <AvatarImage src={member.user.image || undefined} />
+          <AvatarFallback>
+            {member.user.name?.[0]?.toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+      ))}
+    </AvatarGroup>
+  );
+};

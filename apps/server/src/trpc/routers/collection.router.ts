@@ -9,6 +9,13 @@ export const collectionRouter = router({
     return collections;
   }),
 
+  getCollectionsAndItemsCount: protectedProcedure.query(async ({ ctx }) => {
+    const counts = await collectionService.getCollectionsAndItemsCount(
+      ctx.user.id,
+    );
+    return counts;
+  }),
+
   // Get single collection with items
   get: protectedProcedure
     .input(z.object({ id: z.string() }))

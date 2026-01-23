@@ -15,14 +15,14 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@repo/ui/components/ui/sidebar";
-import { Bookmark, Hash, Loader2, Plus, Users } from "@repo/ui/icons";
+import { Hash, Loader2, Plus } from "@repo/ui/icons";
 import { cn } from "@repo/ui/lib/utils";
 import { Link, useLocation } from "react-router-dom";
 import { authClient } from "~/lib/auth-client";
 import { trpc, type RouterOutputs } from "~/lib/trpc";
 import { AddCollectionDialogTrigger } from "./add-collection-dialog";
 import { NavUser } from "./nav-user";
-import { Badge } from "@repo/ui/components/ui/badge";
+import { MemberAvatarGroup } from "../collections/manage-members";
 
 type UserCollection =
   RouterOutputs["collections"]["getUserCollections"][number];
@@ -41,6 +41,16 @@ function CollectionMenuItem({
       collection,
     },
   });
+
+  const { data: members, isLoading } =
+    trpc.collectionAccess.getMembers.useQuery(
+      {
+        collectionId: collection.id,
+      },
+      {
+        enabled: collection.isShared as boolean,
+      },
+    );
 
   return (
     <SidebarMenuItem ref={setNodeRef}>
@@ -61,16 +71,7 @@ function CollectionMenuItem({
             <Hash className="size-4" />
             {collection.title}
           </div>
-          <div className="text-muted-foreground inline-flex items-center gap-2">
-            {collection.memberCount >= 2 && (
-              <Badge>
-                <Users /> {collection.memberCount}
-              </Badge>
-            )}
-            <Badge variant={"secondary"}>
-              <Bookmark /> {collection.itemCount}
-            </Badge>
-          </div>
+          <MemberAvatarGroup members={members || []} isLoading={isLoading} />
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -84,16 +85,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
 
   const privateCollections = React.useMemo(
-    () => collections?.filter((c) => c.memberCount < 2) ?? [],
+    () => collections?.filter((c) => !c.isShared) ?? [],
     [collections],
   );
 
   const sharedCollections = React.useMemo(
-    () => collections?.filter((c) => c.memberCount >= 2) ?? [],
+    () => collections?.filter((c) => c.isShared) ?? [],
     [collections],
   );
-
-  console.log("Collections:", collections);
 
   return (
     <Sidebar {...props}>
