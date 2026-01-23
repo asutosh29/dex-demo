@@ -14,6 +14,7 @@ import { trpc } from "~/lib/trpc";
 import { toast } from "@repo/ui/components/ui/sonner";
 import { cn } from "@repo/ui/lib/utils";
 import { useDraggable } from "@dnd-kit/core";
+import { Link } from "react-router-dom";
 
 interface CollectionListRowProps {
   item: CollectionItem;
@@ -85,7 +86,7 @@ export function CollectionListRow({
         }}
         className={cn(
           "group grid grid-cols-[1fr_auto_auto] gap-4 items-center py-3 px-4 rounded-md hover:bg-muted/50 transition-all duration-200 ease-in-out",
-          collectionId && "cursor-grab active:cursor-grabbing",
+          collectionId && "active:cursor-grabbing",
           !collectionId && "cursor-pointer",
           collectionId &&
             (isDragging || active?.id === item.id) &&
@@ -108,7 +109,14 @@ export function CollectionListRow({
           )}
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">
-              {item.title || item.url}
+              <a
+                href={item.url}
+                className="hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {item.title || item.url}
+              </a>
             </p>
             <p className="truncate text-xs text-muted-foreground">
               {getDomain(item.url)}

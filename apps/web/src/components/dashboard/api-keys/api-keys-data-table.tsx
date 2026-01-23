@@ -345,7 +345,7 @@ export function ApiKeysDataTable({ data }: ApiKeysDataTableProps) {
       {selectedApiKey && (
         <CollectionAccessManager
           apiKeyId={selectedApiKey.id}
-          apiKeyName={selectedApiKey.name}
+          apiKeyName={selectedApiKey.name!}
           grantedCollections={selectedApiKey.grantedCollections}
           open={manageAccessOpen}
           onOpenChange={setManageAccessOpen}

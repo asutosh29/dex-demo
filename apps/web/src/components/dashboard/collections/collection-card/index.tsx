@@ -1,4 +1,9 @@
-import { Globe, MoreHorizontal, Trash2 } from "@repo/ui/icons";
+import {
+  Globe,
+  LucideSquareArrowOutUpRight,
+  MoreHorizontal,
+  Trash2,
+} from "@repo/ui/icons";
 import { useState } from "react";
 import PreviewDialog from "./preview-dialog";
 import type { RouterOutputs } from "~/lib/trpc";
@@ -68,7 +73,7 @@ export function CollectionCard({
         {...(collectionId ? attributes : {})}
         {...(collectionId ? listeners : {})}
         className={cn(
-          "group w-full flex-shrink-0 rounded-lg bg-card p-1 space-y-3",
+          "group w-full shrink-0 rounded-lg bg-card p-1 space-y-3",
           collectionId && "cursor-grab active:cursor-grabbing",
           "transition-all duration-200 ease-in-out",
           collectionId &&
@@ -82,7 +87,7 @@ export function CollectionCard({
           }
         }}
       >
-        <div className="relative w-full aspect-[16/9] rounded-md overflow-hidden">
+        <div className="relative w-full aspect-video rounded-md overflow-hidden">
           {collectionId && (
             <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
               <DropdownMenu>
@@ -121,6 +126,21 @@ export function CollectionCard({
               <Globe className="size-12 text-muted-foreground" />
             </div>
           )}
+
+          <a
+            href={item.url}
+            className={cn(
+              "absolute -bottom-2 right-0 p-2 rounded-tl",
+              "opacity-0 group-hover:bottom-0 group-hover:opacity-100 transition-all duration-150 ease-in-out",
+              "bg-card/50 backdrop-blur-lg shadow-md",
+              "text-xs flex items-center gap-1 hover:underline",
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="max-w-[16ch] truncate">{item.url}</span>{" "}
+            <LucideSquareArrowOutUpRight className="size-4" />
+          </a>
         </div>
         <div className="flex gap-1 items-center">
           {item.favicon ? (
