@@ -29,7 +29,7 @@ export function CollectionAccessManager({
   onOpenChange,
 }: CollectionAccessManagerProps) {
   const { data: allCollections, isLoading } =
-    trpc.collections.getAll.useQuery();
+    trpc.collections.getUserCollections.useQuery();
   const utils = trpc.useUtils();
 
   const [pendingToggle, setPendingToggle] = useState<string | null>(null);

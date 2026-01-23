@@ -17,16 +17,25 @@ export async function validateMcpApiKey(
   apiKeyString: string,
 ): Promise<Actor | null> {
   if (!apiKeyString) {
+    console.log("[MCP Auth] No API key provided");
     return null;
   }
 
-  const { valid, key } = await auth.api.verifyApiKey({
+  console.log(
+    "[MCP Auth] Verifying API key:",
+    apiKeyString.substring(0, 20) + "...",
+  );
+
+  const { valid, error, key } = await auth.api.verifyApiKey({
     body: {
       key: apiKeyString,
     },
   });
 
+  console.log("[MCP Auth] Verification result:", { valid, error });
+
   if (!valid || !key) {
+    console.log("[MCP Auth] API key validation failed");
     return null;
   }
 

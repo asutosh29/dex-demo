@@ -18,5 +18,13 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
   },
-  plugins: [apiKey()],
+  plugins: [
+    apiKey({
+      rateLimit: {
+        enabled: true,
+        timeWindow: 60,
+        maxRequests: 100,
+      },
+    }),
+  ],
 });

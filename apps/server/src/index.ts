@@ -6,8 +6,7 @@ import { trpcServer } from "@hono/trpc-server";
 import { auth } from "~/lib/auth";
 import { trustedOrigins } from "./lib/constants";
 import { appRouter, createContext } from "~/trpc";
-import { createMcpServer } from "~/mcp/server";
-import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { mcpServer } from "~/mcp/server";
 
 const app = new Hono();
 
@@ -15,7 +14,7 @@ app.use(
   "*",
   cors({
     origin: trustedOrigins,
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "X-API-Key"],
     credentials: true,
   }),
 );
@@ -40,30 +39,7 @@ app.get("/ping", (c) => {
 });
 
 // MCP endpoint
-app.all("/mcp", async (c) => {
-  try {
-    const server = createMcpServer();
-    const transport = new WebStandardStreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-    });
-    await server.connect(transport);
-    const response = await transport.handleRequest(c.req.raw);
-    return response;
-  } catch (e) {
-    console.error("MCP Error:", e);
-    return c.json(
-      {
-        jsonrpc: "2.0",
-        error: {
-          code: -32603,
-          message: "Internal server error",
-        },
-        id: null,
-      },
-      { status: 500 },
-    );
-  }
-});
+app.route("/mcp", mcpServer);
 
 const port = Number(process.env.PORT || 8787);
 
