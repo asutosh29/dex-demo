@@ -13,6 +13,7 @@ export class ApiKeyService {
     name: string,
     mode: ApiKeyMode,
     expiresIn?: number,
+    collectionIds?: string[],
   ) {
     const apiKey = await auth.api.createApiKey({
       body: {
@@ -24,6 +25,28 @@ export class ApiKeyService {
 
     // Update the mode in the database
     await db.update(apikey).set({ mode }).where(eq(apikey.id, apiKey.id));
+
+    // Grant collection access if provided for collection_specific mode
+    if (
+      mode === "collection_specific" &&
+      collectionIds &&
+      collectionIds.length > 0
+    ) {
+      for (const collectionId of collectionIds) {
+        // Verify user has access to the collection
+        const actor = await getActor(userId, collectionId);
+        assertCan(actor, Action.COLLECTION_READ);
+
+        // Grant access
+        await db
+          .insert(apiKeyCollectionsTable)
+          .values({
+            apiKeyId: apiKey.id,
+            collectionId,
+          })
+          .onConflictDoNothing();
+      }
+    }
 
     return {
       id: apiKey.id,
@@ -155,24 +178,15 @@ export class ApiKeyService {
   /**
    * Delete an API key
    */
-  async deleteApiKey(userId: string, apiKeyId: string) {
-    // Verify user owns the API key
-    const apiKeyRecord = await db.query.apikey.findFirst({
-      where: eq(apikey.id, apiKeyId),
-    });
-
-    if (!apiKeyRecord || apiKeyRecord.userId !== userId) {
-      throw new Error("API key not found or access denied");
-    }
-
-    await auth.api.deleteApiKey({
+  async deleteApiKey(apiKeyId: string) {
+    const { success } = await auth.api.deleteApiKey({
       body: {
         keyId: apiKeyId,
       },
     });
 
     // CASCADE will automatically delete from apiKeyCollectionsTable
-    return { success: true };
+    return { success };
   }
 }
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,11 +7,21 @@ import {
   DialogTitle,
 } from "@repo/ui/components/ui/dialog";
 import { Button } from "@repo/ui/components/ui/button";
+import { Input } from "@repo/ui/components/ui/input";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { Checkbox } from "@repo/ui/components/ui/checkbox";
-import { Loader2, Info } from "@repo/ui/icons";
+import { ScrollArea } from "@repo/ui/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@repo/ui/components/ui/tooltip";
+import { Info, Search } from "@repo/ui/icons";
 import { trpc } from "~/lib/trpc";
 import { toast } from "@repo/ui/components/ui/sonner";
+
+type Role = "owner" | "admin" | "member";
 
 interface CollectionAccessManagerProps {
   apiKeyId: string;
@@ -32,43 +42,88 @@ export function CollectionAccessManager({
     trpc.collections.getUserCollections.useQuery();
   const utils = trpc.useUtils();
 
-  const [pendingToggle, setPendingToggle] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const initialGrantedIds = useMemo(
+    () => grantedCollections.map((c) => c.id),
+    [grantedCollections],
+  );
+  const [selectedCollections, setSelectedCollections] =
+    useState<string[]>(initialGrantedIds);
+  const [isApplying, setIsApplying] = useState(false);
 
-  const grantMutation = trpc.apiKeys.grantCollectionAccess.useMutation({
-    onSuccess: () => {
-      utils.apiKeys.list.invalidate();
-      toast.success("Collection access granted");
-      setPendingToggle(null);
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to grant access");
-      setPendingToggle(null);
-    },
-  });
+  // Check if there are changes
+  const hasChanges = useMemo(() => {
+    const selectedSet = new Set(selectedCollections);
+    const grantedSet = new Set(initialGrantedIds);
 
-  const revokeMutation = trpc.apiKeys.revokeCollectionAccess.useMutation({
-    onSuccess: () => {
-      utils.apiKeys.list.invalidate();
-      toast.success("Collection access revoked");
-      setPendingToggle(null);
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to revoke access");
-      setPendingToggle(null);
-    },
-  });
+    if (selectedSet.size !== grantedSet.size) return true;
 
-  const handleToggle = (collectionId: string, isGranted: boolean) => {
-    setPendingToggle(collectionId);
-
-    if (isGranted) {
-      revokeMutation.mutate({ apiKeyId, collectionId });
-    } else {
-      grantMutation.mutate({ apiKeyId, collectionId });
+    for (const id of selectedSet) {
+      if (!grantedSet.has(id)) return true;
     }
+
+    return false;
+  }, [selectedCollections, initialGrantedIds]);
+
+  const grantMutation = trpc.apiKeys.grantCollectionAccess.useMutation();
+  const revokeMutation = trpc.apiKeys.revokeCollectionAccess.useMutation();
+
+  const canManageApiKeyAccess = (role: Role) =>
+    role === "admin" || role === "owner";
+
+  const filteredCollections = useMemo(() => {
+    if (!allCollections) return [];
+    return allCollections.filter((collection) =>
+      collection.title.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [allCollections, searchQuery]);
+
+  const toggleCollection = (collectionId: string) => {
+    setSelectedCollections((prev) =>
+      prev.includes(collectionId)
+        ? prev.filter((id) => id !== collectionId)
+        : [...prev, collectionId],
+    );
   };
 
-  const grantedIds = new Set(grantedCollections.map((c) => c.id));
+  const handleApply = async () => {
+    setIsApplying(true);
+
+    const currentGrantedIds = new Set(initialGrantedIds);
+    const newSelectedIds = new Set(selectedCollections);
+
+    // Find collections to grant access to (in new selection but not in current)
+    const toGrant = selectedCollections.filter(
+      (id) => !currentGrantedIds.has(id),
+    );
+
+    // Find collections to revoke access from (in current but not in new selection)
+    const toRevoke = initialGrantedIds.filter((id) => !newSelectedIds.has(id));
+
+    try {
+      // Execute all grants
+      for (const collectionId of toGrant) {
+        await grantMutation.mutateAsync({ apiKeyId, collectionId });
+      }
+
+      // Execute all revokes
+      for (const collectionId of toRevoke) {
+        await revokeMutation.mutateAsync({ apiKeyId, collectionId });
+      }
+
+      utils.apiKeys.list.invalidate();
+      toast.success("Collection access updated successfully");
+      onOpenChange(false);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to update collection access";
+      toast.error(message);
+    } finally {
+      setIsApplying(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -103,53 +158,113 @@ export function CollectionAccessManager({
           </div>
 
           {/* Collections List */}
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : allCollections && allCollections.length > 0 ? (
-            <div className="space-y-2">
-              {allCollections.map((collection) => {
-                const isGranted = grantedIds.has(collection.id);
-                const isPending = pendingToggle === collection.id;
+          <div className="space-y-2">
+            <div className="border rounded-lg">
+              {/* Search Input */}
+              <div className="relative border-b">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search collections..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="border-0 pl-9"
+                />
+              </div>
 
-                return (
-                  <div
-                    key={collection.id}
-                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <Checkbox
-                        checked={isGranted}
-                        onCheckedChange={() =>
-                          handleToggle(collection.id, isGranted)
-                        }
-                        disabled={isPending}
-                      />
-                      <div className="flex-1">
-                        <p className="font-medium">{collection.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {(collection.isShared as boolean) && " • Shared"}
-                        </p>
-                      </div>
+              {/* Scrollable Collection List */}
+              <ScrollArea className="max-h-60 min-h-30">
+                <div className="p-2">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                      Loading collections...
                     </div>
-                    {isPending && (
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    )}
-                  </div>
-                );
-              })}
+                  ) : filteredCollections.length > 0 ? (
+                    <div className="space-y-1">
+                      {filteredCollections.map((collection) => {
+                        const isSelected = selectedCollections.includes(
+                          collection.id,
+                        );
+                        const isShared = collection.isShared as boolean;
+                        const role = collection.role as Role;
+                        const canManage = canManageApiKeyAccess(role);
+                        const isDisabled = isShared && !canManage;
+
+                        return (
+                          <TooltipProvider key={collection.id}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className={`flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors ${
+                                    isDisabled
+                                      ? "opacity-50 cursor-not-allowed"
+                                      : "cursor-pointer"
+                                  }`}
+                                  onClick={() =>
+                                    !isDisabled &&
+                                    toggleCollection(collection.id)
+                                  }
+                                >
+                                  <div className="flex items-center gap-3 flex-1">
+                                    <Checkbox
+                                      checked={isSelected}
+                                      disabled={isDisabled}
+                                      onCheckedChange={() =>
+                                        toggleCollection(collection.id)
+                                      }
+                                    />
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <p className="font-medium text-sm">
+                                          {collection.title}
+                                        </p>
+                                        {isShared && (
+                                          <Badge
+                                            variant="outline"
+                                            className="text-xs"
+                                          >
+                                            Shared
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </TooltipTrigger>
+                              {isDisabled && (
+                                <TooltipContent>
+                                  <p className="text-xs">
+                                    You need admin or owner role to manage API
+                                    key access to this shared collection
+                                  </p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-sm text-muted-foreground">
+                      {searchQuery
+                        ? "No collections found"
+                        : "No collections available"}
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
             </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No collections available</p>
-              <p className="text-sm">Create a collection first</p>
-            </div>
-          )}
+          </div>
         </div>
 
-        <div className="flex justify-end">
-          <Button onClick={() => onOpenChange(false)}>Done</Button>
+        <div className="flex justify-end gap-2">
+          <>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleApply} disabled={isApplying || !hasChanges}>
+              {isApplying ? "Applying..." : "Apply Changes"}
+            </Button>
+          </>
         </div>
       </DialogContent>
     </Dialog>

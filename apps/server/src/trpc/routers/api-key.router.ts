@@ -10,6 +10,7 @@ export const apiKeyRouter = router({
         name: z.string().min(1, "Name is required"),
         mode: z.enum(["full_access", "collection_specific"]),
         expiresIn: z.number().optional(), // seconds
+        collectionIds: z.array(z.string()).optional(), // for collection_specific mode
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -18,6 +19,7 @@ export const apiKeyRouter = router({
         input.name,
         input.mode,
         input.expiresIn,
+        input.collectionIds,
       );
     }),
 
@@ -61,7 +63,7 @@ export const apiKeyRouter = router({
   // Delete API key
   delete: protectedProcedure
     .input(z.object({ keyId: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      return await apiKeyService.deleteApiKey(ctx.user.id, input.keyId);
+    .mutation(async ({ input }) => {
+      return await apiKeyService.deleteApiKey(input.keyId);
     }),
 });

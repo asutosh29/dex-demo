@@ -71,7 +71,9 @@ function CollectionMenuItem({
             <Hash className="size-4" />
             {collection.title}
           </div>
-          <MemberAvatarGroup members={members || []} isLoading={isLoading} />
+          {(collection.isShared as boolean) && (
+            <MemberAvatarGroup members={members || []} isLoading={isLoading} />
+          )}
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>

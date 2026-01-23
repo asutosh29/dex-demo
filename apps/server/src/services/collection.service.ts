@@ -74,6 +74,7 @@ export class CollectionService {
         title: collectionsTable.title,
         createdAt: collectionsTable.createdAt,
         isShared: gte(countDistinct(ucMembers.userId), 2),
+        role: userCollectionsTable.role,
       })
       .from(userCollectionsTable)
       .where(eq(userCollectionsTable.userId, userId))
@@ -83,7 +84,7 @@ export class CollectionService {
       )
       .leftJoin(ucMembers, eq(ucMembers.collectionId, collectionsTable.id))
       .leftJoin(user, eq(user.id, ucMembers.userId))
-      .groupBy(collectionsTable.id)
+      .groupBy(collectionsTable.id, userCollectionsTable.role)
       .orderBy(collectionsTable.createdAt);
 
     return userCollections;

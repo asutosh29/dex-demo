@@ -26,7 +26,7 @@ export default function PreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex flex-col max-w-none! w-[80vw] ">
+      <DialogContent className="flex flex-col max-w-none! w-[80vw]">
         <DialogHeader>
           <DialogTitle className="flex items-center truncate w-[72ch] truncate-ellipsis">
             {item.favicon ? (
