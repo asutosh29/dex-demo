@@ -3,12 +3,14 @@ import {
   collectionItemsTable,
   collectionsTable,
   itemsTable,
+  userCollectionsTable,
 } from "~/db/schema";
-import { eq, and, sql, desc, getTableColumns } from "drizzle-orm";
+import { eq, and, sql, desc, getTableColumns, inArray } from "drizzle-orm";
 import { extractOpenGraphData, getOembedData } from "./utils/ogp";
 import { parseHtmlContent } from "./utils/html-parser";
 import { WebpageTaggerAgent, WebpageTaggerAgentWithTitle } from "./agent/tag";
 import { AgentResponse } from "~/lib/types";
+import { Action, assertCan, getActor } from "./rbac";
 
 export class ItemService {
   /**
@@ -124,6 +126,52 @@ export class ItemService {
       .limit(limit);
 
     return results;
+  }
+
+  async checkItemExists(url: string, userId: string) {
+    const result = await db
+      .select({
+        itemId: itemsTable.id,
+        collectionId: collectionItemsTable.collectionId,
+      })
+      .from(itemsTable)
+      .innerJoin(
+        collectionItemsTable,
+        eq(itemsTable.id, collectionItemsTable.itemId),
+      )
+      .innerJoin(
+        userCollectionsTable,
+        eq(
+          collectionItemsTable.collectionId,
+          userCollectionsTable.collectionId,
+        ),
+      )
+      .where(
+        and(
+          eq(itemsTable.url, url),
+          eq(userCollectionsTable.userId, userId),
+          // If specific collection IDs are provided, filter to only those
+        ),
+      );
+
+    if (result.length === 0) {
+      return {
+        itemExists: false,
+        itemId: null,
+        collectionIds: [],
+      };
+    }
+
+    const itemId = result[0].itemId;
+    const itemCollectionIds = result
+      .map((row) => row.collectionId)
+      .filter((id): id is string => id !== null);
+
+    return {
+      itemExists: true,
+      itemId,
+      collectionIds: itemCollectionIds,
+    };
   }
 
   /**

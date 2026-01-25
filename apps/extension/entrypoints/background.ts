@@ -106,30 +106,22 @@ export default defineBackground(() => {
       return true;
     }
     if (message.type === "CHECK_ITEM_EXISTS") {
-      // const { url, collectionId } = message;
-      // console.log("[BG] CHECK_ITEM_EXISTS received", { url, collectionId });
-      // trpc.items.getAll
-      //   .query()
-      //   .then((items) => {
-      //     const exists = items.some(
-      //       (item: any) =>
-      //         item.url === url && item.collectionId === collectionId,
-      //     );
-      //     console.log("[BG] CHECK_ITEM_EXISTS result", exists);
-      //     sendResponse({ ok: true, data: { exists }, error: null });
-      //   })
-      //   .catch((error) => {
-      //     console.error("[BG] CHECK_ITEM_EXISTS error", error);
-      //     sendResponse({
-      //       ok: false,
-      //       data: null,
-      //       error: (error as Error).message,
-      //     });
-      //   });
-      // return true;
+      trpc.items.checkItemExists
+        .query({ url: message.url })
+        .then((result) => {
+          console.log("[BG] CHECK_ITEM_EXISTS result", result);
+          sendResponse({ ok: true, data: result, error: null });
+        })
+        .catch((error) => {
+          console.error("[BG] CHECK_ITEM_EXISTS error", error);
+          sendResponse({
+            ok: false,
+            data: null,
+            error: (error as Error).message,
+          });
+        });
+      return true;
     }
-
-    // Removed duplicate CHECK_ITEM_EXISTS handler; only .then/.catch version remains above
 
     if (message.type === "SIGN_IN") {
       console.log("[BG] SIGN_IN received");

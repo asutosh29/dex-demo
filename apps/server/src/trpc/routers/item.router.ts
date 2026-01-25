@@ -42,6 +42,12 @@ export const itemRouter = router({
       return await itemService.getRecents(ctx.user.id, input.limit);
     }),
 
+  checkItemExists: protectedProcedure
+    .input(z.object({ url: z.url() }))
+    .query(async ({ ctx, input }) => {
+      return await itemService.checkItemExists(input.url, ctx.user.id);
+    }),
+
   // Share item
   // share: protectedProcedure
   //   .input(

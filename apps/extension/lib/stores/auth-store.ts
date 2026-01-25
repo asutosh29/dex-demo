@@ -1,6 +1,5 @@
 import { User } from "better-auth";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 interface AuthStore {
   isLoggedIn: boolean;
