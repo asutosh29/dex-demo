@@ -43,7 +43,7 @@ export default defineBackground(() => {
 
     if (message.type === "GET_COLLECTIONS") {
       console.log("[BG] GET_COLLECTIONS received");
-      trpc.collections.getAll
+      trpc.collections.getUserCollections
         .query()
         .then((collections) => {
           console.log("[BG] GET_COLLECTIONS success", collections);
@@ -106,27 +106,27 @@ export default defineBackground(() => {
       return true;
     }
     if (message.type === "CHECK_ITEM_EXISTS") {
-      const { url, collectionId } = message;
-      console.log("[BG] CHECK_ITEM_EXISTS received", { url, collectionId });
-      trpc.items.getAll
-        .query()
-        .then((items) => {
-          const exists = items.some(
-            (item: any) =>
-              item.url === url && item.collectionId === collectionId,
-          );
-          console.log("[BG] CHECK_ITEM_EXISTS result", exists);
-          sendResponse({ ok: true, data: { exists }, error: null });
-        })
-        .catch((error) => {
-          console.error("[BG] CHECK_ITEM_EXISTS error", error);
-          sendResponse({
-            ok: false,
-            data: null,
-            error: (error as Error).message,
-          });
-        });
-      return true;
+      // const { url, collectionId } = message;
+      // console.log("[BG] CHECK_ITEM_EXISTS received", { url, collectionId });
+      // trpc.items.getAll
+      //   .query()
+      //   .then((items) => {
+      //     const exists = items.some(
+      //       (item: any) =>
+      //         item.url === url && item.collectionId === collectionId,
+      //     );
+      //     console.log("[BG] CHECK_ITEM_EXISTS result", exists);
+      //     sendResponse({ ok: true, data: { exists }, error: null });
+      //   })
+      //   .catch((error) => {
+      //     console.error("[BG] CHECK_ITEM_EXISTS error", error);
+      //     sendResponse({
+      //       ok: false,
+      //       data: null,
+      //       error: (error as Error).message,
+      //     });
+      //   });
+      // return true;
     }
 
     // Removed duplicate CHECK_ITEM_EXISTS handler; only .then/.catch version remains above

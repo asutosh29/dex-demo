@@ -208,11 +208,8 @@ export default () => {
                 onClick={(e) => e.stopPropagation()}
               />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">
+                <p className="text-sm font-medium text-foreground truncate">
                   {collection.title}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {collection.itemCount} items
                 </p>
               </div>
               {collection.itemCount > 0 && (

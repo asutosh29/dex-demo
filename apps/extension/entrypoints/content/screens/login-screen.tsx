@@ -1,20 +1,29 @@
 import { Button } from "@repo/ui/components/ui/button";
-import { DexLogo, LogInIcon } from "@repo/ui/icons";
+import { ArrowRight, LogInIcon, MoveRight } from "@repo/ui/icons";
+import Logo from "~/assets/logo.svg";
 
 const LoginScreen = () => {
   return (
     <div className="flex flex-col gap-2 items-center">
-      <h1 className="text-2xl inline-flex items-center gap-2 font-bold">
-        <DexLogo /> Dex
+      <div className="left-2 top-2 flex items-center self-start gap-1">
+        <img src={Logo} alt="Dex Logo" className="h-4 w-4" />
+      </div>
+      <h1 className="font-display text-3xl text-center">
+        Gotta save <br />
+        <span className="text-muted-foreground">
+          <em>'em all</em>
+        </span>
       </h1>
-      <p>Your shared second brain.</p>
       <Button
-        className="w-full mt-2"
+        className="mt-4 mb-1 w-full"
+        variant={"outline"}
+        size={"lg"}
         onClick={() => {
           browser.runtime.sendMessage({ type: "SIGN_IN" });
         }}
       >
-        Login <LogInIcon />
+        Login to Dex
+        <MoveRight />
       </Button>
     </div>
   );

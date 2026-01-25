@@ -8,19 +8,12 @@ interface AuthStore {
   setUser: (user: User | null) => void;
 }
 
-export const useAuthStore = create<AuthStore, [["zustand/persist", AuthStore]]>(
-  persist(
-    (set) => ({
-      isLoggedIn: false,
-      user: null,
-      setUser: (user) =>
-        set(() => ({
-          user,
-          isLoggedIn: user !== null,
-        })),
-    }),
-    {
-      name: "auth-store",
-    },
-  ),
-);
+export const useAuthStore = create<AuthStore>((set) => ({
+  isLoggedIn: false,
+  user: null,
+  setUser: (user) =>
+    set(() => ({
+      user,
+      isLoggedIn: user !== null,
+    })),
+}));

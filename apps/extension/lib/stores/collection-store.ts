@@ -4,7 +4,7 @@ import { persist } from "zustand/middleware";
 export interface Collection {
   id: string;
   title: string;
-  itemCount: number;
+  isShared: boolean;
   memberCount: number;
 }
 
