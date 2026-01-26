@@ -71,6 +71,13 @@ export class ItemService {
           collectionId: data.collectionId,
           itemId: item.id,
         });
+
+        await tx
+          .update(collectionsTable)
+          .set({
+            updatedAt: new Date(),
+          })
+          .where(eq(collectionsTable.id, data.collectionId));
       }
 
       return item;

@@ -44,7 +44,9 @@ export default defineBackground(() => {
     if (message.type === "GET_COLLECTIONS") {
       console.log("[BG] GET_COLLECTIONS received");
       trpc.collections.getUserCollections
-        .query()
+        .query({
+          sortBy: "updatedAt",
+        })
         .then((collections) => {
           console.log("[BG] GET_COLLECTIONS success", collections);
           sendResponse({ ok: true, data: collections, error: null });

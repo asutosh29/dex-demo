@@ -19,7 +19,7 @@ const GreetingHeader = () => {
   const { user } = useAuthStore();
   const firstName = user?.name?.split(" ")[0] || "Guest";
   return (
-    <div className="w-full inline-flex items-center gap-1 text-sm">
+    <div className="w-full inline-flex items-center gap-1 text-sm font-medium">
       <img src={Logo} alt="Dex Logo" className="h-4 w-4 mr-1" />
       {getTimeBasedGreeting()},
       <span className="text-muted-foreground">{firstName}!</span>

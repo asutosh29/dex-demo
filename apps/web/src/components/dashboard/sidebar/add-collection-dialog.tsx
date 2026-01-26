@@ -24,7 +24,7 @@ export function AddCollectionDialogTrigger({
 
   const createCollection = trpc.collections.create.useMutation({
     onSuccess: () => {
-      utils.collections.getAll.invalidate();
+      utils.collections.getUserCollections.invalidate();
       setNewCollectionTitle("");
       setIsCreateDialogOpen(false);
     },

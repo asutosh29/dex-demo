@@ -64,7 +64,11 @@ export class CollectionService {
     return result;
   }
 
-  async getUserCollections(userId: string) {
+  async getUserCollections(
+    userId: string,
+    sortBy: "createdAt" | "updatedAt" | "title" = "createdAt",
+    order: "asc" | "desc" = "desc",
+  ) {
     // self-join to count members
     const ucMembers = alias(userCollectionsTable, "uc_members");
 
@@ -85,7 +89,11 @@ export class CollectionService {
       .leftJoin(ucMembers, eq(ucMembers.collectionId, collectionsTable.id))
       .leftJoin(user, eq(user.id, ucMembers.userId))
       .groupBy(collectionsTable.id, userCollectionsTable.role)
-      .orderBy(collectionsTable.createdAt);
+      .orderBy(
+        order === "asc"
+          ? collectionsTable[sortBy]
+          : desc(collectionsTable[sortBy]),
+      );
 
     return userCollections;
   }

@@ -97,5 +97,9 @@ export default defineContentScript({
         unmountUI();
       }
     });
+
+    window.addEventListener("toggle-ui", () => {
+      mounted ? unmountUI() : mountUI();
+    });
   },
 });

@@ -4,10 +4,23 @@ import { collectionService } from "~/services/collection.service";
 
 export const collectionRouter = router({
   // Get all user's collections
-  getUserCollections: protectedProcedure.query(async ({ ctx }) => {
-    const collections = await collectionService.getUserCollections(ctx.user.id);
-    return collections;
-  }),
+  getUserCollections: protectedProcedure
+    .input(
+      z
+        .object({
+          sortBy: z.enum(["createdAt", "updatedAt", "title"]).optional(),
+          order: z.enum(["asc", "desc"]).optional(),
+        })
+        .optional(),
+    )
+    .query(async ({ ctx, input }) => {
+      const collections = await collectionService.getUserCollections(
+        ctx.user.id,
+        input?.sortBy,
+        input?.order,
+      );
+      return collections;
+    }),
 
   getCollectionsAndItemsCount: protectedProcedure.query(async ({ ctx }) => {
     const counts = await collectionService.getCollectionsAndItemsCount(
