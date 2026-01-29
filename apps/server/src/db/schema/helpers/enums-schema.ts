@@ -7,3 +7,9 @@ export const collectionAccessRoleEnum = pgEnum("collection_access_role", [
   "admin",
   "member",
 ]);
+
+export const userStatusEnum = pgEnum("UserStatus", [
+  "waitlist",
+  "active",
+  "suspended",
+]);

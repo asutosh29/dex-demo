@@ -7,6 +7,7 @@ import { Badge } from "@repo/ui/components/ui/badge";
 import { Search, Plus, Loader } from "@repo/ui/icons";
 import { CreateCollection } from "@/components/collection-screen/create-collection";
 import { ScrollArea } from "@repo/ui/components/ui/scroll-area";
+import { AnimatedCheck } from "@repo/ui/components/ui/animated-check";
 
 export function CollectionList() {
   const { collections } = useCollectionStore();
@@ -150,19 +151,7 @@ export function CollectionList() {
   if (isSaved) {
     return (
       <div className="flex flex-col items-center justify-center py-8 space-y-4">
-        <div className="size-16 bg-emerald-950 rounded-full flex items-center justify-center">
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#4ade80"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          >
-            <path className="check-animated" d="M20 6L9 17l-5-5" />
-          </svg>
-        </div>
+        <AnimatedCheck />
         <h1 className="text-xl">Saved!</h1>
       </div>
     );

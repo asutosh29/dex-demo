@@ -1,8 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/login";
 import Dashboard from "./pages/dashboard";
 import Collection from "./pages/collection";
 import ApiKeys from "./pages/api-keys";
+import NotFound from "./pages/not-found";
 import ProtectedRoute from "./components/navigation/protected-route";
 import DashboardLayout from "./components/layouts/dashboard-layout";
 
@@ -10,7 +11,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Login />} />
         <Route element={<ProtectedRoute />}>
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
@@ -18,7 +19,7 @@ function App() {
             <Route path="/dashboard/api-keys" element={<ApiKeys />} />
           </Route>
         </Route>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

@@ -28,7 +28,7 @@ export function NavUser({ user }: { user: User }) {
 
   const handleSignOut = async () => {
     await authClient.signOut();
-    navigate("/login");
+    navigate("/");
   };
 
   return (
