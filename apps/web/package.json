@@ -33,6 +33,8 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.22.1",
+    "@cloudflare/workers-types": "^4.20260129.0",
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.4",
     "@types/react": "^19.2.5",
@@ -44,6 +46,7 @@
     "globals": "^16.5.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "wrangler": "^4.61.1"
   }
 }

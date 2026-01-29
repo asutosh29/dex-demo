@@ -6,6 +6,8 @@ import { useState } from "react";
 import PreviewDialog from "~/components/dashboard/collections/collection-card/preview-dialog";
 import type { RouterOutputs } from "~/lib/trpc";
 import { AnimatedGroup } from "@repo/ui/components/ui/animated-group";
+import { WelcomeState } from "~/components/dashboard/onboarding";
+import { useOnboardingStore } from "~/lib/stores/onboarding-store";
 
 type RecentItem = RouterOutputs["items"]["getRecents"][number];
 
@@ -114,9 +116,17 @@ export default function Dashboard() {
 
   const { data: counts } =
     trpc.collections.getCollectionsAndItemsCount.useQuery();
-  const totalCollections = counts?.reduce((acc, curr) => acc + 1, 0);
+  const totalCollections = counts?.reduce((acc) => acc + 1, 0);
   const totalItems = counts?.reduce((acc, curr) => acc + curr.itemCount, 0);
   console.log({ counts });
+
+  const { hasCompletedOnboarding } = useOnboardingStore();
+  const isNewUser = totalCollections === 0 && totalItems === 0;
+  const shouldShowOnboarding = isNewUser && !hasCompletedOnboarding;
+
+  if (shouldShowOnboarding) {
+    return <WelcomeState />;
+  }
 
   return (
     <main className="max-w-4xl mx-auto p-6 space-y-12">
