@@ -4,8 +4,8 @@ import { db } from "~/db/client";
 import * as schema from "~/db/schema";
 import { trustedOrigins } from "~/lib/constants";
 import { apiKey, createAuthMiddleware } from "better-auth/plugins";
-import { addUserToGristWaitlist } from "~/services/waitlist/grist";
-import { sendWaitlistConfirmationEmail } from "~/services/waitlist/mailer";
+import { addUserToGristWaitlist } from "~/services/utils/waitlist/grist";
+import { sendWaitlistConfirmationEmail } from "~/services/utils/waitlist/mailer";
 import { env } from "./env";
 
 export const auth = betterAuth({
