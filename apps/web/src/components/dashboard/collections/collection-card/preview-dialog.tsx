@@ -55,7 +55,7 @@ export default function PreviewDialog({
               </p>
             ) : oembedData?.html ? (
               <OEmbedViewer
-                html={oembedData.html}
+                html={oembedData.html as string}
                 className="max-h-full *:my-auto"
               />
             ) : canIframe ? (

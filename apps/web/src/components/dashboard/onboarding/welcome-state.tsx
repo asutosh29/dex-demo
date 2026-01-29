@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { authClient } from "~/lib/auth-client";
 import { Button } from "@repo/ui/components/ui/button";
 import { AnimatedGroup } from "@repo/ui/components/ui/animated-group";

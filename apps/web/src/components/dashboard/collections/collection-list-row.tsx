@@ -14,7 +14,6 @@ import { trpc } from "~/lib/trpc";
 import { toast } from "@repo/ui/components/ui/sonner";
 import { cn } from "@repo/ui/lib/utils";
 import { useDraggable } from "@dnd-kit/core";
-import { Link } from "react-router-dom";
 
 interface CollectionListRowProps {
   item: CollectionItem;

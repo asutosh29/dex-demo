@@ -9,7 +9,8 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), cloudflare()],
   resolve: {
     alias: {
-      "~": path.resolve(__dirname, "src"),
+      "~": path.resolve(__dirname, "/src"),
     },
+    extensions: [".tsx", ".ts", ".jsx", ".js", ".json", ".mjs"],
   },
 });

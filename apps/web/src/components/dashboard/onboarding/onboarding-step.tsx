@@ -16,7 +16,6 @@ export function OnboardingStep({
   title,
   description,
   children,
-  isComplete,
   showSuccess,
 }: OnboardingStepProps) {
   return (

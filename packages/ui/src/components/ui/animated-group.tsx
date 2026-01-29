@@ -1,5 +1,5 @@
-import { ReactNode } from "react";
-import { motion, Variants } from "motion/react";
+import type { ReactNode } from "react";
+import { motion, type Variants } from "motion/react";
 import React from "react";
 
 export type PresetType =
@@ -121,14 +121,11 @@ function AnimatedGroup({
   const containerVariants = variants?.container || selectedVariants.container;
   const itemVariants = variants?.item || selectedVariants.item;
 
-  const MotionComponent = React.useMemo(
-    () => motion.create(as as keyof JSX.IntrinsicElements),
-    [as],
-  );
+  const MotionComponent = React.useMemo(() => motion.create(as), [as]) as any;
   const MotionChild = React.useMemo(
-    () => motion.create(asChild as keyof JSX.IntrinsicElements),
+    () => motion.create(asChild),
     [asChild],
-  );
+  ) as any;
 
   return (
     <MotionComponent

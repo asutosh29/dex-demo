@@ -78,7 +78,7 @@ export function RoleDropdown({
 
   const leaveMutation = trpc.collectionAccess.leaveCollection.useMutation({
     onSuccess: () => {
-      utils.collections.getAll.invalidate();
+      utils.collections.getUserCollections.invalidate();
       toast.success("Left collection");
     },
     onError: (error) => {
