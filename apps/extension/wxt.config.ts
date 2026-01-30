@@ -14,6 +14,9 @@ export default defineConfig({
       },
     },
   }),
+  webExt: {
+    disabled: true,
+  },
   manifest: {
     // Required, don't open popup, only action
     action: {},

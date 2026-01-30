@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { env } from "~/lib/env";
 import { OEmbedData } from "~/lib/types";
 
 interface ParseOptions {
@@ -47,7 +48,7 @@ export async function fetchYouTubeContent(
     const videoId = extractYouTubeVideoId(url);
     if (!videoId) return null;
 
-    const apiKey = process.env.YOUTUBE_API_KEY;
+    const apiKey = env.YOUTUBE_API_KEY;
     if (!apiKey) {
       console.warn("YOUTUBE_API_KEY not found in environment variables");
       return null;

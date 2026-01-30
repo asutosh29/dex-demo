@@ -1,0 +1,50 @@
+name: Migrate Database
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/server/src/db/drizzle/**'
+      - '.github/workflows/migrate-db.yml''
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '10.28.1'
+
+jobs:
+  migrate:
+    name: Run Database Migrations
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Cache Turbo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run database migrations
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+        run: pnpm db:migrate

@@ -8,6 +8,7 @@ import {
   index,
   pgEnum,
 } from "drizzle-orm/pg-core";
+import { userStatusEnum } from "./helpers/enums-schema";
 
 export const apiKeyModeEnum = pgEnum("api_key_mode", [
   "full_access",
@@ -20,6 +21,7 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
+  status: userStatusEnum().default("waitlist").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
