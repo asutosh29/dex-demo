@@ -4,7 +4,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@repo/ui/components/ui/dialog";
-import { GlobeIcon } from "lucide-react";
+import { GlobeIcon } from "@repo/ui/icons";
 import OEmbedViewer from "./oembed-viewer";
 import { Badge } from "@repo/ui/components/ui/badge";
 import type { CollectionItem } from ".";

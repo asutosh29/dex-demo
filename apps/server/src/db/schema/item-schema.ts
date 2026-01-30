@@ -30,8 +30,7 @@ export const itemsTable = pgTable(
     image: text(),
     searchVector: tsvector("search_vector").generatedAlwaysAs(
       sql`setweight(to_tsvector('english', coalesce(title, '')), 'A') ||
-          setweight(to_tsvector('english', coalesce(tldr, '')), 'B') ||
-          setweight(to_tsvector('english', coalesce(array_to_string(tags, ' '), '')), 'C')`,
+          setweight(to_tsvector('english', coalesce(tldr, '')), 'B')`,
     ),
     creatorId: text().references(() => user.id, { onDelete: "cascade" }),
     ...timestamps,

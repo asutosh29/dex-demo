@@ -1,11 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Login from "~/pages/login";
-import Dashboard from "~/pages/dashboard";
-import Collection from "~/pages/collection";
-import ApiKeys from "~/pages/api-keys";
-import NotFound from "~/pages/not-found";
-import ProtectedRoute from "~/components/navigation/protected-route";
-import DashboardLayout from "~/components/layouts/dashboard-layout";
+import Login from "./pages/login";
+import Dashboard from "./pages/dashboard";
+import Collection from "./pages/collection";
+import ApiKeys from "./pages/api-keys";
+import NotFound from "./pages/not-found";
+import ProtectedRoute from "./components/navigation/protected-route";
+import DashboardLayout from "./components/layouts/dashboard-layout";
 
 function App() {
   return (
