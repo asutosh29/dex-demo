@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'apps/server/src/db/drizzle/**'
-      - '.github/workflows/migrate-db.yml''
+      - '.github/workflows/migrate-db.yml'
   workflow_dispatch:
 
 env:
