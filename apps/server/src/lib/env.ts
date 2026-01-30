@@ -2,7 +2,10 @@ import "dotenv/config";
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
+const skipValidation = process.env.SKIP_ENV_VALIDATION === "true";
+
 export const env = createEnv({
+  skipValidation,
   server: {
     // db
     DB_URL: z.url(),
