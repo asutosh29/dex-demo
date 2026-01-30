@@ -1,21 +1,19 @@
-name: Deploy web image to digitalocean
+name: Deploy server image to digitalocean
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'apps/web/**'
-      - 'packages/ui/**'
-      - '.github/workflows/deploy-web.yml'
+      - 'apps/server/**'
+      - '.github/workflows/deploy-server.yml'
   # for checking build rn
   pull_request:
     branches:
       - main
     paths:
-      - 'apps/web/**'
-      - 'packages/ui/**'
-      - '.github/workflows/deploy-web.yml'
+      - 'apps/server/**'
+      - '.github/workflows/deploy-server.yml'
   workflow_dispatch:
 
 jobs:
@@ -40,9 +38,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: apps/web/Dockerfile
+          file: apps/server/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: registry.digitalocean.com/dex-registry/dex-web:latest
-          build-args: |
-            VITE_BACKEND_URL=${{ vars.VITE_BACKEND_URL }}
+          tags: registry.digitalocean.com/dex-registry/dex-server:latest
