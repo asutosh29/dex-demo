@@ -14,6 +14,7 @@ export default function Login() {
 
   if (session && !isPending) {
     // if waitlist is enabled, only navigate if user is active
+    // TODO: This is a jugaad for now, shift to a flag from the backend rather than checking for prod
     if (import.meta.env.PROD && session.user.status === "active")
       navigate("/dashboard");
   }

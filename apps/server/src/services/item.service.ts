@@ -23,49 +23,147 @@ export class ItemService {
       collectionId?: string;
     },
   ) {
+    const startTime = Date.now();
+    console.log("=== [createItem] START ===");
+    console.log("[createItem] Input:", {
+      userId,
+      url: data.url,
+      collectionId: data.collectionId,
+    });
+
     // Normalize URL: ensure it starts with https:// or http://
+    console.log("[createItem] Step 1: URL normalization");
+    console.log("[createItem] Original URL:", data.url);
     let normalizedUrl = data.url.trim();
     if (
       !normalizedUrl.startsWith("http://") &&
       !normalizedUrl.startsWith("https://")
     ) {
       normalizedUrl = `https://${normalizedUrl}`;
+      console.log("[createItem] URL normalized with https:// prefix");
+    }
+    console.log("[createItem] Normalized URL:", normalizedUrl);
+
+    // Extract OGP and oEmbed data
+    console.log(
+      "[createItem] Step 2: Fetching OGP and oEmbed data in parallel",
+    );
+    const ogpStart = Date.now();
+    let ogp, oembed;
+    try {
+      [ogp, oembed] = await Promise.all([
+        extractOpenGraphData(normalizedUrl).then((data) => {
+          console.log(
+            "[extractOpenGraphData] Completed in",
+            Date.now() - ogpStart,
+            "ms",
+          );
+          console.log("[extractOpenGraphData] Result:", data);
+          return data;
+        }),
+        getOembedData(normalizedUrl).then((data) => {
+          console.log(
+            "[getOembedData] Completed in",
+            Date.now() - ogpStart,
+            "ms",
+          );
+          console.log("[getOembedData] Result:", data);
+          return data;
+        }),
+      ]);
+      console.log("[createItem] OGP and oEmbed data fetched successfully");
+    } catch (error) {
+      console.error("[createItem] Error fetching OGP/oEmbed data:", error);
+      throw error;
     }
 
-    console.log("Normalized URL:", normalizedUrl);
-
-    const [ogp, oembed] = await Promise.all([
-      extractOpenGraphData(normalizedUrl),
-      getOembedData(normalizedUrl),
-    ]);
-
-    const parsedData = await parseHtmlContent(normalizedUrl, oembed);
-
-    let result;
-    if (!ogp.title) {
-      result = await WebpageTaggerAgentWithTitle.generateText(
-        parsedData.content,
+    // Parse HTML content
+    console.log("[createItem] Step 3: Parsing HTML content");
+    const parseStart = Date.now();
+    let parsedData;
+    try {
+      parsedData = await parseHtmlContent(normalizedUrl, oembed);
+      console.log(
+        "[parseHtmlContent] Completed in",
+        Date.now() - parseStart,
+        "ms",
       );
-    } else {
-      result = await WebpageTaggerAgent.generateText(parsedData.content);
+      console.log(
+        "[parseHtmlContent] Content length:",
+        parsedData.content?.length || 0,
+      );
+      console.log("[parseHtmlContent] Result:", parsedData);
+    } catch (error) {
+      console.error("[createItem] Error parsing HTML content:", error);
+      throw error;
     }
 
+    // Generate AI tags/tldr
+    console.log("[createItem] Step 4: Generating AI tags and TLDR");
+    console.log("[createItem] OGP title exists:", !!ogp.title);
+    const aiStart = Date.now();
+    let result;
+    try {
+      if (!ogp.title) {
+        console.log(
+          "[createItem] Using WebpageTaggerAgentWithTitle (no OGP title found)",
+        );
+        result = await WebpageTaggerAgentWithTitle.generateText(
+          parsedData.content,
+        );
+        console.log(
+          "[WebpageTaggerAgentWithTitle] Completed in",
+          Date.now() - aiStart,
+          "ms",
+        );
+      } else {
+        console.log("[createItem] Using WebpageTaggerAgent (OGP title found)");
+        result = await WebpageTaggerAgent.generateText(parsedData.content);
+        console.log(
+          "[WebpageTaggerAgent] Completed in",
+          Date.now() - aiStart,
+          "ms",
+        );
+      }
+      console.log("[createItem] AI result text:", result.text);
+    } catch (error) {
+      console.error("[createItem] Error generating AI tags/tldr:", error);
+      throw error;
+    }
+
+    // Parse agent response
+    console.log("[createItem] Step 5: Parsing AI agent response JSON");
     let agentData;
     try {
       agentData = JSON.parse(result.text);
+      console.log("[createItem] Agent data parsed successfully:", agentData);
     } catch (error) {
-      console.log("Failed to parse agent data JSON:", error);
+      console.error("[createItem] Failed to parse agent data JSON:", error);
+      console.error("[createItem] Raw agent text:", result.text);
       return null;
     }
 
     const { title: agentTitle, tldr, tags } = agentData as AgentResponse;
     const title = ogp.title || agentTitle;
+    console.log("[createItem] Final item data:", {
+      title,
+      tldr,
+      tags: tags?.length || 0,
+      image: ogp.image,
+      favicon: ogp.favicon,
+    });
 
-    const res = await db.transaction(async (tx) => {
-      // Create item
-      const [item] = await tx
-        .insert(itemsTable)
-        .values({
+    // Database transaction
+    console.log("[createItem] Step 6: Database transaction");
+    const dbStart = Date.now();
+    let res;
+    try {
+      res = await db.transaction(async (tx) => {
+        console.log("[createItem:tx] Starting transaction");
+
+        // Create item
+        console.log("[createItem:tx] Inserting item into itemsTable");
+        const itemValues = {
           title: title!,
           image: ogp.image,
           favicon: ogp.favicon,
@@ -73,27 +171,61 @@ export class ItemService {
           tldr,
           tags,
           creatorId: userId,
-        })
-        .returning();
+        };
+        console.log("[createItem:tx] Item values:", itemValues);
 
-      // If collectionId is provided, add item to collection
-      if (data.collectionId) {
-        await tx.insert(collectionItemsTable).values({
-          collectionId: data.collectionId,
-          itemId: item.id,
-        });
+        const [item] = await tx
+          .insert(itemsTable)
+          .values(itemValues)
+          .returning();
 
-        await tx
-          .update(collectionsTable)
-          .set({
-            updatedAt: new Date(),
-          })
-          .where(eq(collectionsTable.id, data.collectionId));
-      }
+        console.log("[createItem:tx] Item created with ID:", item.id);
 
-      return item;
-    });
+        // If collectionId is provided, add item to collection
+        if (data.collectionId) {
+          console.log(
+            "[createItem:tx] Adding item to collection:",
+            data.collectionId,
+          );
 
+          await tx.insert(collectionItemsTable).values({
+            collectionId: data.collectionId,
+            itemId: item.id,
+          });
+          console.log("[createItem:tx] Item added to collectionItemsTable");
+
+          console.log(
+            "[createItem:tx] Updating collection updatedAt timestamp",
+          );
+          await tx
+            .update(collectionsTable)
+            .set({
+              updatedAt: new Date(),
+            })
+            .where(eq(collectionsTable.id, data.collectionId));
+          console.log("[createItem:tx] Collection updated successfully");
+        } else {
+          console.log(
+            "[createItem:tx] No collectionId provided, skipping collection association",
+          );
+        }
+
+        console.log("[createItem:tx] Transaction completed successfully");
+        return item;
+      });
+      console.log(
+        "[createItem] Database transaction completed in",
+        Date.now() - dbStart,
+        "ms",
+      );
+    } catch (error) {
+      console.error("[createItem] Database transaction error:", error);
+      throw error;
+    }
+
+    const totalTime = Date.now() - startTime;
+    console.log("[createItem] Returning item:", res);
+    console.log("=== [createItem] COMPLETE in", totalTime, "ms ===");
     return res;
   }
 
