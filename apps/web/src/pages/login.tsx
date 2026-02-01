@@ -8,6 +8,13 @@ import { ChevronLeft } from "@repo/ui/icons";
 export default function Login() {
   const [searchParams] = useSearchParams();
   const isWaitlisted = searchParams.get("status") === "waitlist";
+  const { data: session, isPending } = authClient.useSession();
+
+  const navigate = useNavigate();
+
+  if (session && !isPending) {
+    navigate("/dashboard");
+  }
   return (
     <main className="flex flex-col h-screen w-full items-center justify-center">
       <div className="absolute top-0 z-[-2] h-screen w-screen bg-background bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(255,255,255,0.15),rgba(255,255,255,0))]"></div>
