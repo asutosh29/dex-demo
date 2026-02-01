@@ -23,12 +23,23 @@ export class ItemService {
       collectionId?: string;
     },
   ) {
+    // Normalize URL: ensure it starts with https:// or http://
+    let normalizedUrl = data.url.trim();
+    if (
+      !normalizedUrl.startsWith("http://") &&
+      !normalizedUrl.startsWith("https://")
+    ) {
+      normalizedUrl = `https://${normalizedUrl}`;
+    }
+
+    console.log("Normalized URL:", normalizedUrl);
+
     const [ogp, oembed] = await Promise.all([
-      extractOpenGraphData(data.url),
-      getOembedData(data.url),
+      extractOpenGraphData(normalizedUrl),
+      getOembedData(normalizedUrl),
     ]);
 
-    const parsedData = await parseHtmlContent(data.url, oembed);
+    const parsedData = await parseHtmlContent(normalizedUrl, oembed);
 
     let result;
     if (!ogp.title) {
@@ -58,7 +69,7 @@ export class ItemService {
           title: title!,
           image: ogp.image,
           favicon: ogp.favicon,
-          url: data.url,
+          url: normalizedUrl,
           tldr,
           tags,
           creatorId: userId,
@@ -143,6 +154,15 @@ export class ItemService {
   }
 
   async checkItemExists(url: string, userId: string) {
+    // Normalize URL: ensure it starts with https:// or http://
+    let normalizedUrl = url.trim();
+    if (
+      !normalizedUrl.startsWith("http://") &&
+      !normalizedUrl.startsWith("https://")
+    ) {
+      normalizedUrl = `https://${normalizedUrl}`;
+    }
+
     const result = await db
       .select({
         itemId: itemsTable.id,
@@ -162,7 +182,7 @@ export class ItemService {
       )
       .where(
         and(
-          eq(itemsTable.url, url),
+          eq(itemsTable.url, normalizedUrl),
           eq(userCollectionsTable.userId, userId),
           // If specific collection IDs are provided, filter to only those
         ),
