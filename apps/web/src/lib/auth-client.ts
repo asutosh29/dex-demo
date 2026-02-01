@@ -14,6 +14,11 @@ export const authClient = createAuthClient({
           type: "string",
         },
       },
+      session: {
+        waitlistEnabled: {
+          type: "boolean",
+        },
+      },
     }),
   ],
 });

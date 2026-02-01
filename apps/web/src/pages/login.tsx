@@ -13,6 +13,9 @@ export default function Login() {
   const navigate = useNavigate();
 
   if (session && !isPending) {
+    // if waitlist is enabled, only navigate if user is active
+    if (session.session.waitlistEnabled && session.user.status !== "active")
+      return;
     navigate("/dashboard");
   }
   return (
