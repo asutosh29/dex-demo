@@ -1,5 +1,5 @@
 import { db } from "~/db/client";
-import { userCollectionsTable } from "~/db/schema";
+import { userCollectionsTable, user } from "~/db/schema";
 import { and, eq, count, ne } from "drizzle-orm";
 import { getActor, assertCan, Action, Role } from "./rbac";
 
@@ -66,15 +66,34 @@ export class CollectionAccessService {
     const actor = await getActor(actorId, collectionId);
     assertCan(actor, Action.COLLECTION_MANAGE_MEMBERS);
 
-    // Check if target user is already a member
-    const existing = await db.query.userCollectionsTable.findFirst({
-      where: and(
-        eq(userCollectionsTable.userId, targetUserId),
-        eq(userCollectionsTable.collectionId, collectionId),
-      ),
-    });
+    // Check user status and existing membership
+    const [result] = await db
+      .select({
+        status: user.status,
+        membershipExists: userCollectionsTable.userId,
+      })
+      .from(user)
+      .leftJoin(
+        userCollectionsTable,
+        and(
+          eq(userCollectionsTable.userId, user.id),
+          eq(userCollectionsTable.collectionId, collectionId),
+        ),
+      )
+      .where(eq(user.id, targetUserId))
+      .limit(1);
 
-    if (existing) {
+    if (!result) {
+      throw new Error("User not found");
+    }
+
+    if (result.status !== "active") {
+      throw new Error(
+        "User must have an active status to be added to a collection",
+      );
+    }
+
+    if (result.membershipExists) {
       throw new Error("User is already a member of this collection");
     }
 

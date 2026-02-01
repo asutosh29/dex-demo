@@ -20,6 +20,7 @@ import { CollectionSkeleton } from "./collection-skeleton";
 import { useViewModeStore } from "~/lib/stores/view-mode-store";
 import { cn } from "@repo/ui/lib/utils";
 import { ManageMembers } from "./manage-members";
+import { CollectionActionsDropdown } from "./collection-actions-dropdown";
 
 type FilterType = "all" | "link" | "note";
 
@@ -111,15 +112,21 @@ export function CollectionGrid({ collectionId }: { collectionId: string }) {
       {/* Collection Header */}
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <h1 className="font-display text-3xl inline-flex items-baseline gap-2">
-            <Hash className="size-5" />
-            {collection.title}
-          </h1>
+          <div className="inline-flex items-baseline gap-2">
+            <h1 className="font-display text-3xl inline-flex items-baseline gap-2">
+              <Hash className="size-5" />
+              {collection.title}
+            </h1>
+          </div>
           <div className="flex items-center gap-2">
             <Badge variant="secondary">
               <Bookmark /> {items.length}
             </Badge>
             <ManageMembers role={collection.role} />
+            <CollectionActionsDropdown
+              collectionId={collectionId}
+              currentTitle={collection.title}
+            />
           </div>
         </div>
 

@@ -43,7 +43,7 @@ export function ManageMembers({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" className="space-x-2">
+        <Button variant="ghost" className="space-x-2 px-1">
           <AvatarGroup>
             <MemberAvatarGroup members={members || []} isLoading={isLoading} />
             <AvatarGroupCount>
@@ -71,9 +71,11 @@ export function ManageMembers({
 export const MemberAvatarGroup = ({
   members,
   isLoading,
+  showMemberCount = false,
 }: {
   members: Member[];
   isLoading?: boolean;
+  showMemberCount?: boolean;
 }) => {
   // Show avatar group only if there are members
   if (members.length === 0) return null;
@@ -94,7 +96,7 @@ export const MemberAvatarGroup = ({
 
   return (
     <AvatarGroup>
-      {members.map((member) => (
+      {members.slice(0, 3).map((member) => (
         <Avatar key={member.userId} size="sm">
           <AvatarImage src={member.user.image || undefined} />
           <AvatarFallback>
@@ -102,6 +104,11 @@ export const MemberAvatarGroup = ({
           </AvatarFallback>
         </Avatar>
       ))}
+      {members.length > 3 && showMemberCount && (
+        <Avatar size="sm">
+          <AvatarFallback>+{members.length - 3}</AvatarFallback>
+        </Avatar>
+      )}
     </AvatarGroup>
   );
 };

@@ -29,7 +29,6 @@ export enum Action {
   ITEM_SEARCH = "item:search",
 
   // API keys (collection-scoped)
-  // TODO: implement these after shared collections
   API_KEY_ADD_COLLECTION_ACCESS = "api_key:add_collection_access",
   API_KEY_REMOVE_COLLECTION_ACCESS = "api_key:remove_collection_access",
   API_KEY_CONFIGURE_ACCESS_SCOPE = "api_key:configure_access_scope",

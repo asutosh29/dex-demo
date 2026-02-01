@@ -2,12 +2,13 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 import { db } from "~/db/client";
 import { user } from "~/db/schema";
-import { or, ilike } from "drizzle-orm";
+import { or, ilike, and, eq } from "drizzle-orm";
 
 export const userRouter = router({
   search: protectedProcedure
     .input(z.object({ query: z.string().min(1) }))
     .query(async ({ input }) => {
+      // TODO: abstract this into a service
       const users = await db
         .select({
           id: user.id,
@@ -17,9 +18,12 @@ export const userRouter = router({
         })
         .from(user)
         .where(
-          or(
-            ilike(user.name, `%${input.query}%`),
-            ilike(user.email, `%${input.query}%`),
+          and(
+            eq(user.status, "active"),
+            or(
+              ilike(user.name, `%${input.query}%`),
+              ilike(user.email, `%${input.query}%`),
+            ),
           ),
         )
         .limit(10);

@@ -2,6 +2,7 @@ import "dotenv/config";
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
+// DO NOT use this flag in development/prod, had to use it for migrating db schema automatically to supabase in github workflow.
 const skipValidation = process.env.SKIP_ENV_VALIDATION === "true";
 
 export const env = createEnv({
@@ -22,14 +23,15 @@ export const env = createEnv({
     GOOGLE_CLIENT_SECRET: z.string(),
 
     // waitlist, only required if waitlist is enabled
-    WAITLIST_ENABLED: z.coerce.boolean().default(false),
+    // NOTE: Zod's default primitives coercion should not be used for booleans, since every string gets coerced to true.
+    WAITLIST_ENABLED: z.string().transform((s) => s !== "false" && s !== "0"),
 
-    GMAIL_USER: z.string(),
-    GOOGLE_APP_PASSWORD: z.string(),
-    GRIST_API_KEY: z.string(),
-    GRIST_DOC_ID: z.string(),
-    GRIST_TABLE_ID: z.string(),
-    GRIST_AUTH_TOKEN: z.string(),
+    GMAIL_USER: z.string().optional(),
+    GOOGLE_APP_PASSWORD: z.string().optional(),
+    GRIST_API_KEY: z.string().optional(),
+    GRIST_DOC_ID: z.string().optional(),
+    GRIST_TABLE_ID: z.string().optional(),
+    GRIST_AUTH_TOKEN: z.string().optional(),
 
     // Port, which defaults to 8787
     PORT: z.coerce.number().default(8787),
