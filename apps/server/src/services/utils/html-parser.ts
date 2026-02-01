@@ -165,85 +165,114 @@ export async function parseHtmlContent(
   const maxCharacters = maxChunks * 4;
   console.log("[parseHtmlContent] Max characters:", maxCharacters);
 
-  try {
-    // Special handling for Twitter/X
-    if (
-      oembed &&
-      ["twitter", "x"].includes((oembed.provider_name as string).toLowerCase())
-    ) {
-      console.log("[parseHtmlContent] Detected Twitter/X content");
-      console.log("[parseHtmlContent] Loading oEmbed HTML into cheerio...");
-      const twitterText = cheerio.load(oembed.html!).text();
+  // Special handling for Twitter/X
+  // Standard HTML parsing for all other sites
+  if (
+    oembed &&
+    ["twitter", "x"].includes((oembed.provider_name as string).toLowerCase())
+  ) {
+    console.log("[parseHtmlContent] Detected Twitter/X content");
+    console.log("[parseHtmlContent] Loading oEmbed HTML into cheerio...");
+    const twitterText = cheerio.load(oembed.html!).text();
+    console.log(
+      "[parseHtmlContent] Extracted Twitter text length:",
+      twitterText.length,
+    );
+
+    if (twitterText) {
+      const cleaned = twitterText.replace(/\s+/g, " ").trim();
       console.log(
-        "[parseHtmlContent] Extracted Twitter text length:",
-        twitterText.length,
+        "[parseHtmlContent] Cleaned Twitter text length:",
+        cleaned.length,
       );
-
-      if (twitterText) {
-        const cleaned = twitterText.replace(/\s+/g, " ").trim();
-        console.log(
-          "[parseHtmlContent] Cleaned Twitter text length:",
-          cleaned.length,
-        );
-        const result = {
-          content:
-            cleaned.length > maxCharacters
-              ? cleaned.substring(0, maxCharacters)
-              : cleaned,
-        };
-        console.log(
-          "[parseHtmlContent] COMPLETE (Twitter) in",
-          Date.now() - startTime,
-          "ms",
-        );
-        console.log(
-          "[parseHtmlContent] Final content length:",
-          result.content.length,
-        );
-        return result;
-      }
-    }
-
-    if (
-      oembed &&
-      (oembed.provider_name as string).toLowerCase() === "youtube"
-    ) {
-      console.log("[parseHtmlContent] Detected YouTube content");
-      console.log("[parseHtmlContent] Fetching YouTube API data...");
-      const ytStart = Date.now();
-      const youtubeContent = await fetchYouTubeContent(url);
+      const result = {
+        content:
+          cleaned.length > maxCharacters
+            ? cleaned.substring(0, maxCharacters)
+            : cleaned,
+      };
       console.log(
-        "[parseHtmlContent] YouTube fetch completed in",
-        Date.now() - ytStart,
+        "[parseHtmlContent] COMPLETE (Twitter) in",
+        Date.now() - startTime,
         "ms",
       );
-
-      if (youtubeContent) {
-        console.log(
-          "[parseHtmlContent] YouTube content length:",
-          youtubeContent.content.length,
-        );
-        const cleaned = youtubeContent.content.replace(/\s+/g, " ").trim();
-        const result = {
-          content:
-            cleaned.length > maxCharacters
-              ? cleaned.substring(0, maxCharacters)
-              : cleaned,
-        };
-        console.log(
-          "[parseHtmlContent] COMPLETE (YouTube) in",
-          Date.now() - startTime,
-          "ms",
-        );
-        console.log(
-          "[parseHtmlContent] Final content length:",
-          result.content.length,
-        );
-        return result;
-      }
+      console.log(
+        "[parseHtmlContent] Final content length:",
+        result.content.length,
+      );
+      return result;
     }
+  }
 
-    // Standard HTML parsing for all other sites
+  if (oembed && (oembed.provider_name as string).toLowerCase() === "youtube") {
+    console.log("[parseHtmlContent] Detected YouTube content");
+    console.log("[parseHtmlContent] Fetching YouTube API data...");
+    const ytStart = Date.now();
+    const youtubeContent = await fetchYouTubeContent(url);
+    console.log(
+      "[parseHtmlContent] YouTube fetch completed in",
+      Date.now() - ytStart,
+      "ms",
+    );
+
+    if (youtubeContent) {
+      console.log(
+        "[parseHtmlContent] YouTube content length:",
+        youtubeContent.content.length,
+      );
+      const cleaned = youtubeContent.content.replace(/\s+/g, " ").trim();
+      const result = {
+        content:
+          cleaned.length > maxCharacters
+            ? cleaned.substring(0, maxCharacters)
+            : cleaned,
+      };
+      console.log(
+        "[parseHtmlContent] COMPLETE (YouTube) in",
+        Date.now() - startTime,
+        "ms",
+      );
+      console.log(
+        "[parseHtmlContent] Final content length:",
+        result.content.length,
+      );
+      return result;
+    }
+  }
+
+  if (oembed && (oembed.provide_name as string).toLowerCase() === "reddit") {
+    console.log("[parseHtmlContent] Detected Reddit content");
+    const redditText = cheerio.load(oembed.html!).text();
+    console.log(
+      "[parseHtmlContent] Extracted Reddit text length:",
+      redditText.length,
+    );
+    if (redditText) {
+      const cleaned = redditText.replace(/\s+/g, " ").trim();
+      console.log(
+        "[parseHtmlContent] Cleaned Reddit text length:",
+        cleaned.length,
+      );
+      const result = {
+        content:
+          cleaned.length > maxCharacters
+            ? cleaned.substring(0, maxCharacters)
+            : cleaned,
+      };
+      console.log(
+        "[parseHtmlContent] COMPLETE (Reddit) in",
+        Date.now() - startTime,
+        "ms",
+      );
+      console.log(
+        "[parseHtmlContent] Final content length:",
+        result.content.length,
+      );
+      return result;
+    }
+  }
+
+  try {
     console.log("[parseHtmlContent] Using standard HTML parsing");
     console.log("[parseHtmlContent] Fetching URL...");
     const fetchStart = Date.now();

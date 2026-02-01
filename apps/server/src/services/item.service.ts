@@ -10,7 +10,6 @@ import { extractOpenGraphData, getOembedData } from "./utils/ogp";
 import { parseHtmlContent } from "./utils/html-parser";
 import { WebpageTaggerAgent, WebpageTaggerAgentWithTitle } from "./agent/tag";
 import { AgentResponse } from "~/lib/types";
-import { Action, assertCan, getActor } from "./rbac";
 
 export class ItemService {
   /**
@@ -101,10 +100,11 @@ export class ItemService {
     // Generate AI tags/tldr
     console.log("[createItem] Step 4: Generating AI tags and TLDR");
     console.log("[createItem] OGP title exists:", !!ogp.title);
+    console.log("[createItem] oEmbed title exists:", !!oembed?.title);
     const aiStart = Date.now();
     let result;
     try {
-      if (!ogp.title) {
+      if (!oembed?.title && !ogp.title) {
         console.log(
           "[createItem] Using WebpageTaggerAgentWithTitle (no OGP title found)",
         );
@@ -144,13 +144,16 @@ export class ItemService {
     }
 
     const { title: agentTitle, tldr, tags } = agentData as AgentResponse;
-    const title = ogp.title || agentTitle;
+    const title = oembed?.title || ogp.title || agentTitle;
+    const image = ((oembed?.thumbnail_url || ogp.image) as string) || null;
+    const favicon = ogp.favicon;
+
     console.log("[createItem] Final item data:", {
       title,
       tldr,
       tags: tags?.length || 0,
-      image: ogp.image,
-      favicon: ogp.favicon,
+      image,
+      favicon,
     });
 
     // Database transaction
@@ -165,8 +168,8 @@ export class ItemService {
         console.log("[createItem:tx] Inserting item into itemsTable");
         const itemValues = {
           title: title!,
-          image: ogp.image,
-          favicon: ogp.favicon,
+          image,
+          favicon,
           url: normalizedUrl,
           tldr,
           tags,
