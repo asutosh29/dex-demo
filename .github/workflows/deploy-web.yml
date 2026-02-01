@@ -38,3 +38,4 @@ jobs:
           tags: registry.digitalocean.com/dex-registry/dex-web:latest
           build-args: |
             VITE_BACKEND_URL=${{ vars.VITE_BACKEND_URL }}
+            NODE_ENV='production'

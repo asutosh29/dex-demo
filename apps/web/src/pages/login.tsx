@@ -14,9 +14,8 @@ export default function Login() {
 
   if (session && !isPending) {
     // if waitlist is enabled, only navigate if user is active
-    if (session.session.waitlistEnabled && session.user.status !== "active")
-      return;
-    navigate("/dashboard");
+    if (import.meta.env.PROD && session.user.status === "active")
+      navigate("/dashboard");
   }
   return (
     <main className="flex flex-col h-screen w-full items-center justify-center">

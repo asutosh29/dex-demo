@@ -42,17 +42,6 @@ export const auth = betterAuth({
     },
   },
 
-  session: {
-    additionalFields: {
-      waitlistEnabled: {
-        type: "boolean",
-        required: true,
-        defaultValue: env.WAITLIST_ENABLED,
-        input: false,
-      },
-    },
-  },
-
   databaseHooks: {
     user: {
       create: {
