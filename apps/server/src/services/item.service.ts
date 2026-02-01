@@ -120,13 +120,20 @@ export class ItemService {
         collectionTitle: collectionsTable.title,
       })
       .from(itemsTable)
-      .leftJoin(
+      .innerJoin(
         collectionItemsTable,
         eq(itemsTable.id, collectionItemsTable.itemId),
       )
-      .leftJoin(
+      .innerJoin(
         collectionsTable,
         eq(collectionItemsTable.collectionId, collectionsTable.id),
+      )
+      .innerJoin(
+        userCollectionsTable,
+        and(
+          eq(userCollectionsTable.collectionId, collectionsTable.id),
+          eq(userCollectionsTable.userId, userId),
+        ),
       )
       .where(eq(itemsTable.creatorId, userId))
       .orderBy(desc(itemsTable.createdAt))

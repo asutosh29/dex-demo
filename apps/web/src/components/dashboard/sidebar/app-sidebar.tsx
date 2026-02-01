@@ -69,10 +69,21 @@ function CollectionMenuItem({
         >
           <div className="inline-flex items-center gap-2">
             <Hash className="size-4" />
-            {collection.title}
+            <span
+              className={cn(
+                "truncate",
+                collection.isShared ? "max-w-[10ch]" : "max-w-[12ch]",
+              )}
+            >
+              {collection.title}
+            </span>
           </div>
           {(collection.isShared as boolean) && (
-            <MemberAvatarGroup members={members || []} isLoading={isLoading} />
+            <MemberAvatarGroup
+              showMemberCount
+              members={members || []}
+              isLoading={isLoading}
+            />
           )}
         </Link>
       </SidebarMenuButton>

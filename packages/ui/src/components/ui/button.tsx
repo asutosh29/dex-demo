@@ -28,10 +28,15 @@ const buttonVariants = cva(
         "icon-sm": "size-8",
         "icon-lg": "size-10",
       },
+      effect: {
+        none: "",
+        pop: "border-b-2 hover:translate-y-[1px] focus:none hover:border-b-1 active:translate-y-[1px] active:border-b-1",
+      },
     },
     defaultVariants: {
       variant: "default",
       size: "default",
+      effect: "none",
     },
   },
 );
@@ -40,6 +45,7 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  effect = "none",
   asChild = false,
   ...props
 }: React.ComponentProps<"button"> &
@@ -53,7 +59,8 @@ function Button({
       data-slot="button"
       data-variant={variant}
       data-size={size}
-      className={cn(buttonVariants({ variant, size, className }))}
+      data-effect={effect}
+      className={cn(buttonVariants({ variant, size, effect }), className)}
       {...props}
     />
   );
