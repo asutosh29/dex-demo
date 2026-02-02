@@ -240,7 +240,7 @@ export async function parseHtmlContent(
     }
   }
 
-  if (oembed && (oembed.provide_name as string).toLowerCase() === "reddit") {
+  if (oembed && (oembed.provider_name as string).toLowerCase() === "reddit") {
     console.log("[parseHtmlContent] Detected Reddit content");
     const redditText = cheerio.load(oembed.html!).text();
     console.log(

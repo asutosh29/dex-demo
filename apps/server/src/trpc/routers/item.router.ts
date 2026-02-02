@@ -14,7 +14,7 @@ export const itemRouter = router({
   create: protectedProcedure
     .input(
       z.object({
-        url: z.url(),
+        url: z.string().min(1),
         collectionId: z.string().optional(),
       }),
     )
