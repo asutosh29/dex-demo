@@ -22,39 +22,13 @@ function extractGoogleDriveFileId(url: string): string | null {
 export async function extractOpenGraphData(
   url: string,
 ): Promise<OpenGraphData> {
-  console.log("[extractOpenGraphData] START - URL:", url);
-  const startTime = Date.now();
-
   try {
-    console.log("[extractOpenGraphData] Fetching URL...");
-    const fetchStart = Date.now();
     const response = await fetch(url);
-    console.log(
-      "[extractOpenGraphData] Fetch completed in",
-      Date.now() - fetchStart,
-      "ms",
-    );
-    console.log(
-      "[extractOpenGraphData] Response status:",
-      response.status,
-      response.statusText,
-    );
+    if (!response.ok) return {};
 
-    if (!response.ok) {
-      console.log(
-        "[extractOpenGraphData] Response not OK, returning empty object",
-      );
-      return {};
-    }
-
-    console.log("[extractOpenGraphData] Reading response text...");
     const html = await response.text();
-    console.log("[extractOpenGraphData] HTML length:", html.length);
-
-    console.log("[extractOpenGraphData] Loading HTML into cheerio...");
     const $ = cheerio.load(html);
 
-    console.log("[extractOpenGraphData] Extracting OGP metadata...");
     const ogp: OpenGraphData = {
       title:
         $('meta[property="og:title"]').attr("content") || $("title").text(),
@@ -66,71 +40,36 @@ export async function extractOpenGraphData(
       url: $('meta[property="og:url"]').attr("content") || url,
       type: $('meta[property="og:type"]').attr("content"),
     };
-    console.log("[extractOpenGraphData] Base OGP extracted:", {
-      hasTitle: !!ogp.title,
-      hasDescription: !!ogp.description,
-      hasImage: !!ogp.image,
-      hasSiteName: !!ogp.siteName,
-    });
 
     // Have to handle google drive separately
     // TODO: Make a special cases handler
     if (url.includes("drive.google.com")) {
-      console.log("[extractOpenGraphData] Detected Google Drive URL");
       const fileId = extractGoogleDriveFileId(url);
-      console.log(
-        "[extractOpenGraphData] Extracted Google Drive file ID:",
-        fileId,
-      );
+      console.log("Extracted Google Drive file ID:", fileId);
       ogp.image = `https://lh3.googleusercontent.com/d/${fileId}?authuser=0`;
-      console.log("[extractOpenGraphData] Set Google Drive image URL");
     }
 
     // Extract favicon
-    console.log("[extractOpenGraphData] Extracting favicon...");
     let favicon =
       $('link[rel="icon"]').attr("href") ||
       $('link[rel="shortcut icon"]').attr("href") ||
       $('link[rel="apple-touch-icon"]').attr("href");
 
-    console.log("[extractOpenGraphData] Raw favicon:", favicon);
-
     if (favicon && !favicon.startsWith("http")) {
-      console.log("[extractOpenGraphData] Normalizing favicon URL...");
       const urlObj = new URL(url);
       if (favicon.startsWith("//")) {
         favicon = urlObj.protocol + favicon;
-        console.log("[extractOpenGraphData] Favicon with protocol:", favicon);
       } else if (favicon.startsWith("/")) {
         favicon = `${urlObj.protocol}//${urlObj.host}${favicon}`;
-        console.log("[extractOpenGraphData] Favicon absolute path:", favicon);
       } else {
         favicon = `${urlObj.protocol}//${urlObj.host}/${favicon}`;
-        console.log("[extractOpenGraphData] Favicon relative path:", favicon);
       }
     }
     ogp.favicon = favicon;
-
-    const totalTime = Date.now() - startTime;
-    console.log(
-      "[extractOpenGraphData] COMPLETE in",
-      totalTime,
-      "ms - Result:",
-      ogp,
-    );
+    console.log("Extracted OGP data:", ogp);
     return ogp;
   } catch (error) {
-    const totalTime = Date.now() - startTime;
-    console.error(
-      "[extractOpenGraphData] ERROR after",
-      totalTime,
-      "ms:",
-      error,
-    );
-    console.error("[extractOpenGraphData] Error details:", {
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    });
+    console.error("Error extracting OGP data:", error);
     return {};
   }
 }
@@ -165,93 +104,28 @@ export function matchUrlToProvider(
 }
 
 export async function getOembedData(url: string): Promise<OEmbedData | null> {
-  console.log("[getOembedData] START - URL:", url);
-  const startTime = Date.now();
-
   // Handle Google Drive separately, kinda ugly implementation, but works for now
   // TODO: Make a special cases handler
   if (url.includes("drive.google.com")) {
-    console.log("[getOembedData] Detected Google Drive URL");
     const fileId = extractGoogleDriveFileId(url);
-    console.log("[getOembedData] Extracted file ID:", fileId);
-
     if (fileId) {
-      const result = {
+      return {
         title: "Google Drive File",
         provider_name: "Google Drive",
         html: `<iframe src="https://drive.google.com/file/d/${fileId}/preview" width="640" height="720" allow="autoplay"></iframe>`,
         description: "Embedded Google Drive file",
       };
-      console.log(
-        "[getOembedData] COMPLETE (Google Drive) in",
-        Date.now() - startTime,
-        "ms",
-      );
-      return result;
     }
-    console.log("[getOembedData] No file ID found, returning null");
-    return null;
   }
-
-  console.log("[getOembedData] Matching URL to oEmbed provider...");
   const match = matchUrlToProvider(url);
-
-  if (!match) {
-    console.log("[getOembedData] No oEmbed provider found for URL");
-    return null;
-  }
-
-  console.log("[getOembedData] Matched provider:", match.providerName);
-  console.log("[getOembedData] API URL:", match.apiUrl);
+  if (!match) return null;
 
   const oembedUrl = new URL(match.apiUrl);
   oembedUrl.searchParams.set("url", url);
   oembedUrl.searchParams.set("format", "json");
-
-  console.log(
-    "[getOembedData] Fetching oEmbed data from:",
-    oembedUrl.toString(),
-  );
-  const fetchStart = Date.now();
-
-  try {
-    const response = await fetch(oembedUrl.toString());
-    console.log(
-      "[getOembedData] Fetch completed in",
-      Date.now() - fetchStart,
-      "ms",
-    );
-    console.log(
-      "[getOembedData] Response status:",
-      response.status,
-      response.statusText,
-    );
-
-    if (!response.ok) {
-      console.log("[getOembedData] Response not OK, returning null");
-      return null;
-    }
-
-    console.log("[getOembedData] Parsing JSON response...");
-    const data = await response.json();
-    console.log(
-      "[getOembedData] COMPLETE in",
-      Date.now() - startTime,
-      "ms - Result:",
-      data,
-    );
-    return data as OEmbedData;
-  } catch (error) {
-    console.error(
-      "[getOembedData] ERROR after",
-      Date.now() - startTime,
-      "ms:",
-      error,
-    );
-    console.error("[getOembedData] Error details:", {
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-    return null;
-  }
+  const response = await fetch(oembedUrl.toString());
+  console.log("Fetching oEmbed data from:", oembedUrl.toString());
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data as OEmbedData;
 }

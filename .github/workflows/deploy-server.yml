@@ -8,15 +8,6 @@ on:
       - 'apps/server/**'
       - '.github/workflows/deploy-server.yml'
 
-  # For testing out where the problem lies on the hosted instance
-  # TODO: Remove it after fix
-  pull_request: 
-    branches:
-      - main
-    paths:
-      - 'apps/server/**'
-      - '.github/workflows/deploy-server.yml'
-
   workflow_dispatch:
 
 jobs:
