@@ -14,6 +14,7 @@ import { trpc } from "~/lib/trpc";
 import { toast } from "@repo/ui/components/ui/sonner";
 import { cn } from "@repo/ui/lib/utils";
 import { useDraggable } from "@dnd-kit/core";
+import { AnimatedGroup } from "@repo/ui/components/ui/animated-group";
 
 interface CollectionListRowProps {
   item: CollectionItem;
@@ -106,7 +107,11 @@ export function CollectionListRow({
           ) : (
             <Globe className="size-4 text-muted-foreground shrink-0" />
           )}
-          <div className="min-w-0 flex-1">
+          <AnimatedGroup
+            preset="slide-right"
+            key={item.id}
+            className="min-w-0 flex-1"
+          >
             <p className="truncate text-sm font-semibold">
               <a
                 href={item.url}
@@ -120,11 +125,15 @@ export function CollectionListRow({
             <p className="truncate text-xs text-muted-foreground">
               {getDomain(item.url)}
             </p>
-          </div>
+          </AnimatedGroup>
         </div>
 
         {/* Tags column */}
-        <div className="flex gap-1 flex-wrap max-w-md">
+        <AnimatedGroup
+          preset="slide-left"
+          key={item.id}
+          className="flex gap-1 flex-wrap max-w-md"
+        >
           {item.tags?.slice(0, 3).map((tag) => (
             <Badge key={tag} variant="secondary" className="text-xs">
               #{tag}
@@ -135,7 +144,7 @@ export function CollectionListRow({
               +{item.tags.length - 3}
             </Badge>
           )}
-        </div>
+        </AnimatedGroup>
 
         {/* Added column */}
         <div className="flex items-center gap-2">

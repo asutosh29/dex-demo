@@ -6,6 +6,8 @@ export type PresetType =
   | "fade"
   | "slide"
   | "slide-down"
+  | "slide-right"
+  | "slide-left"
   | "scale"
   | "blur"
   | "blur-slide"
@@ -50,6 +52,14 @@ const presetVariants: Record<PresetType, Variants> = {
   "slide-down": {
     hidden: { y: -10, opacity: 0 },
     visible: { y: 0, opacity: 1 },
+  },
+  "slide-right": {
+    hidden: { x: -10, opacity: 0 },
+    visible: { x: 0, opacity: 1 },
+  },
+  "slide-left": {
+    hidden: { x: 10, opacity: 0 },
+    visible: { x: 0, opacity: 1 },
   },
   scale: {
     hidden: { scale: 0.8 },

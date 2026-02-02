@@ -117,11 +117,13 @@ export function CollectionCard({
             </div>
           )}
           {item.image ? (
-            <img
-              src={item.image || item.favicon || "/placeholder.png"}
-              alt={item.title || "Preview"}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-            />
+            <AnimatedGroup preset="slide-down" key={item.id}>
+              <img
+                src={item.image || item.favicon || "/placeholder.png"}
+                alt={item.title || "Preview"}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              />
+            </AnimatedGroup>
           ) : (
             <div className="w-full h-full bg-muted flex items-center justify-center group-hover:scale-105 transition-transform">
               <AnimatedGroup preset="slide" key={item.id}>
