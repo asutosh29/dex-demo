@@ -10,7 +10,6 @@ import { extractOpenGraphData, getOembedData } from "./utils/ogp";
 import { parseHtmlContent } from "./utils/html-parser";
 import { WebpageTaggerAgent, WebpageTaggerAgentWithTitle } from "./agent/tag";
 import { AgentResponse } from "~/lib/types";
-import { Action, assertCan, getActor } from "./rbac";
 
 export class ItemService {
   /**
@@ -42,7 +41,7 @@ export class ItemService {
     const parsedData = await parseHtmlContent(normalizedUrl, oembed);
 
     let result;
-    if (!ogp.title) {
+    if (!oembed?.title && !ogp.title) {
       result = await WebpageTaggerAgentWithTitle.generateText(
         parsedData.content,
       );
@@ -59,7 +58,9 @@ export class ItemService {
     }
 
     const { title: agentTitle, tldr, tags } = agentData as AgentResponse;
-    const title = ogp.title || agentTitle;
+    const title = oembed?.title || ogp.title || agentTitle;
+    const image = ((oembed?.thumbnail_url || ogp.image) as string) || null;
+    const favicon = ogp.favicon;
 
     const res = await db.transaction(async (tx) => {
       // Create item
@@ -67,8 +68,8 @@ export class ItemService {
         .insert(itemsTable)
         .values({
           title: title!,
-          image: ogp.image,
-          favicon: ogp.favicon,
+          image,
+          favicon,
           url: normalizedUrl,
           tldr,
           tags,

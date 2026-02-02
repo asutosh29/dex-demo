@@ -18,6 +18,7 @@ import {
 } from "@repo/ui/components/ui/dropdown-menu";
 import { trpc } from "~/lib/trpc";
 import { toast } from "@repo/ui/components/ui/sonner";
+import { AnimatedGroup } from "@repo/ui/components/ui/animated-group";
 
 export type CollectionItem =
   RouterOutputs["collections"]["get"]["items"][number];
@@ -123,7 +124,16 @@ export function CollectionCard({
             />
           ) : (
             <div className="w-full h-full bg-muted flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Globe className="size-12 text-muted-foreground" />
+              <AnimatedGroup preset="slide" key={item.id}>
+                {item.favicon ? (
+                  <div
+                    className="size-12 mask-linear-180 mask-linear-from-10% mask-linear-to-95% brightness-75 saturate-0 bg-cover bg-center animate-in"
+                    style={{ backgroundImage: `url(${item.favicon})` }}
+                  />
+                ) : (
+                  <Globe className="size-12 text-muted-foreground mask-linear-180 mask-linear-from-10% mask-linear-to-90% brightness-75 saturate-75 bg-cover bg-center animate-in" />
+                )}
+              </AnimatedGroup>
             </div>
           )}
 

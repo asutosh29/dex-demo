@@ -125,6 +125,19 @@ export async function parseHtmlContent(
       }
     }
 
+    if (oembed && (oembed.provider_name as string).toLowerCase() === "reddit") {
+      const redditText = cheerio.load(oembed.html!).text();
+      if (redditText) {
+        const cleaned = redditText.replace(/\s+/g, " ").trim();
+        return {
+          content:
+            cleaned.length > maxCharacters
+              ? cleaned.substring(0, maxCharacters)
+              : cleaned,
+        };
+      }
+    }
+
     // Standard HTML parsing for all other sites
     const response = await fetch(url);
 

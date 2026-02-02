@@ -66,7 +66,7 @@ export async function extractOpenGraphData(
       }
     }
     ogp.favicon = favicon;
-
+    console.log("Extracted OGP data:", ogp);
     return ogp;
   } catch (error) {
     console.error("Error extracting OGP data:", error);
@@ -124,6 +124,7 @@ export async function getOembedData(url: string): Promise<OEmbedData | null> {
   oembedUrl.searchParams.set("url", url);
   oembedUrl.searchParams.set("format", "json");
   const response = await fetch(oembedUrl.toString());
+  console.log("Fetching oEmbed data from:", oembedUrl.toString());
   if (!response.ok) return null;
   const data = await response.json();
   return data as OEmbedData;
