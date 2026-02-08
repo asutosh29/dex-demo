@@ -8,22 +8,9 @@ import type { RouterOutputs } from "~/lib/trpc";
 import { AnimatedGroup } from "@repo/ui/components/ui/animated-group";
 import { WelcomeState } from "~/components/dashboard/onboarding";
 import { useOnboardingStore } from "~/lib/stores/onboarding-store";
+import { getTimeBasedGreeting } from "~/lib/utils";
 
 type RecentItem = RouterOutputs["items"]["getRecents"][number];
-
-const getTimeBasedGreeting = () => {
-  const hour = new Date().getHours();
-
-  if (hour < 12 && hour >= 5) {
-    return "Good morning";
-  } else if (hour >= 12 && hour < 17) {
-    return "Good afternoon";
-  } else if (hour >= 17 && hour < 21) {
-    return "Good evening";
-  } else {
-    return "Good night";
-  }
-};
 
 const formatDate = (date: Date | string) => {
   const d = new Date(date);

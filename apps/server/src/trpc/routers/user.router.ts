@@ -3,6 +3,7 @@ import { router, protectedProcedure } from "../trpc";
 import { db } from "~/db/client";
 import { user } from "~/db/schema";
 import { or, ilike, and, eq } from "drizzle-orm";
+import { env } from "~/lib/env";
 
 export const userRouter = router({
   search: protectedProcedure
@@ -19,13 +20,14 @@ export const userRouter = router({
         .from(user)
         .where(
           and(
-            eq(user.status, "active"),
             or(
               ilike(user.name, `%${input.query}%`),
               ilike(user.email, `%${input.query}%`),
             ),
+            env.WAITLIST_ENABLED ? eq(user.status, "active") : undefined,
           ),
         )
+        .orderBy(user.name)
         .limit(10);
 
       return users;

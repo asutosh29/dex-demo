@@ -43,7 +43,7 @@ export function Search() {
     <>
       <Button variant={"outline"} onClick={() => setOpen(true)}>
         <SearchIcon />
-        <span className="text-muted-foreground text-sm">Search...</span>
+        <span className="text-muted-foreground text-sm">Search Dex...</span>
         <Kbd className="ml-4">⌘ + K</Kbd>
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen}>

@@ -1,16 +1,8 @@
 import { useMemo, useState, useRef, useEffect } from "react";
-import {
-  Bookmark,
-  BookmarkPlus,
-  Hash,
-  LayoutGrid,
-  List,
-  Loader,
-} from "@repo/ui/icons";
+import { BookmarkPlus, Hash, LayoutGrid, List, Loader } from "@repo/ui/icons";
 import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
 import { Kbd } from "@repo/ui/components/ui/kbd";
-import { Badge } from "@repo/ui/components/ui/badge";
 import { toast } from "@repo/ui/components/ui/sonner";
 import { trpc } from "~/lib/trpc";
 import { CollectionCard } from "./collection-card";
@@ -21,6 +13,7 @@ import { useViewModeStore } from "~/lib/stores/view-mode-store";
 import { cn } from "@repo/ui/lib/utils";
 import { ManageMembers } from "./manage-members";
 import { CollectionActionsDropdown } from "./collection-actions-dropdown";
+import { EditableField } from "@repo/ui/components/ui/editable-field";
 
 type FilterType = "all" | "link" | "note";
 
@@ -47,10 +40,10 @@ export function CollectionGrid({ collectionId }: { collectionId: string }) {
     return items.filter((item) => item.type === filter);
   }, [items, filter]);
 
-  // Keyboard shortcut: Press 'A' to focus input
+  // Keyboard shortcut: Press 'Shift+A' to focus input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "a" && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
+      if (e.key === "A" && !e.metaKey && !e.ctrlKey) {
         // Only trigger if not in an input/textarea
         const target = e.target as HTMLElement;
         if (
@@ -112,20 +105,37 @@ export function CollectionGrid({ collectionId }: { collectionId: string }) {
       {/* Collection Header */}
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <div className="inline-flex items-baseline gap-2">
-            <h1 className="font-display text-3xl inline-flex items-baseline gap-2">
-              <Hash className="size-5" />
-              {collection.title}
-            </h1>
-          </div>
+          <EditableField
+            type="text"
+            value={collection.title}
+            className="w-1/2"
+            disabled={collection.role === "member"}
+            inputClassName="font-display text-3xl"
+            showActions={false}
+            onSave={async (value) => {
+              await utils.client.collections.update.mutate({
+                id: collectionId,
+                title: value as string,
+              });
+              await utils.collections.get.invalidate({ id: collectionId });
+              await utils.collections.getUserCollections.invalidate();
+            }}
+          >
+            {(value) => (
+              <h1 className="font-display text-3xl inline-flex items-baseline gap-2">
+                <Hash className="size-5" />
+                <span className="max-w-[16ch] truncate">{value}</span>
+              </h1>
+            )}
+          </EditableField>
+
           <div className="flex items-center gap-2">
-            <Badge variant="secondary">
-              <Bookmark /> {items.length}
-            </Badge>
             <ManageMembers role={collection.role} />
             <CollectionActionsDropdown
+              isShared={collection.isShared as boolean}
               collectionId={collectionId}
               currentTitle={collection.title}
+              role={collection.role}
             />
           </div>
         </div>
@@ -145,11 +155,11 @@ export function CollectionGrid({ collectionId }: { collectionId: string }) {
               disabled={addingItem}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="Add a link.."
+              placeholder="Add a link..."
               className="pl-10 h-12 text-lg pr-10 bg-transparent"
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
-              <Kbd>A</Kbd>
+              <Kbd>Shift + A</Kbd>
             </div>
           </div>
         </form>
@@ -166,17 +176,27 @@ export function CollectionGrid({ collectionId }: { collectionId: string }) {
                 variant={filter === "all" ? "secondary" : "ghost"}
                 size="sm"
                 onClick={() => setFilter("all")}
-                className="rounded-full"
+                className="rounded-full transition-all duration-200 w-fit"
               >
                 All
+                {filter === "all" && (
+                  <span className="text-muted-foreground ml-1">
+                    {filteredItems.length}
+                  </span>
+                )}
               </Button>
               <Button
                 variant={filter === "link" ? "secondary" : "ghost"}
                 size="sm"
                 onClick={() => setFilter("link")}
-                className="rounded-full"
+                className="rounded-full transition-all duration-200 w-fit"
               >
                 Links
+                {filter === "link" && (
+                  <span className="text-muted-foreground ml-1">
+                    {filteredItems.length}
+                  </span>
+                )}
               </Button>
               <Button
                 variant={filter === "note" ? "secondary" : "ghost"}
@@ -185,6 +205,11 @@ export function CollectionGrid({ collectionId }: { collectionId: string }) {
                 className="rounded-full"
               >
                 Notes
+                {filter === "note" && (
+                  <span className="text-muted-foreground ml-1">
+                    {filteredItems.length}
+                  </span>
+                )}
               </Button>
             </div>
 

@@ -48,6 +48,24 @@ export const itemRouter = router({
       return await itemService.checkItemExists(input.url, ctx.user.id);
     }),
 
+  // Update item
+  update: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        title: z.string().min(1).optional(),
+        tldr: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      return await itemService.updateItem(input.id, ctx.user.id, {
+        title: input.title,
+        tldr: input.tldr,
+        tags: input.tags,
+      });
+    }),
+
   // Share item
   // share: protectedProcedure
   //   .input(

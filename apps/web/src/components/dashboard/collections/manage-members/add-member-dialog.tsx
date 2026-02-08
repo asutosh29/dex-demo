@@ -41,6 +41,7 @@ export function AddMemberDialog({ open, onOpenChange, collectionId }: Props) {
   const addMutation = trpc.collectionAccess.addMember.useMutation({
     onSuccess: () => {
       utils.collectionAccess.getMembers.invalidate({ collectionId });
+      utils.collections.getUserCollections.invalidate();
       setQuery("");
       onOpenChange(false);
     },

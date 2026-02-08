@@ -98,9 +98,9 @@ export const MemberAvatarGroup = ({
     <AvatarGroup>
       {members.slice(0, 3).map((member) => (
         <Avatar key={member.userId} size="sm">
-          <AvatarImage src={member.user.image || undefined} />
+          <AvatarImage src={member.user?.image || undefined} />
           <AvatarFallback>
-            {member.user.name?.[0]?.toUpperCase()}
+            {member.user?.name?.[0]?.toUpperCase()}
           </AvatarFallback>
         </Avatar>
       ))}

@@ -1,7 +1,8 @@
 import { db } from "~/db/client";
 import { userCollectionsTable, user } from "~/db/schema";
-import { and, eq, count, ne } from "drizzle-orm";
+import { and, eq, count, ne, asc } from "drizzle-orm";
 import { getActor, assertCan, Action, Role } from "./rbac";
+import { env } from "~/lib/env";
 
 export class CollectionAccessService {
   /* ─────────────────────────────────────────────
@@ -30,26 +31,24 @@ export class CollectionAccessService {
     const actor = await getActor(userId, collectionId);
     assertCan(actor, Action.COLLECTION_VIEW_MEMBERS);
 
-    const members = await db.query.userCollectionsTable.findMany({
-      where: eq(userCollectionsTable.collectionId, collectionId),
-      with: {
+    const members = await db
+      .select({
+        userId: userCollectionsTable.userId,
+        role: userCollectionsTable.role,
         user: {
-          columns: {
-            id: true,
-            email: true,
-            name: true,
-            image: true,
-          },
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
         },
-      },
-    });
+        joinedAt: userCollectionsTable.createdAt,
+      })
+      .from(userCollectionsTable)
+      .leftJoin(user, eq(user.id, userCollectionsTable.userId))
+      .where(eq(userCollectionsTable.collectionId, collectionId))
+      .orderBy(asc(user.name));
 
-    return members.map((m) => ({
-      userId: m.userId,
-      role: m.role,
-      user: m.user,
-      joinedAt: m.createdAt,
-    }));
+    return members;
   }
 
   /* ─────────────────────────────────────────────
@@ -87,7 +86,7 @@ export class CollectionAccessService {
       throw new Error("User not found");
     }
 
-    if (result.status !== "active") {
+    if (env.WAITLIST_ENABLED && result.status !== "active") {
       throw new Error(
         "User must have an active status to be added to a collection",
       );

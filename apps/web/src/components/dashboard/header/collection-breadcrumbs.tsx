@@ -28,7 +28,9 @@ export const CollectionBreadcrumbs = () => {
           <>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>{collection.title}</BreadcrumbPage>
+              <BreadcrumbPage className="max-w-[16ch] truncate">
+                {collection.title}
+              </BreadcrumbPage>
             </BreadcrumbItem>
           </>
         )}

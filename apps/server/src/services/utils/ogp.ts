@@ -2,6 +2,18 @@ import { OEmbedData, OpenGraphData, Provider } from "~/lib/types";
 import * as cheerio from "cheerio";
 import providers from "~/assets/oembed-providers.json";
 
+function normalizeUrl(
+  relativeUrl: string | undefined,
+  baseUrl: string,
+): string | undefined {
+  if (!relativeUrl || relativeUrl.startsWith("http")) return relativeUrl;
+  const urlObj = new URL(baseUrl);
+  if (relativeUrl.startsWith("//")) return urlObj.protocol + relativeUrl;
+  if (relativeUrl.startsWith("/"))
+    return `${urlObj.protocol}//${urlObj.host}${relativeUrl}`;
+  return `${urlObj.protocol}//${urlObj.host}/${relativeUrl}`;
+}
+
 function extractGoogleDriveFileId(url: string): string | null {
   // Match various Google Drive URL formats
   const patterns = [
@@ -35,7 +47,7 @@ export async function extractOpenGraphData(
       description:
         $('meta[property="og:description"]').attr("content") ||
         $('meta[name="description"]').attr("content"),
-      image: $('meta[property="og:image"]').attr("content"),
+      image: normalizeUrl($('meta[property="og:image"]').attr("content"), url),
       siteName: $('meta[property="og:site_name"]').attr("content"),
       url: $('meta[property="og:url"]').attr("content") || url,
       type: $('meta[property="og:type"]').attr("content"),
@@ -50,22 +62,12 @@ export async function extractOpenGraphData(
     }
 
     // Extract favicon
-    let favicon =
+    ogp.favicon = normalizeUrl(
       $('link[rel="icon"]').attr("href") ||
-      $('link[rel="shortcut icon"]').attr("href") ||
-      $('link[rel="apple-touch-icon"]').attr("href");
-
-    if (favicon && !favicon.startsWith("http")) {
-      const urlObj = new URL(url);
-      if (favicon.startsWith("//")) {
-        favicon = urlObj.protocol + favicon;
-      } else if (favicon.startsWith("/")) {
-        favicon = `${urlObj.protocol}//${urlObj.host}${favicon}`;
-      } else {
-        favicon = `${urlObj.protocol}//${urlObj.host}/${favicon}`;
-      }
-    }
-    ogp.favicon = favicon;
+        $('link[rel="shortcut icon"]').attr("href") ||
+        $('link[rel="apple-touch-icon"]').attr("href"),
+      url,
+    );
     console.log("Extracted OGP data:", ogp);
     return ogp;
   } catch (error) {

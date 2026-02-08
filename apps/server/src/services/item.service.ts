@@ -210,6 +210,60 @@ export class ItemService {
   }
 
   /**
+   * Update item fields (title, tldr, tags)
+   * Only the creator can update their items
+   */
+  async updateItem(
+    itemId: string,
+    userId: string,
+    data: {
+      title?: string;
+      tldr?: string;
+      tags?: string[];
+    },
+  ) {
+    // Verify the user is the creator
+    const item = await db.query.itemsTable.findFirst({
+      where: eq(itemsTable.id, itemId),
+    });
+
+    if (!item) {
+      throw new Error("Item not found");
+    }
+
+    if (item.creatorId !== userId) {
+      throw new Error("Only the creator can edit this item");
+    }
+
+    // Build update object with only provided fields
+    const updateData: Partial<typeof itemsTable.$inferInsert> = {};
+
+    if (data.title !== undefined) {
+      updateData.title = data.title;
+    }
+    if (data.tldr !== undefined) {
+      updateData.tldr = data.tldr;
+    }
+    if (data.tags !== undefined) {
+      updateData.tags = data.tags;
+    }
+
+    // Return early if nothing to update
+    if (Object.keys(updateData).length === 0) {
+      return item;
+    }
+
+    // Perform update
+    const [updated] = await db
+      .update(itemsTable)
+      .set(updateData)
+      .where(eq(itemsTable.id, itemId))
+      .returning();
+
+    return updated;
+  }
+
+  /**
    * Delete an item
    */
   // async deleteItem(itemId: string, userId: string) {

@@ -112,10 +112,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton>
-              <img src="/logo.svg" className="size-6" />
-              <p className="font-medium text-base">Dex</p>
-            </SidebarMenuButton>
+            <Link to={"/dashboard"}>
+              <SidebarMenuButton>
+                <img src="/logo.svg" className="size-5" />
+                <p className="font-medium text-base">Dex</p>
+              </SidebarMenuButton>
+            </Link>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

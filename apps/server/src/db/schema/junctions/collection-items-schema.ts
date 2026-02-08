@@ -21,8 +21,6 @@ export const collectionItemsTable = pgTable(
   },
   (table) => [
     primaryKey({ columns: [table.collectionId, table.itemId] }),
-    // for getting collections by item faster
-    index("idx_collection_items_item_id").on(table.itemId),
     // its 2 in one index kinda, indexes by collectionId and also gives a unique pair contraint,
     // i.e. no duplicate items in a collection
     uniqueIndex("uq_collection_item").on(table.collectionId, table.itemId),

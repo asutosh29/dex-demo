@@ -45,7 +45,7 @@ export default function ProtectedRoute() {
   // Check user status
   const userStatus = session.user.status;
 
-  if (userStatus === "waitlist") {
+  if (userStatus === "waitlist" && import.meta.env.PROD) {
     return <WaitlistScreen email={session.user.email} />;
   }
 

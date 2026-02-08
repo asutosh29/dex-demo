@@ -1,0 +1,1 @@
+DROP INDEX "idx_collection_items_item_id";

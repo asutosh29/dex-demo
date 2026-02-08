@@ -8,11 +8,17 @@ import {
   type DragStartEvent,
   defaultDropAnimationSideEffects,
 } from "@dnd-kit/core";
+import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { useState, useEffect } from "react";
 import { trpc } from "~/lib/trpc";
 import { toast } from "@repo/ui/components/ui/sonner";
-import { ArrowUpFromDotIcon, CopyIcon, Globe } from "@repo/ui/icons";
-import { Badge } from "@repo/ui/components/ui/badge";
+import {
+  ArrowUpFromDotIcon,
+  ArrowUpLeft,
+  CopyIcon,
+  Globe,
+} from "@repo/ui/icons";
+import { cn } from "@repo/ui/lib/utils";
 
 interface DraggedItem {
   id: string;
@@ -31,53 +37,38 @@ function DragPreview({
   isShiftPressed: boolean;
 }) {
   return (
-    <div className="max-w-64 rotate-5 bg-background/70 backdrop-blur-md shadow-2xl rounded-lg overflow-hidden relative">
-      <Badge
-        variant={"secondary"}
-        className="z-10 absolute top-2 left-2 flex items-center gap-1 px-2 py-1 text-xs"
-      >
-        <span className="animate-pulse flex items-center gap-1">
-          {isShiftPressed ? (
-            <>
-              <ArrowUpFromDotIcon className="size-3" />
-              Moving...
-            </>
-          ) : (
-            <>
-              <CopyIcon className="size-3" />
-              Copying...
-            </>
-          )}
-        </span>
-      </Badge>
-      <div className="relative aspect-[16/9] bg-muted">
-        {item.image ? (
-          <img
-            src={item.image || item.favicon || ""}
-            alt={item.title || "Preview"}
-            className="w-full h-full object-cover"
-          />
+    <div
+      className={cn(
+        "relative flex items-center justify-center p-4 w-60",
+        "*:bg-background/70 *:backdrop-blur-md",
+      )}
+    >
+      <div className="rounded-full p-1.5 border absolute top-2 left-2 z-5 text-muted-foreground">
+        {" "}
+        {isShiftPressed ? (
+          <>
+            <ArrowUpLeft className="size-3 animate-pulse" />
+          </>
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Globe className="size-12 text-muted-foreground" />
-          </div>
+          <>
+            <CopyIcon className="size-3 animate-pulse" />
+          </>
         )}
       </div>
-      <div className="p-3 space-y-1">
-        <div className="flex gap-1.5 items-center">
-          {item.favicon ? (
-            <img
-              src={item.favicon}
-              alt="Favicon"
-              className="w-4 h-4 flex-shrink-0"
-            />
-          ) : (
-            <Globe className="size-4 text-muted-foreground flex-shrink-0" />
-          )}
-          <p className="truncate text-sm font-semibold">
-            {item.title || item.url}
-          </p>
-        </div>
+      <div
+        className={cn(
+          "cursor-grabbing rounded-lg border h-10 px-3 text-sm",
+          "shadow-2xl",
+          "flex items-center gap-2",
+          "w-full",
+        )}
+      >
+        {item.favicon ? (
+          <img src={item.favicon} alt="Favicon" className="size-4" />
+        ) : (
+          <Globe className="size-4 text-muted-foreground" />
+        )}
+        <span className="max-w-[16ch] truncate">{item.title}</span>
       </div>
     </div>
   );
@@ -93,7 +84,7 @@ export function DndProvider({ children }: { children: React.ReactNode }) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 0,
       },
     }),
   );
@@ -213,6 +204,7 @@ export function DndProvider({ children }: { children: React.ReactNode }) {
       sensors={sensors}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      modifiers={[snapCenterToCursor]}
     >
       {children}
 

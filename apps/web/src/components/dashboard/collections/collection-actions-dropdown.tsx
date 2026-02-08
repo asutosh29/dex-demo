@@ -19,60 +19,34 @@ import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
 import { Label } from "@repo/ui/components/ui/label";
 import { toast } from "@repo/ui/components/ui/sonner";
-import { Pencil, LogOut, MoreHorizontal } from "@repo/ui/icons";
+import { Pencil, LogOut, MoreHorizontal, Trash2 } from "@repo/ui/icons";
 import { trpc } from "~/lib/trpc";
 
 interface CollectionActionsDropdownProps {
   collectionId: string;
   currentTitle: string;
+  role?: string;
+  isShared?: boolean;
 }
 
 export function CollectionActionsDropdown({
   collectionId,
   currentTitle,
+  isShared,
+  role,
 }: CollectionActionsDropdownProps) {
   const navigate = useNavigate();
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
-  const [title, setTitle] = useState(currentTitle);
+  const [purgeDialogOpen, setPurgeDialogOpen] = useState(false);
+  const [confirmationText, setConfirmationText] = useState("");
 
   const utils = trpc.useUtils();
-
-  const { mutate: updateCollection, isPending: isUpdating } =
-    trpc.collections.update.useMutation();
 
   const { mutate: leaveCollection, isPending: isLeaving } =
     trpc.collectionAccess.leaveCollection.useMutation();
 
-  const handleEditSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!title.trim()) {
-      toast.error("Collection name cannot be empty");
-      return;
-    }
-
-    if (title.trim() === currentTitle) {
-      setEditDialogOpen(false);
-      return;
-    }
-
-    updateCollection(
-      { id: collectionId, title: title.trim() },
-      {
-        onSuccess: async () => {
-          await utils.collections.get.invalidate({ id: collectionId });
-          await utils.collections.getUserCollections.invalidate();
-          toast.success("Collection updated successfully!");
-          setEditDialogOpen(false);
-        },
-        onError: (error) => {
-          console.error(error);
-          toast.error("Failed to update collection. Please try again.");
-        },
-      },
-    );
-  };
+  const { mutate: deleteCollection, isPending: isDeleting } =
+    trpc.collections.delete.useMutation();
 
   const handleLeave = () => {
     leaveCollection(
@@ -95,6 +69,32 @@ export function CollectionActionsDropdown({
     );
   };
 
+  const handlePurge = () => {
+    if (confirmationText !== currentTitle) {
+      toast.error("Collection name doesn't match");
+      return;
+    }
+
+    deleteCollection(
+      { id: collectionId },
+      {
+        onSuccess: async () => {
+          await utils.collections.getUserCollections.invalidate();
+          toast.success("Collection deleted successfully");
+          setPurgeDialogOpen(false);
+          setConfirmationText("");
+          navigate("/dashboard");
+        },
+        onError: (error) => {
+          console.error(error);
+          toast.error(
+            error.message || "Failed to delete collection. Please try again.",
+          );
+        },
+      },
+    );
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -104,60 +104,21 @@ export function CollectionActionsDropdown({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
-          <DropdownMenuItem onClick={() => setEditDialogOpen(true)}>
-            <Pencil className="size-4" />
-            Edit Collection
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => setLeaveDialogOpen(true)}
-            className="text-destructive focus:text-destructive"
-          >
+          <DropdownMenuItem onClick={() => setLeaveDialogOpen(true)}>
             <LogOut className="size-4" />
             Leave Collection
           </DropdownMenuItem>
+          {role === "owner" && !isShared && (
+            <DropdownMenuItem
+              onClick={() => setPurgeDialogOpen(true)}
+              variant="destructive"
+            >
+              <Trash2 className="size-4 text-destructive" />
+              Purge Collection
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
-
-      {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <form onSubmit={handleEditSubmit}>
-            <DialogHeader>
-              <DialogTitle>Edit Collection</DialogTitle>
-              <DialogDescription>
-                Update the name of your collection.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Collection Name</Label>
-                <Input
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Enter collection name"
-                  autoFocus
-                  disabled={isUpdating}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setEditDialogOpen(false)}
-                disabled={isUpdating}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isUpdating}>
-                {isUpdating ? "Saving..." : "Save Changes"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Leave Confirmation Dialog */}
       <Dialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
@@ -185,6 +146,62 @@ export function CollectionActionsDropdown({
               disabled={isLeaving}
             >
               {isLeaving ? "Leaving..." : "Leave Collection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Purge Confirmation Dialog */}
+      <Dialog
+        open={purgeDialogOpen}
+        onOpenChange={(open) => {
+          setPurgeDialogOpen(open);
+          if (!open) setConfirmationText("");
+        }}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Purge Collection</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete the
+              collection and all its items.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="confirmation">
+                Type <span className="font-semibold">{currentTitle}</span> to
+                confirm
+              </Label>
+              <Input
+                id="confirmation"
+                value={confirmationText}
+                onChange={(e) => setConfirmationText(e.target.value)}
+                placeholder="Enter collection name"
+                autoFocus
+                disabled={isDeleting}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setPurgeDialogOpen(false);
+                setConfirmationText("");
+              }}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handlePurge}
+              disabled={isDeleting || confirmationText !== currentTitle}
+            >
+              {isDeleting ? "Purging..." : "Purge Collection"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -5,6 +5,8 @@ import { Hono } from "hono";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { mcpAuthMiddleware, type McpContext } from "./middleware";
 import { itemService } from "~/services/item.service";
+import { Action, assertCan } from "~/services/rbac";
+import { collectionService } from "~/services/collection.service";
 
 export const createMcpServer = () => {
   const server = new McpServer(
@@ -180,6 +182,56 @@ export const createMcpServer = () => {
                 url: item.url,
                 tldr: item.tldr,
               })),
+            }),
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "create_collection",
+    {
+      description: "Create a new collection",
+      inputSchema: z.object({
+        title: z.string().min(1).describe("Title of the new collection"),
+      }),
+    },
+    async ({ title }) => {
+      const { actor } = getMcpContext();
+
+      if (actor.mode !== "full_access") {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                error:
+                  "Permission denied: You don't have permission to create collections",
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      // Create collection
+      // Note: Implement collectionService.createCollection accordingly
+      const collection = await collectionService.createCollection(
+        actor.userId,
+        title,
+      );
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              success: true,
+              collection: {
+                id: collection.id,
+                title: collection.title,
+              },
             }),
           },
         ],

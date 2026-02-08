@@ -221,9 +221,11 @@ export class CollectionService {
     const actor = await getActor(userId, collectionId);
     assertCan(actor, Action.COLLECTION_CHANGE_ROLES); // Owner-only
 
-    await db
-      .delete(collectionsTable)
-      .where(eq(collectionsTable.id, collectionId));
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(collectionsTable)
+        .where(eq(collectionsTable.id, collectionId));
+    });
 
     return { success: true };
   }

@@ -19,6 +19,7 @@ import {
 import { trpc } from "~/lib/trpc";
 import { toast } from "@repo/ui/components/ui/sonner";
 import { AnimatedGroup } from "@repo/ui/components/ui/animated-group";
+import { getDomainFromUrl } from "~/lib/utils";
 
 export type CollectionItem =
   RouterOutputs["collections"]["get"]["items"][number];
@@ -150,7 +151,9 @@ export function CollectionCard({
             target="_blank"
             rel="noopener noreferrer"
           >
-            <span className="max-w-[16ch] truncate">{item.url}</span>{" "}
+            <span className="max-w-[16ch] truncate">
+              {getDomainFromUrl(item.url)}
+            </span>{" "}
             <LucideSquareArrowOutUpRight className="size-4" />
           </a>
         </div>
@@ -176,6 +179,7 @@ export function CollectionCard({
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         item={item}
+        collectionId={collectionId}
       />
     </>
   );
