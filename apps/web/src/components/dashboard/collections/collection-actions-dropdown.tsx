@@ -4,7 +4,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
 import {
@@ -19,7 +18,7 @@ import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
 import { Label } from "@repo/ui/components/ui/label";
 import { toast } from "@repo/ui/components/ui/sonner";
-import { Pencil, LogOut, MoreHorizontal, Trash2 } from "@repo/ui/icons";
+import { LogOut, MoreHorizontal, Trash2 } from "@repo/ui/icons";
 import { trpc } from "~/lib/trpc";
 
 interface CollectionActionsDropdownProps {

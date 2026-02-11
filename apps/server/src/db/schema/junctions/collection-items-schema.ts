@@ -12,10 +12,10 @@ import { itemsTable } from "../item-schema";
 export const collectionItemsTable = pgTable(
   "collection_items",
   {
-    collectionId: text()
+    collectionId: text("collection_id")
       .notNull()
       .references(() => collectionsTable.id, { onDelete: "cascade" }),
-    itemId: text()
+    itemId: text("item_id")
       .notNull()
       .references(() => itemsTable.id, { onDelete: "cascade" }),
   },

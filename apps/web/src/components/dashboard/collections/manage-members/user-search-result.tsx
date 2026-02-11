@@ -4,7 +4,7 @@ import {
   AvatarImage,
 } from "@repo/ui/components/ui/avatar";
 import { Button } from "@repo/ui/components/ui/button";
-import { Plus } from "@repo/ui/icons";
+import { Send, Loader2 } from "@repo/ui/icons";
 
 interface Props {
   user: {
@@ -32,7 +32,12 @@ export function UserSearchResult({ user, onAdd, isLoading }: Props) {
       </div>
 
       <Button size="sm" onClick={onAdd} disabled={isLoading}>
-        <Plus className="h-4 w-4" />
+        {isLoading ? (
+          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+        ) : (
+          <Send className="h-3 w-3 mr-1" />
+        )}
+        Invite
       </Button>
     </div>
   );

@@ -18,21 +18,23 @@ export const tsvector = customType<{
 export const itemsTable = pgTable(
   "items",
   {
-    id: text()
+    id: text("id")
       .primaryKey()
       .$defaultFn(() => uuidv7()),
     type: itemTypeEnum().default("link").notNull(),
-    url: text().notNull(),
-    title: text().notNull(),
-    tldr: text().notNull(),
-    tags: text().array().default([]).notNull(),
-    favicon: text(),
-    image: text(),
+    url: text("url").notNull(),
+    title: text("title").notNull(),
+    tldr: text("tldr").notNull(),
+    tags: text("tags").array().default([]).notNull(),
+    favicon: text("favicon"),
+    image: text("image"),
     searchVector: tsvector("search_vector").generatedAlwaysAs(
       sql`setweight(to_tsvector('english', coalesce(title, '')), 'A') ||
           setweight(to_tsvector('english', coalesce(tldr, '')), 'B')`,
     ),
-    creatorId: text().references(() => user.id, { onDelete: "cascade" }),
+    creatorId: text("creator_id").references(() => user.id, {
+      onDelete: "cascade",
+    }),
     ...timestamps,
   },
   (table) => [

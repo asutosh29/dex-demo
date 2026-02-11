@@ -5,6 +5,8 @@ import { collectionAccessRouter } from "./routers/collection-access.router";
 import { userRouter } from "./routers/user.router";
 import { ogpRouter } from "./routers/ogp.router";
 import { apiKeyRouter } from "./routers/api-key.router";
+import { notificationRouter } from "./routers/notification.router";
+import { invitationRouter } from "./routers/invitation.router";
 
 export const appRouter = router({
   items: itemRouter,
@@ -13,6 +15,8 @@ export const appRouter = router({
   users: userRouter,
   ogp: ogpRouter,
   apiKeys: apiKeyRouter,
+  notifications: notificationRouter,
+  invitations: invitationRouter,
 });
 
 export { createContext } from "./trpc";

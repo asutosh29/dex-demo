@@ -5,3 +5,6 @@ export * from "./junctions/collection-items-schema";
 export * from "./junctions/user-collections-schema";
 export * from "./junctions/api-key-collections-schema";
 export * from "./helpers/enums-schema";
+export * from "./invitations-schema";
+export * from "./notifications-schema";
+export * from "./activity-schema";

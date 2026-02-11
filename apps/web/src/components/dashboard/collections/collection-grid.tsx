@@ -17,6 +17,7 @@ import { EditableField } from "@repo/ui/components/ui/editable-field";
 
 type FilterType = "all" | "link" | "note";
 
+// TODO: This component is getting pretty large and kinda will hamper performance. Break down into smaller components and implement virtualization
 export function CollectionGrid({ collectionId }: { collectionId: string }) {
   const { data: collection, isLoading } = trpc.collections.get.useQuery(
     { id: collectionId },
@@ -146,9 +147,9 @@ export function CollectionGrid({ collectionId }: { collectionId: string }) {
             className={cn("relative rounded-lg", addingItem && "bg-background")}
           >
             {addingItem ? (
-              <Loader className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground z-10 animate-spin" />
+              <Loader className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground animate-spin" />
             ) : (
-              <BookmarkPlus className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground z-10" />
+              <BookmarkPlus className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground " />
             )}{" "}
             <Input
               ref={inputRef}

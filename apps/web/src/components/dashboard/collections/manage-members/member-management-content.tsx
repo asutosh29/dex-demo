@@ -1,5 +1,5 @@
 import { trpc } from "~/lib/trpc";
-import { Loader2, Plus } from "@repo/ui/icons";
+import { Loader2, UserPlus } from "@repo/ui/icons";
 import { Button } from "@repo/ui/components/ui/button";
 import { useState } from "react";
 import { MemberListItem } from "./member-list-item";
@@ -30,15 +30,15 @@ export function MemberManagementContent({
 
   return (
     <div className="space-y-4">
-      {/* Add Member Button - admin/owner only */}
+      {/* Invite Member Button - admin/owner only */}
       {(currentUserRole === "admin" || currentUserRole === "owner") && (
         <Button
           variant="outline"
           className="w-full"
           onClick={() => setIsAddingMember(true)}
         >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Member
+          <UserPlus className="mr-2 h-4 w-4" />
+          Invite Member
         </Button>
       )}
 

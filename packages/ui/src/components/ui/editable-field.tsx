@@ -243,7 +243,7 @@ function EditableField({
             "rounded-md transition-colors p-1 group/field",
             !disabled &&
               "cursor-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-            disabled && "cursor-default opacity-60",
+            disabled && "cursor-default",
           )}
           onDoubleClick={handleStartEditing}
           onKeyDown={handleTriggerKeyDown}

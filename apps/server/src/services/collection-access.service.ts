@@ -1,8 +1,15 @@
 import { db } from "~/db/client";
-import { userCollectionsTable, user } from "~/db/schema";
-import { and, eq, count, ne, asc } from "drizzle-orm";
+import {
+  userCollectionsTable,
+  user,
+  activityTable,
+  notificationsTable,
+} from "~/db/schema";
+import { and, eq, count, asc } from "drizzle-orm";
 import { getActor, assertCan, Action, Role } from "./rbac";
 import { env } from "~/lib/env";
+import { activityService } from "./activity.service";
+import { notificationService } from "./notification.service";
 
 export class CollectionAccessService {
   /* ─────────────────────────────────────────────
@@ -21,6 +28,58 @@ export class CollectionAccessService {
       );
 
     return result[0]?.count ?? 0;
+  }
+
+  /* ─────────────────────────────────────────────
+   * Helper: Emit role change notification
+   * ───────────────────────────────────────────── */
+
+  private async notifyRoleChange(
+    targetUserId: string,
+    collectionId: string,
+    oldRole: Role,
+    newRole: Role,
+    changedByUserId: string,
+  ) {
+    const targetUser = await db.query.user.findFirst({
+      where: eq(user.id, targetUserId),
+    });
+
+    if (!targetUser) return;
+
+    // Create activity for role change
+    const [activity] = await db
+      .insert(activityTable)
+      .values({
+        collectionId,
+        actorId: changedByUserId,
+        type: "role_changed",
+        data: {
+          type: "role_changed",
+          memberId: targetUserId,
+          memberName: targetUser.name,
+          oldRole,
+          newRole,
+        },
+      })
+      .returning();
+
+    // Notify the affected user
+    await notificationService.createNotification(targetUserId, activity.id);
+
+    // Also notify admins and owners (except the actor and affected user)
+    const adminOwnerIds = await activityService.getCollectionMembersByRoles(
+      collectionId,
+      ["owner", "admin"],
+      [targetUserId, changedByUserId],
+    );
+
+    if (adminOwnerIds.length > 0) {
+      await notificationService.createBulkNotifications(
+        adminOwnerIds,
+        activity.id,
+      );
+    }
   }
 
   /* ─────────────────────────────────────────────
@@ -138,6 +197,11 @@ export class CollectionAccessService {
       );
     }
 
+    // Get target user for notification
+    const targetUser = await db.query.user.findFirst({
+      where: eq(user.id, targetUserId),
+    });
+
     // Remove member
     await db
       .delete(userCollectionsTable)
@@ -147,6 +211,27 @@ export class CollectionAccessService {
           eq(userCollectionsTable.collectionId, collectionId),
         ),
       );
+
+    // Emit notification
+    if (targetUser) {
+      const [activity] = await db
+        .insert(activityTable)
+        .values({
+          collectionId,
+          actorId,
+          type: "member_removed",
+          data: {
+            type: "member_removed",
+            memberId: targetUserId,
+            memberName: targetUser.name,
+            role: targetMembership.role,
+          },
+        })
+        .returning();
+
+      // Only notify the removed user
+      await notificationService.createNotification(targetUserId, activity.id);
+    }
 
     return { success: true };
   }
@@ -190,6 +275,15 @@ export class CollectionAccessService {
           eq(userCollectionsTable.collectionId, collectionId),
         ),
       );
+
+    // Emit notification
+    await this.notifyRoleChange(
+      targetUserId,
+      collectionId,
+      "member",
+      "admin",
+      actorId,
+    );
 
     return { success: true };
   }
@@ -242,6 +336,15 @@ export class CollectionAccessService {
         ),
       );
 
+    // Emit notification
+    await this.notifyRoleChange(
+      targetUserId,
+      collectionId,
+      "admin",
+      "member",
+      actorId,
+    );
+
     return { success: true };
   }
 
@@ -277,6 +380,18 @@ export class CollectionAccessService {
       );
     }
 
+    // Get user details for activity
+    const actorUser = await db.query.user.findFirst({
+      where: eq(user.id, actorId),
+    });
+    const newOwnerUser = await db.query.user.findFirst({
+      where: eq(user.id, newOwnerId),
+    });
+
+    if (!actorUser || !newOwnerUser) {
+      throw new Error("User not found");
+    }
+
     // Perform transfer: demote actor to admin, promote target to owner
     await db.transaction(async (tx) => {
       // Demote current owner to admin
@@ -300,6 +415,38 @@ export class CollectionAccessService {
             eq(userCollectionsTable.collectionId, collectionId),
           ),
         );
+
+      // Create ownership_transferred activity
+      const [activity] = await tx
+        .insert(activityTable)
+        .values({
+          collectionId,
+          actorId,
+          type: "ownership_transferred",
+          data: {
+            type: "ownership_transferred",
+            previousOwnerId: actorId,
+            previousOwnerName: actorUser.name,
+            newOwnerId,
+            newOwnerName: newOwnerUser.name,
+          },
+        })
+        .returning();
+
+      // Notify EVERYONE in collection (ownership transfer is significant)
+      const allMemberIds = await activityService.getAllCollectionMembers(
+        collectionId,
+        [actorId], // Actor already knows
+      );
+
+      if (allMemberIds.length > 0) {
+        await tx.insert(notificationsTable).values(
+          allMemberIds.map((uid) => ({
+            userId: uid,
+            activityId: activity.id,
+          })),
+        );
+      }
     });
 
     return { success: true };
