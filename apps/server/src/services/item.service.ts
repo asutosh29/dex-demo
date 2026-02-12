@@ -99,27 +99,21 @@ export class ItemService {
   }
 
   /**
-   * Search items by title, tldr, or tags
+   * Search items by title, tldr, or tags using PostgreSQL full-text search
+   * Supports web search syntax: "exact phrase", word1 OR word2, -excludeword
    */
   async searchItems(userId: string, query: string) {
-    // Format query for prefix matching - add :* to each word
-    const formattedQuery = query
-      .trim()
-      .split(/\s+/)
-      .map((word) => `${word}:*`)
-      .join(" & ");
-
     const results = await db
       .select()
       .from(itemsTable)
       .where(
         and(
           eq(itemsTable.creatorId, userId),
-          sql`${itemsTable.searchVector} @@ to_tsquery('english', ${formattedQuery})`,
+          sql`${itemsTable.searchVector} @@ websearch_to_tsquery('english', ${query})`,
         ),
       )
       .orderBy(
-        sql`ts_rank(${itemsTable.searchVector}, to_tsquery('english', ${formattedQuery})) DESC`,
+        sql`ts_rank(${itemsTable.searchVector}, websearch_to_tsquery('english', ${query})) DESC`,
       );
 
     return results;

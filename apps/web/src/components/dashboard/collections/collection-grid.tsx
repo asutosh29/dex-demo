@@ -159,7 +159,7 @@ export function CollectionGrid({ collectionId }: { collectionId: string }) {
               placeholder="Add a link..."
               className="pl-10 h-12 text-lg pr-10 bg-transparent"
             />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
               <Kbd>Shift + A</Kbd>
             </div>
           </div>

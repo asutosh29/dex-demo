@@ -80,19 +80,18 @@ export const createMcpServer = () => {
   );
 
   server.registerTool(
-    "add_items_to_collection",
+    "add_item_to_collection",
     {
-      description: "Add items to a specified collection if you have permission",
+      description:
+        "Add a single item to a specified collection if you have permission",
       inputSchema: z.object({
         collectionId: z
           .string()
-          .describe("ID of the collection to add items to"),
-        items: z
-          .array(z.url().describe("Item URL"))
-          .describe("List of item URLs to add to the collection"),
+          .describe("ID of the collection to add the item to"),
+        url: z.string().describe("URL of the item to add"),
       }),
     },
-    async ({ collectionId, items }) => {
+    async ({ collectionId, url }) => {
       const { actor } = getMcpContext();
 
       // Check for permissions
@@ -118,21 +117,26 @@ export const createMcpServer = () => {
         };
       }
 
-      // Add items to collection
-      const results = await Promise.all(
-        items.map((itemUrl) =>
-          itemService.createItem(actor.userId, {
-            url: itemUrl,
-            collectionId: collectionId,
-          }),
-        ),
-      );
+      // Add item to collection
+      const item = await itemService.createItem(actor.userId, {
+        url,
+        collectionId,
+      });
 
-      // Filter out null results (failed items)
-      const successfulItems = results.filter(
-        (item): item is NonNullable<typeof item> => item !== null,
-      );
-      const failedCount = results.length - successfulItems.length;
+      if (!item) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                error: "Failed to add item to collection",
+                url,
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
 
       return {
         content: [
@@ -140,19 +144,95 @@ export const createMcpServer = () => {
             type: "text",
             text: JSON.stringify({
               success: true,
-              addedItems: successfulItems.length,
-              failedItems: failedCount,
-              items: successfulItems.map((item) => ({
+              item: {
                 id: item.id,
                 title: item.title,
                 url: item.url,
-              })),
+                tldr: item.tldr,
+                tags: item.tags,
+              },
             }),
           },
         ],
       };
     },
   );
+
+  // Commented out bulk addition tool - use add_item_to_collection instead
+  // server.registerTool(
+  //   "add_items_to_collection",
+  //   {
+  //     description: "Add items to a specified collection if you have permission",
+  //     inputSchema: z.object({
+  //       collectionId: z
+  //         .string()
+  //         .describe("ID of the collection to add items to"),
+  //       items: z
+  //         .array(z.url().describe("Item URL"))
+  //         .describe("List of item URLs to add to the collection"),
+  //     }),
+  //   },
+  //   async ({ collectionId, items }) => {
+  //     const { actor } = getMcpContext();
+
+  //     // Check for permissions
+  //     const hasAccess =
+  //       (actor.mode === "full_access" &&
+  //         actor.userCollections?.some((uc) => uc.id === collectionId)) ||
+  //       (actor.mode === "collection_specific" &&
+  //         actor.grantedCollections?.some((gc) => gc.id === collectionId));
+
+  //     if (!hasAccess) {
+  //       return {
+  //         content: [
+  //           {
+  //             type: "text",
+  //             text: JSON.stringify({
+  //               error:
+  //                 "Permission denied: You don't have access to this collection",
+  //               collectionId,
+  //             }),
+  //           },
+  //         ],
+  //         isError: true,
+  //       };
+  //     }
+
+  //     // Add items to collection
+  //     const results = await Promise.all(
+  //       items.map((itemUrl) =>
+  //         itemService.createItem(actor.userId, {
+  //           url: itemUrl,
+  //           collectionId: collectionId,
+  //         }),
+  //       ),
+  //     );
+
+  //     // Filter out null results (failed items)
+  //     const successfulItems = results.filter(
+  //       (item): item is NonNullable<typeof item> => item !== null,
+  //     );
+  //     const failedCount = results.length - successfulItems.length;
+
+  //     return {
+  //       content: [
+  //         {
+  //           type: "text",
+  //           text: JSON.stringify({
+  //             success: true,
+  //             addedItems: successfulItems.length,
+  //             failedItems: failedCount,
+  //             items: successfulItems.map((item) => ({
+  //               id: item.id,
+  //               title: item.title,
+  //               url: item.url,
+  //             })),
+  //           }),
+  //         },
+  //       ],
+  //     };
+  //   },
+  // );
 
   server.registerTool(
     "search_items",

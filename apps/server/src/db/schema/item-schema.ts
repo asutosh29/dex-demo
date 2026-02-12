@@ -28,10 +28,7 @@ export const itemsTable = pgTable(
     tags: text("tags").array().default([]).notNull(),
     favicon: text("favicon"),
     image: text("image"),
-    searchVector: tsvector("search_vector").generatedAlwaysAs(
-      sql`setweight(to_tsvector('english', coalesce(title, '')), 'A') ||
-          setweight(to_tsvector('english', coalesce(tldr, '')), 'B')`,
-    ),
+    searchVector: tsvector("search_vector"), // normal tsvector here, had to directly edit the migration file for adding a trigger to account for tags
     creatorId: text("creator_id").references(() => user.id, {
       onDelete: "cascade",
     }),
