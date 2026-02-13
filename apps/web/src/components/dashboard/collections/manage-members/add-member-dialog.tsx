@@ -1,65 +1,54 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@repo/ui/components/ui/dialog";
 import { Input } from "@repo/ui/components/ui/input";
-import { Button } from "@repo/ui/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@repo/ui/components/ui/dropdown-menu";
 import { Label } from "@repo/ui/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/components/ui/select";
 import { useState } from "react";
+import { Search, Loader2, UserSearch } from "@repo/ui/icons";
 import { trpc } from "~/lib/trpc";
-import { useDebounce } from "@repo/ui/hooks/use-debounce";
-import { Loader2, ChevronDown } from "@repo/ui/icons";
-import { toast } from "@repo/ui/components/ui/sonner";
 import { UserSearchResult } from "./user-search-result";
+import { useMemberManagement } from "./member-management-context";
+import type { Role } from "@repo/server/rbac/helpers";
+import { useDebounce } from "@repo/ui/hooks/use-debounce";
+import { ScrollArea } from "@repo/ui/components/ui/scroll-area";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  collectionId: string;
 }
 
-export function AddMemberDialog({ open, onOpenChange, collectionId }: Props) {
+export function AddMemberDialog({ open, onOpenChange }: Props) {
+  const { meta, actions, state } = useMemberManagement();
   const [query, setQuery] = useState("");
-  const [selectedRole, setSelectedRole] = useState<"member" | "admin">(
-    "member",
-  );
+  const [role, setRole] = useState<Role>("member");
+
   const debouncedQuery = useDebounce(query, 300);
 
-  const { data: users, isLoading } = trpc.users.search.useQuery(
+  const { data: users, isLoading: isSearching } = trpc.users.search.useQuery(
     { query: debouncedQuery },
     { enabled: debouncedQuery.length > 0 },
   );
 
-  const utils = trpc.useUtils();
-
-  const inviteMutation = trpc.invitations.create.useMutation({
+  const addMemberMutation = trpc.collectionAccess.addMember.useMutation({
     onSuccess: () => {
-      utils.collectionAccess.getMembers.invalidate({ collectionId });
-      utils.collections.getUserCollections.invalidate();
-      toast.success("Invitation sent successfully");
+      actions.invalidateMembers();
       setQuery("");
       onOpenChange(false);
     },
-    onError: (error) => {
-      toast.error(error.message || "Failed to send invitation");
-    },
   });
 
-  const { data: existingMembers } = trpc.collectionAccess.getMembers.useQuery({
-    collectionId,
-  });
-
-  const existingMemberIds = new Set(
-    existingMembers?.map((m) => m.userId) || [],
-  );
+  const existingMemberIds = new Set(state.members?.map((m) => m.userId) || []);
 
   const filteredUsers = users?.filter(
     (user) => !existingMemberIds.has(user.id),
@@ -67,76 +56,83 @@ export function AddMemberDialog({ open, onOpenChange, collectionId }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Invite Member</DialogTitle>
+          <DialogDescription>
+            Search for users to invite to this collection
+          </DialogDescription>
         </DialogHeader>
+
         <div className="space-y-4">
-          {/* Search input */}
-          <div className="space-y-2">
-            <Label htmlFor="user-search">Search User</Label>
-            <Input
-              id="user-search"
-              placeholder="Search by name or email..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              autoFocus
-            />
+          {/* Search Input and Role Selection */}
+          <div className="flex gap-2">
+            <div className="flex-1 space-y-2">
+              <Label htmlFor="search">Search by name/email</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="search"
+                  placeholder="Start typing to search..."
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            <div className="w-32 space-y-2">
+              <Label htmlFor="role">Invite as Role</Label>
+              <Select value={role} onValueChange={(v) => setRole(v as Role)}>
+                <SelectTrigger className="w-full" id="role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="w-full">
+                  <SelectItem value="member">Member</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Role selector */}
-          <div className="space-y-2">
-            <Label htmlFor="role-select">Role</Label>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  id="role-select"
-                  variant="outline"
-                  className="w-full justify-between capitalize"
-                >
-                  {selectedRole}
-                  <ChevronDown className="ml-2 h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-full">
-                <DropdownMenuItem onClick={() => setSelectedRole("member")}>
-                  Member
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedRole("admin")}>
-                  Admin
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          {/* User results */}
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {isLoading && debouncedQuery && (
+          {/* Search Results */}
+          <div className="space-y-2 h-64">
+            {query && filteredUsers && filteredUsers.length > 0 && (
+              <ScrollArea className="h-full rounded-md">
+                {filteredUsers.map((user) => (
+                  <UserSearchResult
+                    key={user.id}
+                    user={user}
+                    onAdd={() =>
+                      addMemberMutation.mutate({
+                        collectionId: meta.collectionId,
+                        userId: user.id,
+                        role,
+                      })
+                    }
+                    isLoading={addMemberMutation.isPending}
+                  />
+                ))}
+              </ScrollArea>
+            )}
+            {isSearching && query && (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="size-6 animate-spin text-muted-foreground" />
               </div>
             )}
 
-            {!isLoading && debouncedQuery && filteredUsers?.length === 0 && (
-              <p className="text-center text-sm text-muted-foreground py-8">
+            {!isSearching && query && users?.length === 0 && (
+              <div className="h-full flex items-center justify-center text-center text-sm text-muted-foreground">
                 No users found
-              </p>
+              </div>
             )}
 
-            {filteredUsers?.map((user) => (
-              <UserSearchResult
-                key={user.id}
-                user={user}
-                onAdd={() =>
-                  inviteMutation.mutate({
-                    collectionId,
-                    userId: user.id,
-                    role: selectedRole,
-                  })
-                }
-                isLoading={inviteMutation.isPending}
-              />
-            ))}
+            {!isSearching && !query && (
+              <div className="h-full flex flex-col items-center justify-center text-center text-sm text-muted-foreground">
+                <UserSearch className="size-12 text-muted-foreground mb-4" />
+                Start typing to search for users
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>

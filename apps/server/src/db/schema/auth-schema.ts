@@ -6,14 +6,9 @@ import {
   boolean,
   integer,
   index,
-  pgEnum,
 } from "drizzle-orm/pg-core";
 import { userStatusEnum } from "./helpers/enums-schema";
-
-export const apiKeyModeEnum = pgEnum("api_key_mode", [
-  "full_access",
-  "collection_specific",
-]);
+import { apiKeyModeEnum } from "./helpers/enums-schema";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),

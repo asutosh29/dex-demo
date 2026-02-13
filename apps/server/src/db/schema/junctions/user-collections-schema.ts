@@ -1,4 +1,4 @@
-import { pgTable, text, pgEnum, primaryKey, index } from "drizzle-orm/pg-core";
+import { pgTable, text, primaryKey, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { collectionsTable } from "../collection-schema";
 import { user } from "../auth-schema";

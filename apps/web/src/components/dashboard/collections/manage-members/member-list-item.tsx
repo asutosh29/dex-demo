@@ -4,36 +4,28 @@ import {
   AvatarImage,
 } from "@repo/ui/components/ui/avatar";
 import { Badge } from "@repo/ui/components/ui/badge";
-import { authClient } from "~/lib/auth-client";
 import { RoleDropdown } from "./role-dropdown";
+import { canEditMember } from "@repo/server/rbac/helpers";
+import type { RouterOutputs } from "~/lib/trpc";
+import { useMemberManagement } from "./member-management-context";
+
+type Member = RouterOutputs["collectionAccess"]["getMembers"][number];
 
 interface MemberListItemProps {
-  member: {
-    userId: string;
-    user: { name: string; email: string; image?: string | null };
-    role: "owner" | "admin" | "member";
-  };
-  currentUserRole: "owner" | "admin" | "member";
-  collectionId: string;
+  member: Member;
 }
 
-export function MemberListItem({
-  member,
-  currentUserRole,
-  collectionId,
-}: MemberListItemProps) {
-  const { data: session } = authClient.useSession();
-  const isSelf = member.userId === session?.user?.id;
+export function MemberListItem({ member }: MemberListItemProps) {
+  const { state } = useMemberManagement();
+  const isSelf = member.userId === state.currentUserId;
 
-  const isCurrentUserOwner = currentUserRole === "owner";
-  const isCurrentUserAdmin = currentUserRole === "admin";
+  // Guard against null user (shouldn't happen in practice)
+  if (!member.user) {
+    return null;
+  }
 
-  // Determine if role is editable
-  const canEdit =
-    (isCurrentUserOwner && member.role !== "owner") || // Owner can edit anyone except other owners
-    (isCurrentUserOwner && isSelf && member.role === "owner") || // Owner can transfer ownership (self)
-    (isCurrentUserAdmin && member.role === "member") || // Admin can edit members
-    (isCurrentUserAdmin && isSelf && member.role === "admin"); // Admin can step down
+  // Determine if role is editable using centralized RBAC logic
+  const canEdit = canEditMember(state.currentUserRole, member.role, isSelf);
 
   return (
     <div className="flex items-center justify-between p-3 rounded-lg border">
@@ -54,12 +46,7 @@ export function MemberListItem({
       </div>
 
       {canEdit ? (
-        <RoleDropdown
-          member={member}
-          currentUserRole={currentUserRole}
-          collectionId={collectionId}
-          isSelf={isSelf}
-        />
+        <RoleDropdown member={member} isSelf={isSelf} />
       ) : (
         <Badge variant="secondary" className="capitalize">
           {member.role}

@@ -5,6 +5,10 @@
     "./trpc": {
       "types": "./dist/src/trpc/index.d.ts",
       "default": "./src/trpc/index.ts"
+    },
+    "./rbac/helpers": {
+      "types": "./dist/src/services/rbac/helpers.d.ts",
+      "default": "./src/services/rbac/helpers.ts"
     }
   },
   "scripts": {
@@ -15,7 +19,9 @@
     "trpc-typegen": "tsc -p tsconfig.json --emitDeclarationOnly --declaration --outDir ./dist",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "check-types": "pnpm trpc-typegen && tsc --noEmit",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@ai-sdk/groq": "^2.0.0",
@@ -38,11 +44,15 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/pg": "^8.16.0",
     "drizzle-kit": "^0.31.8",
+    "eslint": "^9.39.2",
+    "globals": "^16.5.0",
     "tsconfig-paths": "^4.2.0",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.54.0"
   }
 }

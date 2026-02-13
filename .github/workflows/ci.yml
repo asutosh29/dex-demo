@@ -12,7 +12,7 @@ env:
 
 jobs:
   build-and-test:
-    name: Build All Apps
+    name: Build, Lint, Type Check & Test
     runs-on: ubuntu-latest
 
     steps:
@@ -46,8 +46,8 @@ jobs:
           VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://apidex.sdslabs.co/' }}
         run: pnpm build
 
-      - name: Run type check
-        run: pnpm typecheck || echo "Type check not configured"
+      - name: Lint
+        run: pnpm lint
 
       - name: Run tests
-        run: pnpm test || echo "Tests not configured"
+        run: pnpm test

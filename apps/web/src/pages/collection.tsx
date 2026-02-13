@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { CollectionGrid } from "~/components/dashboard/collections/collection-grid";
+import { Collection as CollectionView } from "~/components/dashboard/collections";
 
 export default function Collection() {
   const { collectionId } = useParams();
@@ -8,5 +8,5 @@ export default function Collection() {
     return <div className="text-muted-foreground">No collection selected.</div>;
   }
 
-  return <CollectionGrid collectionId={collectionId} />;
+  return <CollectionView collectionId={collectionId} />;
 }

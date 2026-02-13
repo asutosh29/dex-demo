@@ -9,9 +9,14 @@ import {
   EmptyDescription,
 } from "@repo/ui/components/ui/empty";
 import { trpc } from "~/lib/trpc";
-import { useState } from "react";
-import { CreateApiKeyDialog } from "~/components/dashboard/api-keys/create-api-key-dialog";
+import { useState, lazy, Suspense } from "react";
 import { ApiKeysDataTable } from "~/components/dashboard/api-keys/api-keys-data-table";
+
+const CreateApiKeyDialog = lazy(() =>
+  import("~/components/dashboard/api-keys/create-api-key-dialog").then((m) => ({
+    default: m.CreateApiKeyDialog,
+  })),
+);
 import { ApiKeyModesPopover } from "~/components/dashboard/api-keys/api-key-modes-popover";
 
 export default function ApiKeys() {
@@ -62,10 +67,12 @@ export default function ApiKeys() {
       )}
 
       {/* Create Dialog */}
-      <CreateApiKeyDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-      />
+      <Suspense fallback={null}>
+        <CreateApiKeyDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+        />
+      </Suspense>
     </div>
   );
 }

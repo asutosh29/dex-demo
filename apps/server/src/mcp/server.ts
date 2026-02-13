@@ -5,7 +5,6 @@ import { Hono } from "hono";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { mcpAuthMiddleware, type McpContext } from "./middleware";
 import { itemService } from "~/services/item.service";
-import { Action, assertCan } from "~/services/rbac";
 import { collectionService } from "~/services/collection.service";
 
 export const createMcpServer = () => {

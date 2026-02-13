@@ -19,9 +19,9 @@ import {
 } from "@repo/ui/components/ui/tooltip";
 import { Info, Search } from "@repo/ui/icons";
 import { trpc } from "~/lib/trpc";
+import { useUserCollections } from "~/lib/hooks/use-user-collections";
 import { toast } from "@repo/ui/components/ui/sonner";
-
-type Role = "owner" | "admin" | "member";
+import { type Role, canManageApiKeyAccess } from "@repo/server/rbac/helpers";
 
 interface CollectionAccessManagerProps {
   apiKeyId: string;
@@ -38,8 +38,7 @@ export function CollectionAccessManager({
   open,
   onOpenChange,
 }: CollectionAccessManagerProps) {
-  const { data: allCollections, isLoading } =
-    trpc.collections.getUserCollections.useQuery();
+  const { data: allCollections, isLoading } = useUserCollections();
   const utils = trpc.useUtils();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -67,9 +66,6 @@ export function CollectionAccessManager({
 
   const grantMutation = trpc.apiKeys.grantCollectionAccess.useMutation();
   const revokeMutation = trpc.apiKeys.revokeCollectionAccess.useMutation();
-
-  const canManageApiKeyAccess = (role: Role) =>
-    role === "admin" || role === "owner";
 
   const filteredCollections = useMemo(() => {
     if (!allCollections) return [];
@@ -138,7 +134,7 @@ export function CollectionAccessManager({
         <div className="space-y-4 py-4">
           {/* Info Box */}
           <div className="flex items-start gap-3 p-3 rounded-lg border bg-muted/50">
-            <Info className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <Info className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
             <div className="space-y-1">
               <p className="text-sm font-medium">
                 Granted collections receive these permissions:

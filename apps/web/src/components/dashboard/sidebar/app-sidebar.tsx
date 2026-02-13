@@ -1,4 +1,4 @@
-import * as React from "react";
+import { memo, useEffect, useMemo } from "react";
 
 import { useDroppable } from "@dnd-kit/core";
 import {
@@ -20,26 +20,32 @@ import { cn } from "@repo/ui/lib/utils";
 import { Link, useLocation } from "react-router-dom";
 import { authClient } from "~/lib/auth-client";
 import { trpc, type RouterOutputs } from "~/lib/trpc";
+import { useUserCollections } from "~/lib/hooks/use-user-collections";
 import { AddCollectionDialogTrigger } from "./add-collection-dialog";
 import { NavUser } from "./nav-user";
-import { MemberAvatarGroup } from "../collections/manage-members";
+import { MemberAvatarGroup } from "../collections/manage-members/manage-members-dialog";
 
 type UserCollection =
   RouterOutputs["collections"]["getUserCollections"][number];
 
-function CollectionMenuItem({
+const CollectionMenuItem = memo(function CollectionMenuItem({
   collection,
   isActive,
 }: {
   collection: UserCollection;
   isActive: boolean;
 }) {
+  const droppableData = useMemo(
+    () => ({
+      type: "collection" as const,
+      collection,
+    }),
+    [collection],
+  );
+
   const { setNodeRef, isOver } = useDroppable({
     id: collection.id!,
-    data: {
-      type: "collection",
-      collection,
-    },
+    data: droppableData,
   });
 
   const { data: members, isLoading } =
@@ -89,23 +95,34 @@ function CollectionMenuItem({
       </SidebarMenuButton>
     </SidebarMenuItem>
   );
-}
+});
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session } = authClient.useSession();
-  const { data: collections, isLoading } =
-    trpc.collections.getUserCollections.useQuery();
+  const { data: collections, isLoading } = useUserCollections();
   const { pathname } = useLocation();
 
-  const privateCollections = React.useMemo(
-    () => collections?.filter((c) => !c.isShared) ?? [],
+  const privateCollections = useMemo(
+    () => collections?.filter((c: UserCollection) => !c.isShared) ?? [],
     [collections],
   );
 
-  const sharedCollections = React.useMemo(
-    () => collections?.filter((c) => c.isShared) ?? [],
+  const sharedCollections = useMemo(
+    () => collections?.filter((c: UserCollection) => c.isShared) ?? [],
     [collections],
   );
+
+  // Prefetch members for all shared collections to avoid N+1 queries
+  const utils = trpc.useUtils();
+  useEffect(() => {
+    if (sharedCollections.length > 0) {
+      sharedCollections.forEach((collection: UserCollection) => {
+        utils.collectionAccess.getMembers.prefetch({
+          collectionId: collection.id,
+        });
+      });
+    }
+  }, [sharedCollections, utils]);
 
   return (
     <Sidebar {...props}>
@@ -138,7 +155,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ) : (
-                privateCollections.map((collection) => (
+                privateCollections.map((collection: UserCollection) => (
                   <CollectionMenuItem
                     key={collection.id}
                     collection={collection}
@@ -155,7 +172,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarGroupLabel>Shared</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {sharedCollections.map((collection) => (
+                {sharedCollections.map((collection: UserCollection) => (
                   <CollectionMenuItem
                     key={collection.id}
                     collection={collection}

@@ -5,7 +5,7 @@ import {
   itemsTable,
   userCollectionsTable,
 } from "~/db/schema";
-import { eq, and, sql, desc, getTableColumns, inArray } from "drizzle-orm";
+import { eq, and, sql, desc, getTableColumns } from "drizzle-orm";
 import { extractOpenGraphData, getOembedData } from "./utils/ogp";
 import { parseHtmlContent } from "./utils/html-parser";
 import { WebpageTaggerAgent, WebpageTaggerAgentWithTitle } from "./agent/tag";

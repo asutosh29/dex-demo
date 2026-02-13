@@ -12,12 +12,7 @@ import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { useState, useEffect } from "react";
 import { trpc } from "~/lib/trpc";
 import { toast } from "@repo/ui/components/ui/sonner";
-import {
-  ArrowUpFromDotIcon,
-  ArrowUpLeft,
-  CopyIcon,
-  Globe,
-} from "@repo/ui/icons";
+import { ArrowUpLeft, CopyIcon, Globe } from "@repo/ui/icons";
 import { cn } from "@repo/ui/lib/utils";
 
 interface DraggedItem {

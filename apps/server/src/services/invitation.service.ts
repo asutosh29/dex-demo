@@ -69,11 +69,11 @@ export class InvitationService {
       });
     }
 
-    const collection = await db.query.collectionsTable.findFirst({
+    const _collection = await db.query.collectionsTable.findFirst({
       where: eq(collectionsTable.id, collectionId),
     });
 
-    const inviter = await db.query.user.findFirst({
+    const _inviter = await db.query.user.findFirst({
       where: eq(user.id, inviterId),
     });
 

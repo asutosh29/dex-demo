@@ -8,6 +8,11 @@ export const collectionAccessRoleEnum = pgEnum("collection_access_role", [
   "member",
 ]);
 
+export const apiKeyModeEnum = pgEnum("api_key_mode", [
+  "full_access",
+  "collection_specific",
+]);
+
 export const userStatusEnum = pgEnum("UserStatus", [
   "waitlist",
   "active",

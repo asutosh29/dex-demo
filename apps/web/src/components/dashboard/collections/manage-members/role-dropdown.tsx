@@ -6,17 +6,18 @@ import {
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
 import { ChevronDown } from "@repo/ui/icons";
-import { trpc } from "~/lib/trpc";
-import { toast } from "@repo/ui/components/ui/sonner";
+import { type RouterOutputs } from "~/lib/trpc";
+import {
+  getAvailableRoleActions,
+  type RoleAction,
+} from "@repo/server/rbac/helpers";
+import { useMemberManagement } from "./member-management-context";
+import { useMemberMutations } from "./use-member-mutations";
+
+type Member = RouterOutputs["collectionAccess"]["getMembers"][number];
 
 interface Props {
-  member: {
-    userId: string;
-    user: { name: string; email: string };
-    role: "owner" | "admin" | "member";
-  };
-  currentUserRole: "owner" | "admin" | "member";
-  collectionId: string;
+  member: Member;
   isSelf: boolean;
 }
 
@@ -26,159 +27,33 @@ interface MenuItem {
   variant?: "default" | "destructive";
 }
 
-export function RoleDropdown({
-  member,
-  currentUserRole,
-  collectionId,
-  isSelf,
-}: Props) {
-  const utils = trpc.useUtils();
+export function RoleDropdown({ member, isSelf }: Props) {
+  const { state } = useMemberManagement();
+  const mutations = useMemberMutations();
 
-  const promoteMutation =
-    trpc.collectionAccess.promoteMemberToAdmin.useMutation({
-      onSuccess: () => {
-        utils.collectionAccess.getMembers.invalidate({ collectionId });
-        toast.success(`Promoted ${member.user.name} to admin`);
-      },
-      onError: (error) => {
-        toast.error(error.message);
-      },
-    });
+  // Get available role actions from centralized RBAC
+  const roleActions = getAvailableRoleActions(
+    state.currentUserRole,
+    member.role,
+    isSelf,
+  );
 
-  const demoteMutation = trpc.collectionAccess.demoteAdminToMember.useMutation({
-    onSuccess: () => {
-      utils.collectionAccess.getMembers.invalidate({ collectionId });
-      toast.success(`Demoted ${member.user.name} to member`);
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
+  // Map RoleAction types to mutation handlers
+  const actionHandlers: Record<RoleAction["type"], () => void> = {
+    promote_admin: () => mutations.promote(member.userId),
+    promote_owner: () => mutations.transferOwnership(member.userId, member),
+    demote_member: () => mutations.demote(member.userId),
+    step_down: () => mutations.demote(member.userId),
+    remove: () => mutations.remove(member.userId),
+    leave: () => mutations.leave(),
+  };
 
-  const removeMutation = trpc.collectionAccess.removeMember.useMutation({
-    onSuccess: () => {
-      utils.collectionAccess.getMembers.invalidate({ collectionId });
-      toast.success(`Removed ${member.user.name} from collection`);
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  const transferMutation = trpc.collectionAccess.transferOwnership.useMutation({
-    onSuccess: () => {
-      utils.collectionAccess.getMembers.invalidate({ collectionId });
-      utils.collections.get.invalidate({ id: collectionId });
-      toast.success(`Transferred ownership to ${member.user.name}`);
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  const leaveMutation = trpc.collectionAccess.leaveCollection.useMutation({
-    onSuccess: () => {
-      utils.collections.getUserCollections.invalidate();
-      toast.success("Left collection");
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  function buildMenuItems(): MenuItem[] {
-    const items: MenuItem[] = [];
-
-    // Admin viewing member
-    if (currentUserRole === "admin" && member.role === "member" && !isSelf) {
-      items.push({
-        label: "Promote to Admin",
-        onClick: () =>
-          promoteMutation.mutate({ collectionId, userId: member.userId }),
-      });
-      items.push({
-        label: "Remove from Collection",
-        onClick: () =>
-          removeMutation.mutate({ collectionId, userId: member.userId }),
-        variant: "destructive",
-      });
-    }
-
-    // Admin stepping down (self)
-    if (currentUserRole === "admin" && isSelf && member.role === "admin") {
-      items.push({
-        label: "Step Down to Member",
-        onClick: () =>
-          demoteMutation.mutate({ collectionId, userId: member.userId }),
-      });
-      items.push({
-        label: "Leave Collection",
-        onClick: () => leaveMutation.mutate({ collectionId }),
-        variant: "destructive",
-      });
-    }
-
-    // Owner viewing member
-    if (currentUserRole === "owner" && member.role === "member") {
-      items.push({
-        label: "Promote to Admin",
-        onClick: () =>
-          promoteMutation.mutate({ collectionId, userId: member.userId }),
-      });
-      items.push({
-        label: "Remove from Collection",
-        onClick: () =>
-          removeMutation.mutate({ collectionId, userId: member.userId }),
-        variant: "destructive",
-      });
-    }
-
-    // Owner viewing admin
-    if (currentUserRole === "owner" && member.role === "admin" && !isSelf) {
-      items.push({
-        label: "Promote to Owner",
-        onClick: () => {
-          if (
-            confirm(
-              `Transfer ownership to ${member.user.name}? You will become an admin.`,
-            )
-          ) {
-            transferMutation.mutate({
-              collectionId,
-              newOwnerId: member.userId,
-            });
-          }
-        },
-      });
-      items.push({
-        label: "Demote to Member",
-        onClick: () =>
-          demoteMutation.mutate({ collectionId, userId: member.userId }),
-      });
-    }
-
-    // Owner viewing self (can leave or transfer)
-    if (currentUserRole === "owner" && isSelf && member.role === "owner") {
-      items.push({
-        label: "Leave Collection",
-        onClick: () => leaveMutation.mutate({ collectionId }),
-        variant: "destructive",
-      });
-    }
-
-    // Member viewing self (can leave)
-    if (currentUserRole === "member" && isSelf) {
-      items.push({
-        label: "Leave Collection",
-        onClick: () => leaveMutation.mutate({ collectionId }),
-        variant: "destructive",
-      });
-    }
-
-    return items;
-  }
-
-  const menuItems = buildMenuItems();
+  // Convert RoleActions to MenuItem format
+  const menuItems: MenuItem[] = roleActions.map((ra) => ({
+    label: ra.label,
+    onClick: actionHandlers[ra.type],
+    variant: ra.destructive ? "destructive" : "default",
+  }));
 
   if (menuItems.length === 0) {
     return null;

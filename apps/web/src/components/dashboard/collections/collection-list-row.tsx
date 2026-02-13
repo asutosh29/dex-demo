@@ -1,8 +1,8 @@
+import { lazy, Suspense, memo } from "react";
 import { Globe, MoreHorizontal, Trash2 } from "@repo/ui/icons";
-import { useState } from "react";
-import PreviewDialog from "./collection-card/preview-dialog";
-import type { CollectionItem } from "./collection-card";
 import { Button } from "@repo/ui/components/ui/button";
+
+const PreviewDialog = lazy(() => import("./collection-card/preview-dialog"));
 import { Badge } from "@repo/ui/components/ui/badge";
 import {
   DropdownMenu,
@@ -10,11 +10,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
-import { trpc } from "~/lib/trpc";
-import { toast } from "@repo/ui/components/ui/sonner";
 import { cn } from "@repo/ui/lib/utils";
-import { useDraggable } from "@dnd-kit/core";
 import { AnimatedGroup } from "@repo/ui/components/ui/animated-group";
+import { useCollectionItem } from "./use-collection-item";
+import type { CollectionItem } from "./use-collection-item";
 
 interface CollectionListRowProps {
   item: CollectionItem;
@@ -22,43 +21,16 @@ interface CollectionListRowProps {
   className?: string;
 }
 
-export function CollectionListRow({
+export const CollectionListRow = memo(function CollectionListRow({
   item,
   collectionId,
   className,
 }: CollectionListRowProps) {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const { attributes, listeners, setNodeRef, isDragging, active } =
-    useDraggable({
-      id: item.id,
-      data: {
-        type: "item",
-        item,
-        collectionId,
-      },
-      disabled: !collectionId,
-    });
-
-  const utils = trpc.useUtils();
-
-  const deleteMutation = trpc.collections.removeItem.useMutation({
-    onSuccess: () => {
-      utils.collections.get.invalidate({ id: collectionId! });
-      toast.success("Item deleted successfully");
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to delete item");
-    },
-  });
-
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    deleteMutation.mutate({
-      collectionId: collectionId!,
-      itemId: item.id,
-    });
-  };
+  const {
+    draggable: { attributes, listeners, setNodeRef, isDragging, active },
+    dialog: { open: dialogOpen, onOpenChange: setDialogOpen, handleOpen },
+    actions: { handleDelete },
+  } = useCollectionItem({ item, collectionId });
 
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
@@ -79,11 +51,7 @@ export function CollectionListRow({
         ref={collectionId ? setNodeRef : undefined}
         {...(collectionId ? attributes : {})}
         {...(collectionId ? listeners : {})}
-        onClick={() => {
-          if (!isDragging) {
-            setDialogOpen(true);
-          }
-        }}
+        onClick={handleOpen}
         className={cn(
           "group grid grid-cols-[1fr_auto_auto] gap-4 items-center py-3 px-4 rounded-md hover:bg-muted/50 transition-all duration-200 ease-in-out",
           collectionId && "active:cursor-grabbing",
@@ -177,11 +145,13 @@ export function CollectionListRow({
         </div>
       </div>
 
-      <PreviewDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        item={item}
-      />
+      <Suspense fallback={null}>
+        <PreviewDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          item={item}
+        />
+      </Suspense>
     </>
   );
-}
+});

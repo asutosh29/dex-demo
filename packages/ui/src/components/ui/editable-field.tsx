@@ -22,15 +22,15 @@ type EditableFieldVariant<T extends "text" | "multiline" | "tags"> = {
   ) => Promise<void> | void;
 };
 
+type ActionsVariant = "inline" | "below" | "none";
+
 type BaseEditableFieldProps = {
   label?: string;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
-  /** Position action buttons inline with input (default: false, buttons below) */
-  inlineActions?: boolean;
-  /** Show save/cancel action buttons (default: true) */
-  showActions?: boolean;
+  /** Action buttons layout: "inline" (next to input), "below" (underneath), "none" (hidden). Default: "below" */
+  actions?: ActionsVariant;
   /** Additional classes for the input element */
   inputClassName?: string;
   /** Element to render before the input (e.g., icon) */
@@ -55,8 +55,7 @@ function EditableField({
   onSave,
   onEditStart,
   disabled = false,
-  inlineActions = false,
-  showActions = true,
+  actions = "below",
   inputClassName,
   inputPrefix,
   inputSuffix,
@@ -181,40 +180,41 @@ function EditableField({
   const hasDecorations = inputPrefix || inputSuffix;
 
   // Action buttons component
-  const ActionButtons = (
-    <div
-      className={cn(
-        "flex gap-1",
-        !inlineActions && "mt-2",
-        inlineActions && "shrink-0",
-      )}
-      role="group"
-      aria-label="Edit actions"
-    >
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={handleSave}
-        disabled={isSaving}
-        aria-label="Save changes"
-      >
-        {isSaving ? (
-          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-        ) : (
-          <Check className="size-4" aria-hidden="true" />
+  const ActionButtons =
+    actions !== "none" ? (
+      <div
+        className={cn(
+          "flex gap-1",
+          actions === "below" && "mt-2",
+          actions === "inline" && "shrink-0",
         )}
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={handleCancel}
-        disabled={isSaving}
-        aria-label="Cancel editing"
+        role="group"
+        aria-label="Edit actions"
       >
-        <X className="size-4" aria-hidden="true" />
-      </Button>
-    </div>
-  );
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={handleSave}
+          disabled={isSaving}
+          aria-label="Save changes"
+        >
+          {isSaving ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Check className="size-4" aria-hidden="true" />
+          )}
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={handleCancel}
+          disabled={isSaving}
+          aria-label="Cancel editing"
+        >
+          <X className="size-4" aria-hidden="true" />
+        </Button>
+      </div>
+    ) : null;
 
   // Render display mode
   if (!isEditing) {
@@ -358,15 +358,15 @@ function EditableField({
         </label>
       )}
 
-      {inlineActions ? (
+      {actions === "inline" ? (
         <div className="flex items-center gap-1">
           <div className="rounded-md p-1 flex-1">{DecoratedInput}</div>
-          {showActions && ActionButtons}
+          {ActionButtons}
         </div>
       ) : (
         <div className="p-1.5">
           {DecoratedInput}
-          {showActions && ActionButtons}
+          {ActionButtons}
         </div>
       )}
 

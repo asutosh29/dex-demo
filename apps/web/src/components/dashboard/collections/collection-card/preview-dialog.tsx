@@ -117,7 +117,7 @@ export default function PreviewDialog({
               placeholder="Enter title..."
               disabled={!canEdit}
               className="w-1/2"
-              showActions={false}
+              actions="none"
               inputClassName="text-lg"
               onSave={async (value) => {
                 await updateMutation.mutateAsync({

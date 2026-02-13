@@ -6,7 +6,7 @@ import {
   collectionsTable,
   userCollectionsTable,
 } from "~/db/schema";
-import { ApiKeyActor, createApiKeyActor, type Actor } from "~/services/rbac";
+import { ApiKeyActor, createApiKeyActor } from "~/services/rbac";
 import { auth } from "./auth";
 
 /**

@@ -1,14 +1,13 @@
+import { lazy, Suspense, memo } from "react";
 import {
   Globe,
   LucideSquareArrowOutUpRight,
   MoreHorizontal,
   Trash2,
 } from "@repo/ui/icons";
-import { useState } from "react";
-import PreviewDialog from "./preview-dialog";
-import type { RouterOutputs } from "~/lib/trpc";
-import { useDraggable } from "@dnd-kit/core";
 import { cn } from "@repo/ui/lib/utils";
+
+const PreviewDialog = lazy(() => import("./preview-dialog"));
 import { Button } from "@repo/ui/components/ui/button";
 import {
   DropdownMenu,
@@ -16,13 +15,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
-import { trpc } from "~/lib/trpc";
-import { toast } from "@repo/ui/components/ui/sonner";
 import { AnimatedGroup } from "@repo/ui/components/ui/animated-group";
 import { getDomainFromUrl } from "~/lib/utils";
+import { useCollectionItem } from "../use-collection-item";
+import type { CollectionItem } from "../use-collection-item";
 
-export type CollectionItem =
-  RouterOutputs["collections"]["get"]["items"][number];
+export type { CollectionItem };
 
 interface CollectionCardProps {
   item: CollectionItem;
@@ -30,43 +28,16 @@ interface CollectionCardProps {
   className?: string;
 }
 
-export function CollectionCard({
+export const CollectionCard = memo(function CollectionCard({
   item,
   collectionId,
   className,
 }: CollectionCardProps) {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const { attributes, listeners, setNodeRef, isDragging, active } =
-    useDraggable({
-      id: item.id,
-      data: {
-        type: "item",
-        item,
-        collectionId,
-      },
-      disabled: !collectionId,
-    });
-
-  const utils = trpc.useUtils();
-
-  const deleteMutation = trpc.collections.removeItem.useMutation({
-    onSuccess: () => {
-      utils.collections.get.invalidate({ id: collectionId! });
-      toast.success("Item deleted successfully");
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to delete item");
-    },
-  });
-
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    deleteMutation.mutate({
-      collectionId: collectionId!,
-      itemId: item.id,
-    });
-  };
+  const {
+    draggable: { attributes, listeners, setNodeRef, isDragging, active },
+    dialog: { open: dialogOpen, onOpenChange: setDialogOpen, handleOpen },
+    actions: { handleDelete },
+  } = useCollectionItem({ item, collectionId });
 
   return (
     <>
@@ -83,11 +54,7 @@ export function CollectionCard({
             "opacity-50 scale-95",
           className,
         )}
-        onClick={() => {
-          if (!isDragging) {
-            setDialogOpen(true);
-          }
-        }}
+        onClick={handleOpen}
       >
         <div className="relative w-full aspect-video rounded-md overflow-hidden">
           {collectionId && (
@@ -175,12 +142,14 @@ export function CollectionCard({
         </div>
       </div>
 
-      <PreviewDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        item={item}
-        collectionId={collectionId}
-      />
+      <Suspense fallback={null}>
+        <PreviewDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          item={item}
+          collectionId={collectionId}
+        />
+      </Suspense>
     </>
   );
-}
+});

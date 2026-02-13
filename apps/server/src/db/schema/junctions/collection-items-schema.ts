@@ -1,10 +1,4 @@
-import {
-  pgTable,
-  text,
-  primaryKey,
-  index,
-  uniqueIndex,
-} from "drizzle-orm/pg-core";
+import { pgTable, text, primaryKey, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { collectionsTable } from "../collection-schema";
 import { itemsTable } from "../item-schema";

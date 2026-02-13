@@ -7,7 +7,6 @@ interface OnboardingStepProps {
   title: string;
   description: string;
   children: ReactNode;
-  isComplete: boolean;
   showSuccess: boolean;
 }
 

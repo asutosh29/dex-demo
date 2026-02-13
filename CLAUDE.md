@@ -92,6 +92,10 @@ Exports: `components/*`, `hooks/*`, `lib/*`, `icons`, `globals.css`. Import as `
 
 The frontend imports the `AppRouter` type from `@repo/server/trpc` to get end-to-end type inference. The server exports types via `trpc-typegen` script (declaration-only emit to `dist/`).
 
+**Props must be inferred from router outputs.** In `apps/web`, never hardcode prop types that can be inferred from tRPC router outputs. Use `RouterOutput['router']['procedure']` (or indexed access on the query return type) to derive component props. This keeps the frontend in sync with backend changes automatically.
+
+**UI-side RBAC uses shared helpers.** When a component needs to check permissions or determine available role actions, import from `@repo/server/rbac/helpers` (`hasPermission`, `canManageMembers`, `canEditMember`, `getAvailableRoleActions`, etc.). Do not duplicate RBAC logic in frontend code.
+
 ## CI/CD
 
 - **Pre-commit hook:** Prettier via Husky + lint-staged

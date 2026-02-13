@@ -20,11 +20,12 @@ import { Label } from "@repo/ui/components/ui/label";
 import { toast } from "@repo/ui/components/ui/sonner";
 import { LogOut, MoreHorizontal, Trash2 } from "@repo/ui/icons";
 import { trpc } from "~/lib/trpc";
+import { canPurgeCollection, type Role } from "@repo/server/rbac/helpers";
 
 interface CollectionActionsDropdownProps {
   collectionId: string;
   currentTitle: string;
-  role?: string;
+  role?: Role;
   isShared?: boolean;
 }
 
@@ -107,7 +108,7 @@ export function CollectionActionsDropdown({
             <LogOut className="size-4" />
             Leave Collection
           </DropdownMenuItem>
-          {role === "owner" && !isShared && (
+          {role && canPurgeCollection(role) && !isShared && (
             <DropdownMenuItem
               onClick={() => setPurgeDialogOpen(true)}
               variant="destructive"

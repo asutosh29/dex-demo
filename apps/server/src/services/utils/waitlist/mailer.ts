@@ -90,7 +90,7 @@ export const waitlistEmailTemplate = (name: string, email: string) => `
 // TEMPLATE 2: WAITLIST APPROVED
 // ============================================
 
-export const approvedEmailTemplate = (name: string, email: string) => `
+export const approvedEmailTemplate = (name: string, _email: string) => `
 <!DOCTYPE html>
 <html lang="en">
 <head>

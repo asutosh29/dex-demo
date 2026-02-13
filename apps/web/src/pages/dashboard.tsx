@@ -2,9 +2,13 @@ import { authClient } from "~/lib/auth-client";
 import { trpc } from "~/lib/trpc";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { ArrowRight, Globe } from "@repo/ui/icons";
-import { useState } from "react";
-import PreviewDialog from "~/components/dashboard/collections/collection-card/preview-dialog";
+import { useState, lazy, Suspense } from "react";
 import type { RouterOutputs } from "~/lib/trpc";
+
+const PreviewDialog = lazy(
+  () =>
+    import("~/components/dashboard/collections/collection-card/preview-dialog"),
+);
 import { AnimatedGroup } from "@repo/ui/components/ui/animated-group";
 import { WelcomeState } from "~/components/dashboard/onboarding";
 import { useOnboardingStore } from "~/lib/stores/onboarding-store";
@@ -83,11 +87,13 @@ function RecentItemRow({ item }: { item: RecentItem }) {
         </div>
       </div>
 
-      <PreviewDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        item={item}
-      />
+      <Suspense fallback={null}>
+        <PreviewDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          item={item}
+        />
+      </Suspense>
     </>
   );
 }
@@ -103,8 +109,11 @@ export default function Dashboard() {
 
   const { data: counts } =
     trpc.collections.getCollectionsAndItemsCount.useQuery();
-  const totalCollections = counts?.reduce((acc) => acc + 1, 0);
-  const totalItems = counts?.reduce((acc, curr) => acc + curr.itemCount, 0);
+  const totalCollections = counts?.reduce((acc: number) => acc + 1, 0);
+  const totalItems = counts?.reduce(
+    (acc: number, curr: { itemCount: number }) => acc + curr.itemCount,
+    0,
+  );
   console.log({ counts });
 
   const { hasCompletedOnboarding } = useOnboardingStore();

@@ -122,7 +122,6 @@ export function WelcomeState() {
             step={1}
             title="Create your first collection"
             description="Collections help you organize items by topic or project."
-            isComplete={false}
             showSuccess={showStep1Success}
           >
             <CollectionCreatorInline onSuccess={handleCollectionCreated} />
@@ -134,7 +133,6 @@ export function WelcomeState() {
             step={2}
             title="Add your first item"
             description="Save a link to your new collection."
-            isComplete={false}
             showSuccess={showStep2Success}
           >
             <ItemCreatorInline
