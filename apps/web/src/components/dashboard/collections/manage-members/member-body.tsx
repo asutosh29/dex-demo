@@ -1,4 +1,4 @@
-import { ScrollArea } from "@repo/ui/components/ui/scroll-area";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Separator } from "@repo/ui/components/ui/separator";
 import { Loader2 } from "@repo/ui/icons";
 import { MemberListItem } from "./member-list-item";
@@ -38,8 +38,36 @@ export function MemberBody({
   onToggleUser,
   onToggleSelectAll,
 }: MemberBodyProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 1);
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+  }, [
+    isLoading,
+    hasQuery,
+    members,
+    filteredMembers,
+    nonMemberResults,
+    checkScroll,
+  ]);
+
   return (
-    <ScrollArea className="flex-1 px-4 py-4">
+    <div
+      ref={scrollRef}
+      onScroll={checkScroll}
+      className={`flex-1 min-h-0 px-4 py-4 overflow-y-auto no-scrollbar transition-[mask-image] duration-200 ${
+        canScrollDown
+          ? "mask-[linear-gradient(to_bottom,black_calc(100%-4rem),transparent)]"
+          : ""
+      }`}
+    >
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="size-8 animate-spin text-muted-foreground" />
@@ -58,7 +86,7 @@ export function MemberBody({
           onToggleSelectAll={onToggleSelectAll}
         />
       )}
-    </ScrollArea>
+    </div>
   );
 }
 
