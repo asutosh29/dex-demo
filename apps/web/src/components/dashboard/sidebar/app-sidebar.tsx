@@ -23,7 +23,7 @@ import { trpc, type RouterOutputs } from "~/lib/trpc";
 import { useUserCollections } from "~/lib/hooks/use-user-collections";
 import { AddCollectionDialogTrigger } from "./add-collection-dialog";
 import { NavUser } from "./nav-user";
-import { MemberAvatarGroup } from "../collections/manage-members/manage-members-dialog";
+import { MemberAvatarGroup } from "../collections/manage-members/member-avatar-group";
 
 type UserCollection =
   RouterOutputs["collections"]["getUserCollections"][number];

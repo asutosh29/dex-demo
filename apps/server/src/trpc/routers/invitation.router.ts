@@ -20,6 +20,29 @@ export const invitationRouter = router({
       );
     }),
 
+  bulkCreate: protectedProcedure
+    .input(
+      z.object({
+        collectionId: z.string(),
+        invitees: z
+          .array(
+            z.object({
+              userId: z.string(),
+              role: z.enum(["member", "admin"]),
+            }),
+          )
+          .min(1)
+          .max(20),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      return invitationService.bulkCreateInvitations(
+        ctx.user.id,
+        input.collectionId,
+        input.invitees,
+      );
+    }),
+
   getPending: protectedProcedure.query(async ({ ctx }) => {
     return invitationService.getPendingInvitations(ctx.user.id);
   }),

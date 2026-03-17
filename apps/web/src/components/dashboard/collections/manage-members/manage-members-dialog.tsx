@@ -1,81 +1,36 @@
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@repo/ui/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@repo/ui/components/ui/sheet";
 import { Button } from "@repo/ui/components/ui/button";
+import { AvatarGroup, AvatarGroupCount } from "@repo/ui/components/ui/avatar";
 import { ChevronRight, PlusIcon } from "@repo/ui/icons";
 import { useState } from "react";
-import { MemberList } from "./member-list";
-import { InviteMemberButton } from "./invite-member-button";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarGroup,
-  AvatarGroupCount,
-  AvatarImage,
-} from "@repo/ui/components/ui/avatar";
-import { Skeleton } from "@repo/ui/components/ui/skeleton";
 import { useMemberManagement } from "./member-management-context";
-import type { RouterOutputs } from "~/lib/trpc";
-
-type Member = RouterOutputs["collectionAccess"]["getMembers"][number];
-
-export const MemberAvatarGroup = ({
-  members,
-  isLoading,
-  showMemberCount = false,
-}: {
-  members: Member[];
-  isLoading?: boolean;
-  showMemberCount?: boolean;
-}) => {
-  // Show avatar group only if there are members
-  if (members.length === 0) return null;
-
-  if (isLoading) {
-    return (
-      <AvatarGroup>
-        {Array.from({ length: 3 }).map((_, index) => (
-          <Avatar key={index} size="sm">
-            <AvatarFallback>
-              <Skeleton className="size-4" />
-            </AvatarFallback>
-          </Avatar>
-        ))}
-      </AvatarGroup>
-    );
-  }
-
-  return (
-    <AvatarGroup>
-      {members.slice(0, 3).map((member) => (
-        <Avatar key={member.userId} size="sm">
-          <AvatarImage src={member.user?.image || undefined} />
-          <AvatarFallback>
-            {member.user?.name?.[0]?.toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-      ))}
-      {members.length > 3 && showMemberCount && (
-        <Avatar size="sm">
-          <AvatarFallback>+{members.length - 3}</AvatarFallback>
-        </Avatar>
-      )}
-    </AvatarGroup>
-  );
-};
+import { useInvite } from "./use-invite";
+import { MemberAvatarGroup } from "./member-avatar-group";
+import { MemberSearchInput } from "./member-search-input";
+import { MemberBody } from "./member-body";
+import { InviteFooter } from "./invite-footer";
 
 export function ManageMembersDialog() {
   const [open, setOpen] = useState(false);
   const { state, meta } = useMemberManagement();
+  const invite = useInvite();
+
+  function handleOpenChange(value: boolean) {
+    if (invite.isSending) return;
+    if (!value) invite.reset();
+    setOpen(value);
+  }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <SheetTrigger asChild>
         <Button variant="ghost" className="space-x-2 px-1">
           <AvatarGroup>
             <MemberAvatarGroup
@@ -87,19 +42,48 @@ export function ManageMembersDialog() {
             </AvatarGroupCount>
           </AvatarGroup>
         </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Members</DialogTitle>
-          <DialogDescription>
-            View and manage collection members
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <InviteMemberButton />
-          <MemberList />
-        </div>
-      </DialogContent>
-    </Dialog>
+      </SheetTrigger>
+      <SheetContent className="flex flex-col gap-0 p-0">
+        <SheetHeader className="border-b px-4 py-4">
+          <SheetTitle>Members</SheetTitle>
+          <SheetDescription>
+            Manage who has access to this collection
+          </SheetDescription>
+          {meta.canManage && (
+            <MemberSearchInput
+              value={invite.query}
+              onChange={invite.setQuery}
+            />
+          )}
+        </SheetHeader>
+
+        <MemberBody
+          isLoading={state.isLoading}
+          hasQuery={invite.query.length > 0}
+          debouncedQuery={invite.debouncedQuery}
+          members={state.members}
+          filteredMembers={invite.filteredMembers}
+          nonMemberResults={invite.nonMemberResults}
+          isSearching={invite.isSearching}
+          selectedIds={invite.selectedIds}
+          allNonMembersSelected={invite.allNonMembersSelected}
+          onToggleUser={invite.toggleUser}
+          onToggleSelectAll={invite.toggleSelectAll}
+        />
+
+        {invite.selectedUsers.length > 0 && (
+          <InviteFooter
+            selectedUsers={invite.selectedUsers}
+            role={invite.role}
+            onRoleChange={invite.setRole}
+            reviewOpen={invite.reviewOpen}
+            onReviewOpenChange={invite.setReviewOpen}
+            isSending={invite.isSending}
+            onRemoveUser={invite.removeUser}
+            onSendInvites={invite.sendInvites}
+          />
+        )}
+      </SheetContent>
+    </Sheet>
   );
 }

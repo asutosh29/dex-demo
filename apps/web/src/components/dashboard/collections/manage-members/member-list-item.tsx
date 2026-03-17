@@ -28,7 +28,7 @@ export function MemberListItem({ member }: MemberListItemProps) {
   const canEdit = canEditMember(state.currentUserRole, member.role, isSelf);
 
   return (
-    <div className="flex items-center justify-between p-3 rounded-lg border">
+    <div className="flex items-center justify-between p-3 rounded-lg">
       <div className="flex items-center gap-3">
         <Avatar className="h-10 w-10">
           <AvatarImage src={member.user.image || undefined} />

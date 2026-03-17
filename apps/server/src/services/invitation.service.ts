@@ -331,6 +331,38 @@ export class InvitationService {
     return { success: true };
   }
 
+  async bulkCreateInvitations(
+    inviterId: string,
+    collectionId: string,
+    invitees: { userId: string; role: "member" | "admin" }[],
+  ) {
+    const results = await Promise.allSettled(
+      invitees.map((inv) =>
+        this.createInvitation(inviterId, collectionId, inv.userId, inv.role),
+      ),
+    );
+
+    const succeeded = results
+      .filter(
+        (
+          r,
+        ): r is PromiseFulfilledResult<
+          Awaited<ReturnType<typeof this.createInvitation>>
+        > => r.status === "fulfilled",
+      )
+      .map((r) => r.value);
+
+    const failed = results
+      .map((r, i) =>
+        r.status === "rejected"
+          ? { userId: invitees[i].userId, error: (r.reason as Error).message }
+          : null,
+      )
+      .filter((r): r is { userId: string; error: string } => r !== null);
+
+    return { succeeded, failed };
+  }
+
   async getPendingInvitations(userId: string) {
     return db.query.invitationsTable.findMany({
       where: and(
