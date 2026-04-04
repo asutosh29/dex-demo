@@ -12,12 +12,14 @@ export default function Login() {
 
   const navigate = useNavigate();
 
-  if (session && !isPending) {
-    // if waitlist is enabled, only navigate if user is active
-    // TODO: This is a jugaad for now, shift to a flag from the backend rather than checking for prod
-    if (import.meta.env.PROD && session.user.status === "active")
-      navigate("/dashboard");
-  }
+  // TODO: shift to a flag from the backend rather than checking for prod
+  if (
+    session &&
+    !isPending &&
+    (import.meta.env.DEV || session.user.status === "active")
+  )
+    navigate("/dashboard");
+
   return (
     <main className="flex flex-col h-screen w-full items-center justify-center">
       <div className="absolute top-0 z-[-2] h-screen w-screen bg-background bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(255,255,255,0.15),rgba(255,255,255,0))]"></div>
@@ -31,7 +33,7 @@ export default function Login() {
           email={searchParams.get("email") || "user@example.com"}
         />
       ) : (
-        <HeroScreen />
+        <HeroScreen isPending={isPending} />
       )}
       <footer className="fixed bottom-2 p-2 text-muted-foreground brightness-50 text-center">
         © 2026 Dex. Building the future of personal knowledge.
@@ -40,7 +42,7 @@ export default function Login() {
   );
 }
 
-function HeroScreen() {
+function HeroScreen({ isPending }: { isPending: boolean }) {
   const handleGoogleSignIn = async () => {
     await authClient.signIn.social({
       provider: "google",
@@ -69,8 +71,11 @@ function HeroScreen() {
           onClick={handleGoogleSignIn}
           className="mt-8 font-medium text-base p-6"
           size={"lg"}
+          disabled={isPending}
         >
-          Sign in with Google
+          {isPending
+            ? "Checking for existing session..."
+            : "Sign in with Google"}
         </Button>
         <p className="text-sm font-medium text-muted-foreground brightness-50">
           Join the waitlist for early access
