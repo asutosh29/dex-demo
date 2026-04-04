@@ -3,10 +3,11 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "~/db/client";
 import * as schema from "~/db/schema";
 import { trustedOrigins } from "~/lib/constants";
-import { apiKey, createAuthMiddleware } from "better-auth/plugins";
+import { createAuthMiddleware } from "better-auth/api";
 import { addUserToGristWaitlist } from "~/services/utils/waitlist/grist";
 import { sendWaitlistConfirmationEmail } from "~/services/utils/waitlist/mailer";
 import { env } from "./env";
+import { apiKey } from "@better-auth/api-key";
 
 export const auth = betterAuth({
   baseURL: env.BACKEND_URL || "http://localhost:8787",

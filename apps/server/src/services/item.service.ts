@@ -10,6 +10,7 @@ import { extractOpenGraphData, getOembedData } from "./utils/ogp";
 import { parseHtmlContent } from "./utils/html-parser";
 import { WebpageTaggerAgent, WebpageTaggerAgentWithTitle } from "./agent/tag";
 import { AgentResponse } from "~/lib/types";
+import z from "zod";
 
 export class ItemService {
   /**
@@ -38,23 +39,39 @@ export class ItemService {
       getOembedData(normalizedUrl),
     ]);
 
-    const parsedData = await parseHtmlContent(normalizedUrl, oembed);
+    const parsedData = await parseHtmlContent(
+      normalizedUrl,
+      oembed,
+      ogp.description,
+    );
 
     let result;
     if (!oembed?.title && !ogp.title) {
-      result = await WebpageTaggerAgentWithTitle.generateText(
-        parsedData.content,
-      );
+      result = await WebpageTaggerAgentWithTitle.generate(parsedData.content, {
+        structuredOutput: {
+          schema: z.object({
+            title: z.string(),
+            tldr: z.string(),
+            tags: z.array(z.string()),
+          }),
+        },
+      });
     } else {
-      result = await WebpageTaggerAgent.generateText(parsedData.content);
+      result = await WebpageTaggerAgent.generate(parsedData.content, {
+        structuredOutput: {
+          schema: z.object({
+            tldr: z.string(),
+            tags: z.array(z.string()),
+          }),
+        },
+      });
     }
 
     let agentData;
     try {
-      agentData = JSON.parse(result.text);
+      agentData = result.object;
     } catch (error) {
       console.log("Failed to parse agent data JSON:", error);
-      return null;
     }
 
     const { title: agentTitle, tldr, tags } = agentData as AgentResponse;

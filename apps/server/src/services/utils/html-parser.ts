@@ -86,6 +86,7 @@ export async function fetchYouTubeContent(
 export async function parseHtmlContent(
   url: string,
   oembed: OEmbedData | null,
+  description: string | undefined,
   options: ParseOptions = {},
 ): Promise<ParsedContent> {
   const { maxChunks = 1000 } = options;
@@ -199,7 +200,7 @@ export async function parseHtmlContent(
     }
 
     return {
-      content: mainContent,
+      content: `${description ? `${description} ` : ""}${mainContent}`,
     };
   } catch (error) {
     throw new Error(
