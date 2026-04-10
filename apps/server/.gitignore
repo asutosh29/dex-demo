@@ -31,3 +31,9 @@ lerna-debug.log*
 
 # misc
 .DS_Store
+
+# mastra
+.mastra
+
+# For local testing only
+src/mastra/public/mem-store 

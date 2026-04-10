@@ -8,17 +8,31 @@ import { appRouter, createContext } from "~/trpc";
 import { mcpServer } from "~/mcp/server";
 import { env } from "./lib/env";
 import { waitlistService } from "~/services/waitlist.service";
+import { HonoBindings, HonoVariables, MastraServer } from "@mastra/hono";
+import { mastra } from "~/mastra";
 
-const app = new Hono();
+const app = new Hono<{ Bindings: HonoBindings; Variables: HonoVariables }>();
+const mastraServer = new MastraServer({ app, mastra, prefix: "/mastra" });
 
+/*
+ ** Headers
+ * x-mastra-dev-playground: Sent by Mastra Studio to enable dev playground
+ */
 app.use(
   "*",
   cors({
     origin: trustedOrigins,
-    allowHeaders: ["Content-Type", "Authorization", "X-API-Key"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-API-Key",
+      "x-mastra-dev-playground",
+    ],
     credentials: true,
   }),
 );
+
+await mastraServer.init();
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
