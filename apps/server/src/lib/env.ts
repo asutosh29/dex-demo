@@ -13,6 +13,7 @@ export const env = createEnv({
 
     BACKEND_URL: z.url(),
     FRONTEND_URL: z.url(),
+    MASTRA_STUDIO_URL: z.url(), /// mastra studio for testing agents.
 
     // for digesting items
     YOUTUBE_API_KEY: z.string(),
