@@ -61,11 +61,11 @@ export class ApiKeyService {
    * List all API keys for a user with their granted collections
    */
   async listUserApiKeys(userId: string, headers: Headers) {
-    const keys = await auth.api.listApiKeys({ headers });
+    const { apiKeys } = await auth.api.listApiKeys({ headers });
 
     // For each key, get the mode and granted collections
     const keysWithAccess = await Promise.all(
-      keys.map(async (key) => {
+      apiKeys.map(async (key) => {
         const apiKeyRecord = await db.query.apikey.findFirst({
           where: eq(apikey.id, key.id),
           columns: {
@@ -112,7 +112,7 @@ export class ApiKeyService {
       where: eq(apikey.id, apiKeyId),
     });
 
-    if (!apiKeyRecord || apiKeyRecord.userId !== userId) {
+    if (!apiKeyRecord || apiKeyRecord.referenceId !== userId) {
       throw new Error("API key not found or access denied");
     }
 
@@ -152,7 +152,7 @@ export class ApiKeyService {
       where: eq(apikey.id, apiKeyId),
     });
 
-    if (!apiKeyRecord || apiKeyRecord.userId !== userId) {
+    if (!apiKeyRecord || apiKeyRecord.referenceId !== userId) {
       throw new Error("API key not found or access denied");
     }
 

@@ -199,7 +199,7 @@ export function CreateApiKeyForm({
               </div>
 
               {/* Scrollable Collection List */}
-              <ScrollArea className="max-h-60 min-h-30">
+              <ScrollArea className="h-60">
                 <div className="p-2">
                   {collectionsLoading ? (
                     <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
