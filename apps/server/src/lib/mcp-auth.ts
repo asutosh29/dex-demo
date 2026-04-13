@@ -63,9 +63,15 @@ export async function validateMcpApiKey(
         collectionsTable,
         eq(userCollectionsTable.collectionId, collectionsTable.id),
       )
-      .where(eq(userCollectionsTable.userId, key.userId));
+      .where(eq(userCollectionsTable.userId, key.referenceId));
 
-    return createApiKeyActor(key.id, key.userId, mode, [], userCollections);
+    return createApiKeyActor(
+      key.id,
+      key.referenceId,
+      mode,
+      [],
+      userCollections,
+    );
   }
 
   // For collection_specific mode, get granted collections
@@ -82,5 +88,5 @@ export async function validateMcpApiKey(
     .where(eq(apiKeyCollectionsTable.apiKeyId, key.id));
 
   // Build API key actor with appropriate permissions
-  return createApiKeyActor(key.id, key.userId, mode, grantedCollections);
+  return createApiKeyActor(key.id, key.referenceId, mode, grantedCollections);
 }
