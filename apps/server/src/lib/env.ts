@@ -18,6 +18,7 @@ export const env = createEnv({
     // for digesting items
     YOUTUBE_API_KEY: z.string(),
     GROQ_API_KEY: z.string(),
+    TAVILY_API_KEY: z.string(),
 
     // auth
     GOOGLE_CLIENT_ID: z.string(),
