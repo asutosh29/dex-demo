@@ -25,17 +25,18 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@mastra/hono": "^1.4.3",
-    "server": "^1.0.42",
     "@ai-sdk/groq": "^2.0.0",
     "@better-auth/api-key": "^1.5.6",
     "@hono/node-server": "^1.19.7",
     "@hono/trpc-server": "^0.4.1",
     "@mastra/core": "^1.24.1",
+    "@mastra/hono": "^1.4.3",
     "@mastra/libsql": "^1.8.0",
+    "@mastra/mcp": "^1.4.2",
     "@mastra/memory": "^1.15.0",
     "@modelcontextprotocol/sdk": "^1.25.1",
     "@t3-oss/env-core": "^0.13.10",
+    "@tavily/core": "^0.7.2",
     "@trpc/server": "^11.8.0",
     "@types/nodemailer": "^7.0.5",
     "better-auth": "^1.4.7",
@@ -45,6 +46,7 @@
     "nodemailer": "^7.0.12",
     "pg": "^8.16.3",
     "postgres": "^3.4.7",
+    "server": "^1.0.42",
     "uuidv7": "^1.1.0",
     "ws": "^8.18.3",
     "zod": "^4.2.1"
