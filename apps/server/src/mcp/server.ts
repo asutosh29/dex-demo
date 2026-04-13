@@ -6,7 +6,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { mcpAuthMiddleware, type McpContext } from "./middleware";
 import { itemService } from "~/services/item.service";
 import { collectionService } from "~/services/collection.service";
-
+import { getGrantedCollections } from "./utils";
 export const createMcpServer = () => {
   const server = new McpServer(
     {
@@ -64,13 +64,7 @@ export const createMcpServer = () => {
           {
             type: "text",
             text: JSON.stringify({
-              collections:
-                actor.mode === "full_access"
-                  ? actor.userCollections
-                  : actor.type === "api_key" &&
-                      actor.mode === "collection_specific"
-                    ? actor.grantedCollections
-                    : [],
+              collections: getGrantedCollections(actor) || [],
             }),
           },
         ],
@@ -94,11 +88,8 @@ export const createMcpServer = () => {
       const { actor } = getMcpContext();
 
       // Check for permissions
-      const hasAccess =
-        (actor.mode === "full_access" &&
-          actor.userCollections?.some((uc) => uc.id === collectionId)) ||
-        (actor.mode === "collection_specific" &&
-          actor.grantedCollections?.some((gc) => gc.id === collectionId));
+      const granted = getGrantedCollections(actor);
+      const hasAccess = granted?.some((c) => c.id === collectionId);
 
       if (!hasAccess) {
         return {
@@ -175,11 +166,8 @@ export const createMcpServer = () => {
   //     const { actor } = getMcpContext();
 
   //     // Check for permissions
-  //     const hasAccess =
-  //       (actor.mode === "full_access" &&
-  //         actor.userCollections?.some((uc) => uc.id === collectionId)) ||
-  //       (actor.mode === "collection_specific" &&
-  //         actor.grantedCollections?.some((gc) => gc.id === collectionId));
+  //     const granted = getGrantedCollections(actor);
+  //     const hasAccess = granted?.some((c) => c.id === collectionId);
 
   //     if (!hasAccess) {
   //       return {
@@ -244,9 +232,11 @@ export const createMcpServer = () => {
     },
     async ({ query }) => {
       const { actor } = getMcpContext();
+      const collections = getGrantedCollections(actor);
+      const scope = collections?.map((c) => c.id);
 
-      // Search items for this user
-      const results = await itemService.searchItems(actor.userId, query);
+      // Search items for this user, scoped to allowed collections
+      const results = await itemService.searchItems(actor.userId, query, scope);
 
       return {
         content: [
@@ -315,6 +305,170 @@ export const createMcpServer = () => {
           },
         ],
       };
+    },
+  );
+
+  server.registerTool(
+    "get_collection_items",
+    {
+      description:
+        "Get items present within a specific collection using safe pagination",
+      inputSchema: z.object({
+        collectionId: z
+          .string()
+          .describe("ID of the collection to fetch items from"),
+        limit: z
+          .number()
+          .min(1)
+          .max(50)
+          .optional()
+          .describe(
+            "Number of items to fetch. Min: 1, Max: 50. Recommended: 10-25.",
+          ),
+        cursor: z
+          .string()
+          .uuid()
+          .optional()
+          .describe(
+            "Pagination cursor returned from a previous call's nextCursor field. Do not provide on the first call.",
+          ),
+      }),
+    },
+    async ({ collectionId, limit, cursor }) => {
+      const { actor } = getMcpContext();
+
+      // Check collection-specific key scope before delegating to service
+      const collections = getGrantedCollections(actor);
+      const scope = collections?.map((c) => c.id);
+
+      if (scope && !scope.includes(collectionId)) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                error:
+                  "Permission denied: You don't have access to this collection",
+                collectionId,
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      try {
+        const fetchLimit = limit || 25; // Default safe limit
+        const collection = await collectionService.getCollection(
+          collectionId,
+          actor.userId,
+          fetchLimit,
+          cursor,
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                success: true,
+                pagination: collection.pagination,
+                collection: {
+                  id: collection.id,
+                  title: collection.title,
+                  role: collection.role,
+                  resultCount: collection.items.length,
+                  items: collection.items.map((item) => ({
+                    id: item.id,
+                    title: item.title,
+                    url: item.url,
+                    tldr: item.tldr,
+                    tags: item.tags,
+                  })),
+                },
+              }),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to fetch collection items",
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    "get_items_by_id",
+    {
+      description:
+        "Retrieve specific items by their IDs. Only specify IDs you are absolutely sure of. If you need to find IDs, use other available tools.",
+      inputSchema: z.object({
+        itemIds: z
+          .array(z.string())
+          .min(1)
+          .max(5)
+          .describe(
+            "List of item IDs to retrieve. Only provide valid IDs that you have obtained from other tools. Minimum 1 and Maximum 5",
+          ),
+      }),
+    },
+    async ({ itemIds }) => {
+      const { actor } = getMcpContext();
+      const collections = getGrantedCollections(actor);
+      const scope = collections?.map((c) => c.id);
+
+      try {
+        const items = await itemService.getItemsByIds(
+          actor.userId,
+          itemIds,
+          scope,
+        );
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                success: true,
+                resultCount: items.length,
+                items: items.map((item) => ({
+                  id: item.id,
+                  title: item.title,
+                  url: item.url,
+                  tldr: item.tldr,
+                  tags: item.tags,
+                })),
+              }),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to fetch items by ID",
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
     },
   );
 

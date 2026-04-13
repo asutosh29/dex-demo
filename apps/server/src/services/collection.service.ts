@@ -13,6 +13,7 @@ import {
   getTableColumns,
   desc,
   gte,
+  lt,
 } from "drizzle-orm";
 import { getActor, assertCan, Action } from "./rbac";
 import { alias } from "drizzle-orm/pg-core";
@@ -101,8 +102,13 @@ export class CollectionService {
   /**
    * Get a single collection with items
    */
-  async getCollection(collectionId: string, userId: string) {
-    // TODO: optimize queries for infinite scroll
+  // TODO: optimize queries for infinite scroll
+  async getCollection(
+    collectionId: string,
+    userId: string,
+    limit?: number,
+    cursor?: string,
+  ) {
     // First check user has access to this collection
     const userCollection = await db.query.userCollectionsTable.findFirst({
       where: and(
@@ -118,8 +124,18 @@ export class CollectionService {
       throw new Error("Collection not found or access denied");
     }
 
-    // Fetch items ordered by createdAt (newest first)
-    const items = await db
+    // Build base query conditions
+    const queryConditions = [
+      eq(collectionItemsTable.collectionId, collectionId),
+    ];
+
+    // UUIDv7 IDs are time-sorted and unique — using id as cursor
+    // gives stable, gap-free keyset pagination with no duplicates
+    if (cursor) {
+      queryConditions.push(lt(itemsTable.id, cursor));
+    }
+
+    const baseQuery = db
       .select({
         ...getTableColumns(itemsTable),
       })
@@ -128,13 +144,30 @@ export class CollectionService {
         collectionItemsTable,
         eq(itemsTable.id, collectionItemsTable.itemId),
       )
-      .where(eq(collectionItemsTable.collectionId, collectionId))
-      .orderBy(desc(itemsTable.createdAt));
+      .where(and(...queryConditions))
+      .orderBy(desc(itemsTable.id));
+
+    // Fetch +1 to detect next page
+    const items = limit ? await baseQuery.limit(limit + 1) : await baseQuery;
+
+    let hasMore = false;
+    let nextCursor: string | null = null;
+
+    if (limit && items.length > limit) {
+      hasMore = true;
+      items.pop();
+      const lastItem = items[items.length - 1];
+      nextCursor = lastItem?.id ?? null;
+    }
 
     return {
       ...userCollection.collection,
       role: userCollection.role,
       items,
+      pagination: {
+        hasMore,
+        nextCursor,
+      },
     };
   }
 

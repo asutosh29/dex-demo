@@ -5,7 +5,15 @@ import {
   itemsTable,
   userCollectionsTable,
 } from "~/db/schema";
-import { eq, and, sql, desc, getTableColumns } from "drizzle-orm";
+import {
+  eq,
+  and,
+  sql,
+  desc,
+  getTableColumns,
+  inArray,
+  exists,
+} from "drizzle-orm";
 import { extractOpenGraphData, getOembedData } from "./utils/ogp";
 import { parseHtmlContent } from "./utils/html-parser";
 import { WebpageTaggerAgent, WebpageTaggerAgentWithTitle } from "./agent/tag";
@@ -119,16 +127,40 @@ export class ItemService {
    * Search items by title, tldr, or tags using PostgreSQL full-text search
    * Supports web search syntax: "exact phrase", word1 OR word2, -excludeword
    */
-  async searchItems(userId: string, query: string) {
+  async searchItems(
+    userId: string,
+    query: string,
+    allowedCollectionIds?: string[],
+  ) {
+    const conditions = [
+      eq(itemsTable.creatorId, userId),
+      sql`${itemsTable.searchVector} @@ websearch_to_tsquery('english', ${query})`,
+    ];
+
+    // Restrict to items in allowed collections when scoped
+    if (allowedCollectionIds) {
+      conditions.push(
+        exists(
+          db
+            .select()
+            .from(collectionItemsTable)
+            .where(
+              and(
+                eq(collectionItemsTable.itemId, itemsTable.id),
+                inArray(
+                  collectionItemsTable.collectionId,
+                  allowedCollectionIds,
+                ),
+              ),
+            ),
+        ),
+      );
+    }
+
     const results = await db
       .select()
       .from(itemsTable)
-      .where(
-        and(
-          eq(itemsTable.creatorId, userId),
-          sql`${itemsTable.searchVector} @@ websearch_to_tsquery('english', ${query})`,
-        ),
-      )
+      .where(and(...conditions))
       .orderBy(
         sql`ts_rank(${itemsTable.searchVector}, websearch_to_tsquery('english', ${query})) DESC`,
       );
@@ -161,6 +193,51 @@ export class ItemService {
       .where(eq(itemsTable.creatorId, userId))
       .orderBy(desc(itemsTable.createdAt))
       .limit(limit);
+
+    return results;
+  }
+
+  /**
+   * Efficiently get details of multiple items by their ID
+   * Ensures the user has access to these items via their collections
+   */
+  async getItemsByIds(
+    userId: string,
+    itemIds: string[],
+    allowedCollectionIds?: string[],
+  ) {
+    if (!itemIds || itemIds.length === 0) return [];
+
+    // Build the EXISTS subquery join conditions
+    const joinConditions = [
+      eq(userCollectionsTable.collectionId, collectionItemsTable.collectionId),
+      eq(userCollectionsTable.userId, userId),
+    ];
+
+    // Restrict to allowed collections when scoped
+    if (allowedCollectionIds) {
+      joinConditions.push(
+        inArray(collectionItemsTable.collectionId, allowedCollectionIds),
+      );
+    }
+
+    const results = await db
+      .select({
+        ...getTableColumns(itemsTable),
+      })
+      .from(itemsTable)
+      .where(
+        and(
+          inArray(itemsTable.id, itemIds),
+          exists(
+            db
+              .select()
+              .from(collectionItemsTable)
+              .innerJoin(userCollectionsTable, and(...joinConditions))
+              .where(eq(collectionItemsTable.itemId, itemsTable.id)),
+          ),
+        ),
+      );
 
     return results;
   }
