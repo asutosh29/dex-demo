@@ -12,6 +12,7 @@ import { getActor, assertCan, Action } from "./rbac";
 import { TRPCError } from "@trpc/server";
 import { env } from "~/lib/env";
 import { activityService } from "./activity.service";
+import { resolveCollection, assertRoot } from "./collection/resolve";
 
 const INVITATION_EXPIRY_DAYS = 7;
 
@@ -22,6 +23,7 @@ export class InvitationService {
     inviteeId: string,
     role: "member" | "admin",
   ) {
+    assertRoot(await resolveCollection(collectionId));
     const actor = await getActor(inviterId, collectionId);
     assertCan(actor, Action.COLLECTION_MANAGE_MEMBERS);
 
@@ -156,6 +158,9 @@ export class InvitationService {
         message: "Invitation has expired",
       });
     }
+
+    // Defensive: reject invitations whose target is no longer a root collection.
+    assertRoot(await resolveCollection(invitation.collectionId));
 
     const invitee = await db.query.user.findFirst({
       where: eq(user.id, userId),

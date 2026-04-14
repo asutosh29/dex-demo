@@ -3,6 +3,7 @@ import { apikey, apiKeyCollectionsTable } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 import { auth } from "~/lib/auth";
 import { getActor, assertCan, Action, type ApiKeyMode } from "./rbac";
+import { resolveCollection, assertRoot } from "./collection/resolve";
 
 export class ApiKeyService {
   /**
@@ -33,6 +34,9 @@ export class ApiKeyService {
       collectionIds.length > 0
     ) {
       for (const collectionId of collectionIds) {
+        // Grants apply to roots only — children inherit.
+        assertRoot(await resolveCollection(collectionId));
+
         // Verify user has access to the collection
         const actor = await getActor(userId, collectionId);
         assertCan(actor, Action.COLLECTION_READ);
@@ -122,6 +126,9 @@ export class ApiKeyService {
         "Cannot grant collection access to full access mode API keys",
       );
     }
+
+    // Grants apply to roots only — children inherit from their parent.
+    assertRoot(await resolveCollection(collectionId));
 
     // Verify user has access to the collection (member or above)
     const actor = await getActor(userId, collectionId);

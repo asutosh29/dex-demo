@@ -36,15 +36,46 @@ export const collectionRouter = router({
       return await collectionService.getCollection(input.id, ctx.user.id);
     }),
 
-  // Create collection
+  // Create collection (root or sub-collection when parentId is provided)
   create: protectedProcedure
     .input(
       z.object({
         title: z.string().min(1),
+        parentId: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      return await collectionService.createCollection(ctx.user.id, input.title);
+      return await collectionService.createCollection(
+        ctx.user.id,
+        input.title,
+        input.parentId,
+      );
+    }),
+
+  // List direct sub-collections of a root
+  getSubCollections: protectedProcedure
+    .input(z.object({ parentId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return await collectionService.getSubCollections(
+        input.parentId,
+        ctx.user.id,
+      );
+    }),
+
+  // Move a sub-collection to a different root
+  move: protectedProcedure
+    .input(
+      z.object({
+        collectionId: z.string(),
+        newParentId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      return await collectionService.moveCollection(
+        input.collectionId,
+        input.newParentId,
+        ctx.user.id,
+      );
     }),
 
   // Update collection

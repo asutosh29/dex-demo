@@ -2,6 +2,7 @@ import { db } from "~/db/client";
 import { activityTable, userCollectionsTable } from "~/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import type { ActivityData } from "~/db/schema/activity-schema";
+import { resolveCollection } from "./collection/resolve";
 
 export class ActivityService {
   /**
@@ -34,9 +35,10 @@ export class ActivityService {
     roles: Array<"owner" | "admin" | "member">,
     excludeUserIds: string[] = [],
   ): Promise<string[]> {
+    const { rootId } = await resolveCollection(collectionId);
     const members = await db.query.userCollectionsTable.findMany({
       where: and(
-        eq(userCollectionsTable.collectionId, collectionId),
+        eq(userCollectionsTable.collectionId, rootId),
         inArray(userCollectionsTable.role, roles),
       ),
       columns: { userId: true },
@@ -54,8 +56,9 @@ export class ActivityService {
     collectionId: string,
     excludeUserIds: string[] = [],
   ): Promise<string[]> {
+    const { rootId } = await resolveCollection(collectionId);
     const members = await db.query.userCollectionsTable.findMany({
-      where: eq(userCollectionsTable.collectionId, collectionId),
+      where: eq(userCollectionsTable.collectionId, rootId),
       columns: { userId: true },
     });
 
