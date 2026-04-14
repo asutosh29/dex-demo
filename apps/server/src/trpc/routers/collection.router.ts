@@ -96,9 +96,18 @@ export const collectionRouter = router({
 
   // Delete collection
   delete: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(
+      z.object({
+        id: z.string(),
+        preserveItems: z.boolean().optional(),
+        destinationCollectionId: z.string().optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
-      return await collectionService.deleteCollection(input.id, ctx.user.id);
+      return await collectionService.deleteCollection(input.id, ctx.user.id, {
+        preserveItems: input.preserveItems,
+        destinationCollectionId: input.destinationCollectionId,
+      });
     }),
 
   // Add item to collection

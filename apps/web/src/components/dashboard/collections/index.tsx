@@ -8,7 +8,7 @@ import { CollectionEmptyState } from "./collection-empty-state";
 import { CollectionSkeleton } from "./collection-skeleton";
 import { useCollection } from "./collection-context";
 
-type FilterType = "all" | "link" | "note";
+type FilterType = "link" | "note";
 
 function CollectionContent() {
   const {
@@ -44,7 +44,7 @@ function CollectionContent() {
 }
 
 export function Collection({ collectionId }: { collectionId: string }) {
-  const [filter, setFilter] = useState<FilterType>("all");
+  const [filter, setFilter] = useState<FilterType>("link");
 
   return (
     <CollectionProvider

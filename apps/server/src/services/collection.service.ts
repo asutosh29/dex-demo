@@ -23,6 +23,11 @@ import { getActor, assertCan, Action } from "./rbac";
 import { alias } from "drizzle-orm/pg-core";
 import { resolveCollection } from "./collection/resolve";
 
+type DeleteCollectionOptions = {
+  preserveItems?: boolean;
+  destinationCollectionId?: string;
+};
+
 export class CollectionService {
   /**
    * Create a new collection. When `parentId` is provided, the new collection
@@ -354,51 +359,147 @@ export class CollectionService {
   }
 
   /**
-   * Delete a collection. For roots, cascades to sub-collections (FK). Items
-   * whose only remaining memberships lie inside the deleted tree are hard-
-   * deleted in the same transaction so nothing is left orphaned.
+   * Delete a collection. Root deletes cascade to sub-collections and remove
+   * orphaned items. Sub-collection deletes can optionally preserve items by
+   * moving them into another collection in the same root tree.
    */
-  async deleteCollection(collectionId: string, userId: string) {
+  async deleteCollection(
+    collectionId: string,
+    userId: string,
+    options: DeleteCollectionOptions = {},
+  ) {
     const resolved = await resolveCollection(collectionId);
     const actor = await getActor(userId, collectionId);
+    const preserveItems = Boolean(options.preserveItems);
+    let destinationCollectionId: string | null = null;
 
     if (resolved.isRoot) {
       assertCan(actor, Action.COLLECTION_CHANGE_ROLES);
+
+      if (preserveItems || options.destinationCollectionId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Item preservation is only supported when deleting sub-collections",
+        });
+      }
     } else {
       assertCan(actor, Action.COLLECTION_UPDATE);
+
+      if (preserveItems) {
+        destinationCollectionId =
+          options.destinationCollectionId ?? resolved.rootId;
+
+        if (destinationCollectionId === collectionId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Destination collection must be different from source",
+          });
+        }
+
+        const destination = await resolveCollection(destinationCollectionId);
+        if (destination.rootId !== resolved.rootId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "Destination collection must belong to the same root collection",
+          });
+        }
+
+        const destinationActor = await getActor(
+          userId,
+          destinationCollectionId,
+        );
+        assertCan(destinationActor, Action.ITEM_ADD);
+      } else if (options.destinationCollectionId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Destination collection requires preserveItems=true",
+        });
+      }
     }
 
     await db.transaction(async (tx) => {
-      let idsToRemove: string[] = [collectionId];
       if (resolved.isRoot) {
         const children = await tx
           .select({ id: collectionsTable.id })
           .from(collectionsTable)
           .where(eq(collectionsTable.parentId, collectionId));
-        idsToRemove = [collectionId, ...children.map((c) => c.id)];
-      }
 
-      // Items whose only memberships lie inside the removed tree get hard-deleted
-      // alongside the collection so nothing is orphaned in the items table.
-      const candidates = await tx
-        .selectDistinct({ itemId: collectionItemsTable.itemId })
-        .from(collectionItemsTable)
-        .where(inArray(collectionItemsTable.collectionId, idsToRemove));
+        const idsToRemove = [collectionId, ...children.map((c) => c.id)];
 
-      let orphanIds: string[] = [];
-      if (candidates.length > 0) {
-        const candidateIds = candidates.map((r) => r.itemId);
-        const survivors = await tx
+        // Items whose only memberships lie inside the removed tree get hard-deleted
+        // alongside the collection so nothing is orphaned in the items table.
+        const candidates = await tx
           .selectDistinct({ itemId: collectionItemsTable.itemId })
           .from(collectionItemsTable)
-          .where(
-            and(
-              inArray(collectionItemsTable.itemId, candidateIds),
-              notInArray(collectionItemsTable.collectionId, idsToRemove),
-            ),
-          );
-        const surviving = new Set(survivors.map((r) => r.itemId));
-        orphanIds = candidateIds.filter((id) => !surviving.has(id));
+          .where(inArray(collectionItemsTable.collectionId, idsToRemove));
+
+        let orphanIds: string[] = [];
+        if (candidates.length > 0) {
+          const candidateIds = candidates.map((r) => r.itemId);
+          const survivors = await tx
+            .selectDistinct({ itemId: collectionItemsTable.itemId })
+            .from(collectionItemsTable)
+            .where(
+              and(
+                inArray(collectionItemsTable.itemId, candidateIds),
+                notInArray(collectionItemsTable.collectionId, idsToRemove),
+              ),
+            );
+          const surviving = new Set(survivors.map((r) => r.itemId));
+          orphanIds = candidateIds.filter((id) => !surviving.has(id));
+        }
+
+        await tx
+          .delete(collectionsTable)
+          .where(eq(collectionsTable.id, collectionId));
+
+        if (orphanIds.length > 0) {
+          await tx.delete(itemsTable).where(inArray(itemsTable.id, orphanIds));
+        }
+
+        return;
+      }
+
+      let orphanIds: string[] = [];
+      if (preserveItems && destinationCollectionId) {
+        const sourceItems = await tx
+          .selectDistinct({ itemId: collectionItemsTable.itemId })
+          .from(collectionItemsTable)
+          .where(eq(collectionItemsTable.collectionId, collectionId));
+
+        if (sourceItems.length > 0) {
+          await tx
+            .insert(collectionItemsTable)
+            .values(
+              sourceItems.map((row) => ({
+                collectionId: destinationCollectionId,
+                itemId: row.itemId,
+              })),
+            )
+            .onConflictDoNothing();
+        }
+      } else {
+        const candidates = await tx
+          .selectDistinct({ itemId: collectionItemsTable.itemId })
+          .from(collectionItemsTable)
+          .where(eq(collectionItemsTable.collectionId, collectionId));
+
+        if (candidates.length > 0) {
+          const candidateIds = candidates.map((r) => r.itemId);
+          const survivors = await tx
+            .selectDistinct({ itemId: collectionItemsTable.itemId })
+            .from(collectionItemsTable)
+            .where(
+              and(
+                inArray(collectionItemsTable.itemId, candidateIds),
+                notInArray(collectionItemsTable.collectionId, [collectionId]),
+              ),
+            );
+          const surviving = new Set(survivors.map((r) => r.itemId));
+          orphanIds = candidateIds.filter((id) => !surviving.has(id));
+        }
       }
 
       await tx

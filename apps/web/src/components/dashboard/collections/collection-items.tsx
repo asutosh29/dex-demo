@@ -14,7 +14,7 @@ export function CollectionItems() {
   if (filteredItems.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
-        No {filter === "all" ? "" : filter} items found
+        No {filter === "link" ? "" : filter} items found
       </div>
     );
   }

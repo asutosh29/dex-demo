@@ -3,7 +3,7 @@ import { trpc } from "~/lib/trpc";
 import type { RouterOutputs } from "~/lib/trpc";
 
 type CollectionData = RouterOutputs["collections"]["get"];
-type FilterType = "all" | "link" | "note";
+type FilterType = "link" | "note";
 
 interface CollectionContextValue {
   state: {
@@ -56,7 +56,6 @@ export function CollectionProvider({
   const items = useMemo(() => collection?.items ?? [], [collection]);
 
   const filteredItems = useMemo(() => {
-    if (filter === "all") return items;
     return items.filter((item) => item.type === filter);
   }, [items, filter]);
 

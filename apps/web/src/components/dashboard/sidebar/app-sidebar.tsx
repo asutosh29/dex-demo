@@ -13,6 +13,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
 } from "@repo/ui/components/ui/sidebar";
 import { Hash, Loader2, Plus } from "@repo/ui/icons";
@@ -24,6 +27,7 @@ import { useUserCollections } from "~/lib/hooks/use-user-collections";
 import { AddCollectionDialogTrigger } from "./add-collection-dialog";
 import { NavUser } from "./nav-user";
 import { MemberAvatarGroup } from "../collections/manage-members/member-avatar-group";
+import { Button } from "@repo/ui/components/ui/button";
 
 type UserCollection =
   RouterOutputs["collections"]["getUserCollections"][number];
@@ -57,6 +61,15 @@ const CollectionMenuItem = memo(function CollectionMenuItem({
         enabled: collection.isShared as boolean,
       },
     );
+
+  const { data: subCollections } = trpc.collections.getSubCollections.useQuery(
+    {
+      parentId: collection.id,
+    },
+    {
+      enabled: isActive,
+    },
+  );
 
   return (
     <SidebarMenuItem ref={setNodeRef}>
@@ -93,6 +106,24 @@ const CollectionMenuItem = memo(function CollectionMenuItem({
           )}
         </Link>
       </SidebarMenuButton>
+      {isActive && subCollections && subCollections.length > 0 && (
+        <SidebarMenuSub>
+          {subCollections?.map((subCollection) => (
+            <SidebarMenuSubItem key={subCollection.id}>
+              <SidebarMenuSubButton asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                >
+                  <Hash />
+                  {subCollection.title}
+                </Button>
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+          ))}
+        </SidebarMenuSub>
+      )}
     </SidebarMenuItem>
   );
 });
