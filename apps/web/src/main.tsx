@@ -6,6 +6,7 @@ import { StrictMode } from "react";
 import { TRPCProvider } from "~/components/providers/trpc-provider";
 import { ThemeProvider } from "~/components/providers/theme-provider";
 import { Toaster } from "@repo/ui/components/ui/sonner";
+import { TooltipProvider } from "@repo/ui/components/ui/tooltip";
 
 if (import.meta.env.DEV) {
   scan({
@@ -17,8 +18,10 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <TRPCProvider>
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-        <App />
-        <Toaster />
+        <TooltipProvider>
+          <App />
+          <Toaster />
+        </TooltipProvider>
       </ThemeProvider>
     </TRPCProvider>
   </StrictMode>,

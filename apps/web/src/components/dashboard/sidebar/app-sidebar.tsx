@@ -15,9 +15,10 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@repo/ui/components/ui/sidebar";
-import { Hash, Loader2, Plus } from "@repo/ui/icons";
+import { Tabs, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
+import { Hash, Loader2, MessageSquare, Plus } from "@repo/ui/icons";
 import { cn } from "@repo/ui/lib/utils";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { authClient } from "~/lib/auth-client";
 import { trpc, type RouterOutputs } from "~/lib/trpc";
 import { useUserCollections } from "~/lib/hooks/use-user-collections";
@@ -97,10 +98,116 @@ const CollectionMenuItem = memo(function CollectionMenuItem({
   );
 });
 
+// --- Mock chat threads for static UI ---
+const MOCK_THREADS = [
+  { id: "1", title: "Planning travel..." },
+  { id: "2", title: "Checking weather conditions..." },
+  { id: "3", title: "Booking accommodations..." },
+  { id: "4", title: "Creating an itinerary..." },
+  { id: "5", title: "Packing essentials..." },
+];
+
+function ChatHistoryList({ currentThreadId }: { currentThreadId?: string }) {
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>Recents</SidebarGroupLabel>
+      <SidebarGroupAction title="New Chat" asChild>
+        <Link to="/chat">
+          <Plus /> <span className="sr-only">New Chat</span>
+        </Link>
+      </SidebarGroupAction>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {MOCK_THREADS.map((thread) => (
+            <SidebarMenuItem key={thread.id}>
+              <SidebarMenuButton
+                isActive={currentThreadId === thread.id}
+                asChild
+              >
+                <Link to={`/chat/${thread.id}`}>
+                  <MessageSquare className="size-4" />
+                  <span className="truncate max-w-[16ch]">{thread.title}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
+}
+
+function CollectionsList({
+  privateCollections,
+  sharedCollections,
+  isLoading,
+  pathname,
+}: {
+  privateCollections: UserCollection[];
+  sharedCollections: UserCollection[];
+  isLoading: boolean;
+  pathname: string;
+}) {
+  return (
+    <>
+      <SidebarGroup>
+        <SidebarGroupLabel>Private</SidebarGroupLabel>
+        <AddCollectionDialogTrigger>
+          <SidebarGroupAction title="Add Collection">
+            <Plus /> <span className="sr-only">Add Collection</span>
+          </SidebarGroupAction>
+        </AddCollectionDialogTrigger>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {isLoading ? (
+              <SidebarMenuItem>
+                <SidebarMenuButton>
+                  <Loader2 className="animate-spin text-muted-foreground" />
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ) : (
+              privateCollections.map((collection: UserCollection) => (
+                <CollectionMenuItem
+                  key={collection.id}
+                  collection={collection}
+                  isActive={pathname.includes(`/dashboard/${collection.id}`)}
+                />
+              ))
+            )}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+
+      {sharedCollections.length > 0 && (
+        <SidebarGroup>
+          <SidebarGroupLabel>Shared</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {sharedCollections.map((collection: UserCollection) => (
+                <CollectionMenuItem
+                  key={collection.id}
+                  collection={collection}
+                  isActive={pathname.includes(`/dashboard/${collection.id}`)}
+                />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      )}
+    </>
+  );
+}
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session } = authClient.useSession();
   const { data: collections, isLoading } = useUserCollections();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+
+  const activeTab = pathname.startsWith("/chat") ? "chats" : "collections";
+  const threadId = pathname.startsWith("/chat/")
+    ? pathname.split("/chat/")[1]
+    : undefined;
 
   const privateCollections = useMemo(
     () => collections?.filter((c: UserCollection) => !c.isShared) ?? [],
@@ -124,6 +231,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
   }, [sharedCollections, utils]);
 
+  const handleTabChange = (value: string) => {
+    if (value === "chats") {
+      navigate("/chat");
+    } else {
+      navigate("/dashboard");
+    }
+  };
+
   return (
     <Sidebar {...props}>
       <SidebarHeader>
@@ -137,51 +252,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </Link>
           </SidebarMenuItem>
         </SidebarMenu>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <TabsList className="w-full">
+            <TabsTrigger value="collections" className="flex-1">
+              Collections
+            </TabsTrigger>
+            <TabsTrigger value="chats" className="flex-1">
+              Chats
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Private</SidebarGroupLabel>
-          <AddCollectionDialogTrigger>
-            <SidebarGroupAction title="Add Collection">
-              <Plus /> <span className="sr-only">Add Collection</span>
-            </SidebarGroupAction>
-          </AddCollectionDialogTrigger>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {isLoading ? (
-                <SidebarMenuItem>
-                  <SidebarMenuButton>
-                    <Loader2 className="animate-spin text-muted-foreground" />
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ) : (
-                privateCollections.map((collection: UserCollection) => (
-                  <CollectionMenuItem
-                    key={collection.id}
-                    collection={collection}
-                    isActive={pathname.includes(`/dashboard/${collection.id}`)}
-                  />
-                ))
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {sharedCollections.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Shared</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {sharedCollections.map((collection: UserCollection) => (
-                  <CollectionMenuItem
-                    key={collection.id}
-                    collection={collection}
-                    isActive={pathname.includes(`/dashboard/${collection.id}`)}
-                  />
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+        {activeTab === "chats" ? (
+          <ChatHistoryList currentThreadId={threadId} />
+        ) : (
+          <CollectionsList
+            privateCollections={privateCollections}
+            sharedCollections={sharedCollections}
+            isLoading={isLoading}
+            pathname={pathname}
+          />
         )}
       </SidebarContent>
       {session?.user && (
