@@ -8,3 +8,4 @@ export * from "./helpers/enums-schema";
 export * from "./invitations-schema";
 export * from "./notifications-schema";
 export * from "./activity-schema";
+export * from "./ai-provider-keys";
