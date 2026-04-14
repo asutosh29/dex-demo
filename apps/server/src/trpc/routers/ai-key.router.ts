@@ -2,23 +2,45 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 import { aiKeyService } from "~/services/ai-key.service";
 
+const providerEnum = z.enum([
+  "openai",
+  "anthropic",
+  "groq",
+  "openrouter",
+  "google",
+]);
+
 export const aiKeyRouter = router({
-  list: protectedProcedure.query(async ({ ctx }) => {
-    return await aiKeyService.listKeys(ctx.user.id);
-  }),
+  list: protectedProcedure
+    .output(
+      z.array(
+        z.object({
+          id: z.string(),
+          provider: providerEnum,
+          label: z.string().nullable().optional(),
+          createdAt: z.date().nullable().optional(),
+          updatedAt: z.date().nullable().optional(),
+        }),
+      ),
+    )
+    .query(async ({ ctx }) => {
+      return await aiKeyService.listKeys(ctx.user.id);
+    }),
 
   store: protectedProcedure
     .input(
       z.object({
-        provider: z.enum([
-          "openai",
-          "anthropic",
-          "groq",
-          "openrouter",
-          "google",
-        ]),
+        provider: providerEnum,
         key: z.string().min(1),
         label: z.string().optional(),
+      }),
+    )
+    .output(
+      z.object({
+        id: z.string(),
+        provider: providerEnum,
+        label: z.string().nullable().optional(),
+        createdAt: z.date().nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -34,15 +56,10 @@ export const aiKeyRouter = router({
   delete: protectedProcedure
     .input(
       z.object({
-        provider: z.enum([
-          "openai",
-          "anthropic",
-          "groq",
-          "openrouter",
-          "google",
-        ]),
+        provider: providerEnum,
       }),
     )
+    .output(z.object({ success: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
       return await aiKeyService.deleteKey(ctx.user.id, input.provider);
     }),
@@ -50,15 +67,10 @@ export const aiKeyRouter = router({
   check: protectedProcedure
     .input(
       z.object({
-        provider: z.enum([
-          "openai",
-          "anthropic",
-          "groq",
-          "openrouter",
-          "google",
-        ]),
+        provider: providerEnum,
       }),
     )
+    .output(z.object({ hasKey: z.boolean() }))
     .query(async ({ ctx, input }) => {
       const hasKey = await aiKeyService.hasKey(ctx.user.id, input.provider);
       return { hasKey };

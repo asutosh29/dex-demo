@@ -32,6 +32,13 @@ export const threadRouter = router({
         })
         .optional(),
     )
+    .output(
+      z.object({
+        threadId: z.string(),
+        title: z.string().optional(),
+        createdAt: z.date(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const memory = await getMastraMemory();
 
@@ -55,6 +62,24 @@ export const threadRouter = router({
         perPage: z.number().default(20),
       }),
     )
+    .output(
+      z.object({
+        threads: z.array(
+          z.object({
+            id: z.string(),
+            title: z.string().optional(),
+            createdAt: z.date(),
+            updatedAt: z.date(),
+            resourceId: z.string(),
+            metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+          }),
+        ),
+        total: z.number(),
+        page: z.number(),
+        perPage: z.union([z.number(), z.boolean()]),
+        hasMore: z.boolean(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       const memory = await getMastraMemory();
 
@@ -74,6 +99,16 @@ export const threadRouter = router({
       z.object({
         threadId: z.string(),
         title: z.string().min(1),
+      }),
+    )
+    .output(
+      z.object({
+        id: z.string(),
+        title: z.string().optional(),
+        createdAt: z.date(),
+        updatedAt: z.date(),
+        resourceId: z.string(),
+        metadata: z.record(z.string(), z.unknown()).optional().nullable(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -113,6 +148,7 @@ export const threadRouter = router({
         threadId: z.string(),
       }),
     )
+    .output(z.object({ success: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
       const memory = await getMastraMemory();
 
