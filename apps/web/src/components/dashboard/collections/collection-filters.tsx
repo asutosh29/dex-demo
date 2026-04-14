@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
+import { useDroppable } from "@dnd-kit/core";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Dialog,
@@ -11,11 +12,54 @@ import {
   DialogTrigger,
 } from "@repo/ui/components/ui/dialog";
 import { Input } from "@repo/ui/components/ui/input";
-import { FolderOpen, LayoutGrid, List, Plus } from "@repo/ui/icons";
+import { Hash, LayoutGrid, List, Plus } from "@repo/ui/icons";
+import { cn } from "@repo/ui/lib/utils";
+import { Link } from "react-router-dom";
 import { useCollection } from "./collection-context";
 import { useViewModeStore } from "~/lib/stores/view-mode-store";
-import { trpc } from "~/lib/trpc";
+import { trpc, type RouterOutputs } from "~/lib/trpc";
 import { toast } from "@repo/ui/components/ui/sonner";
+
+type SubCollection = RouterOutputs["collections"]["getSubCollections"][number];
+
+function SubCollectionChip({
+  sub,
+  parentId,
+}: {
+  sub: SubCollection;
+  parentId: string;
+}) {
+  const droppableData = useMemo(
+    () => ({ type: "collection" as const, collection: sub }),
+    [sub],
+  );
+
+  const { setNodeRef, isOver } = useDroppable({
+    id: `chip:${sub.id}`,
+    data: droppableData,
+  });
+
+  return (
+    <Button
+      ref={setNodeRef}
+      variant="secondary"
+      effect={"pop"}
+      className={cn(
+        "shrink-0 transition-colors min-w-20 max-w-32 truncate",
+        isOver && "bg-secondary border-4",
+      )}
+      asChild
+    >
+      <Link
+        to={`/dashboard/${parentId}/${sub.id}`}
+        className={cn(isOver && "animate-pulse")}
+      >
+        <Hash />
+        {sub.title}
+      </Link>
+    </Button>
+  );
+}
 
 export function CollectionFilters() {
   return (
@@ -101,12 +145,15 @@ const SubCollectionsView = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newSubCollectionTitle, setNewSubCollectionTitle] = useState("");
 
+  // Sub-collections can only exist on root collections — skip if this is already a child
+  const isSubCollection = !!collection?.parentId;
+
   const { data: subCollections } = trpc.collections.getSubCollections.useQuery(
     {
       parentId: collection?.id as string,
     },
     {
-      enabled: !!collection,
+      enabled: !!collection && !isSubCollection,
     },
   );
 
@@ -140,35 +187,42 @@ const SubCollectionsView = () => {
     });
   };
 
-  if (!collection) {
+  if (!collection || isSubCollection) {
     return null;
   }
 
   return (
     <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-      <div className="flex gap-2 items-center">
-        <div className="max-w-6/7 flex overflow-auto items-center gap-2 no-scrollbar">
-          {subCollections?.map((sub) => (
-            <Button variant={"secondary"} key={sub.id} className="rounded-full">
-              <FolderOpen />
-              {sub.title}
-            </Button>
-          ))}
-        </div>
+      <div className="flex items-center gap-2">
+        {subCollections && subCollections.length > 0 && (
+          <div className="max-w-6/7 flex overflow-auto items-center gap-2 no-scrollbar mask-[linear-gradient(to_right,black_90%,transparent_100%)] pr-6 py-1">
+            {subCollections?.map((sub) => (
+              <SubCollectionChip
+                key={sub.id}
+                sub={sub}
+                parentId={collection.id}
+              />
+            ))}
+          </div>
+        )}
+
         <DialogTrigger asChild>
           {subCollections && subCollections.length > 0 ? (
-            <Button variant="secondary" className="rounded-full" size="icon-sm">
+            <Button
+              variant="secondary"
+              className="rounded-full shrink-0"
+              size="icon-sm"
+            >
               <Plus />
             </Button>
           ) : (
-            <Button variant="secondary" className="rounded-full">
+            <Button variant="secondary" className="rounded-full shrink-0">
               <Plus />
               Create Sub-Collection
             </Button>
           )}
         </DialogTrigger>
       </div>
-
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create Sub-Collection</DialogTitle>

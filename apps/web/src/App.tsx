@@ -28,6 +28,10 @@ function App() {
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/:collectionId" element={<Collection />} />
+              <Route
+                path="/dashboard/:collectionId/:subCollectionId"
+                element={<Collection />}
+              />
               <Route path="/dashboard/api-keys" element={<ApiKeys />} />
             </Route>
           </Route>

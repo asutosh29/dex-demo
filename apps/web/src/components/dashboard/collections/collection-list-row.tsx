@@ -150,6 +150,7 @@ export const CollectionListRow = memo(function CollectionListRow({
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           item={item}
+          collectionId={collectionId}
         />
       </Suspense>
     </>

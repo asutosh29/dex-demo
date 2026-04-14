@@ -41,13 +41,9 @@ function DragPreview({
       <div className="rounded-full p-1.5 border absolute top-2 left-2 z-5 text-muted-foreground">
         {" "}
         {isShiftPressed ? (
-          <>
-            <ArrowUpLeft className="size-3 animate-pulse" />
-          </>
+          <CopyIcon className="size-3 animate-pulse" />
         ) : (
-          <>
-            <CopyIcon className="size-3 animate-pulse" />
-          </>
+          <ArrowUpLeft className="size-3 animate-pulse" />
         )}
       </div>
       <div
@@ -129,7 +125,8 @@ export function DndProvider({ children }: { children: React.ReactNode }) {
     ) {
       const itemId = active.id as string;
       const fromCollectionId = active.data.current.collectionId as string;
-      const toCollectionId = over.id as string;
+      // Read collection ID from droppable data — IDs may be namespaced (e.g. "sidebar:xyz")
+      const toCollectionId = over.data.current?.collection?.id as string;
 
       // Don't move if it's the same collection
       if (fromCollectionId === toCollectionId) {
@@ -140,8 +137,8 @@ export function DndProvider({ children }: { children: React.ReactNode }) {
       // Clear immediately to allow drop animation
       setActiveItem(null);
 
-      // Use shift key to determine copy vs move (default is copy)
-      const isMoving = isShiftPressed;
+      // Default is move; hold shift to copy instead
+      const isMoving = !isShiftPressed;
       const loadingToast = toast.loading(
         isMoving ? "Moving item..." : "Copying item...",
       );
