@@ -185,7 +185,7 @@ export class CollectionService {
       throw new Error("Collection not found or access denied");
     }
 
-    const items = await db
+    const rawItems = await db
       .select({
         ...getTableColumns(itemsTable),
       })
@@ -230,10 +230,52 @@ export class CollectionService {
       }));
     }
 
+    // Tag root-level items with subCollection: null, then pull in sub-collection
+    // items tagged with their parent sub-collection so the UI can category-filter.
+    type SubCollectionTag = { id: string; title: string } | null;
+    type TaggedItem = (typeof rawItems)[number] & {
+      subCollection: SubCollectionTag;
+    };
+
+    const rootItems: TaggedItem[] = rawItems.map((item) => ({
+      ...item,
+      subCollection: null,
+    }));
+
+    let subItems: TaggedItem[] = [];
+    if (resolved.isRoot && children.length > 0) {
+      const childIds = children.map((c) => c.id);
+      const subCollectionAlias = alias(collectionsTable, "sub");
+      const rows = await db
+        .select({
+          ...getTableColumns(itemsTable),
+          subCollectionId: subCollectionAlias.id,
+          subCollectionTitle: subCollectionAlias.title,
+        })
+        .from(itemsTable)
+        .innerJoin(
+          collectionItemsTable,
+          eq(itemsTable.id, collectionItemsTable.itemId),
+        )
+        .innerJoin(
+          subCollectionAlias,
+          eq(collectionItemsTable.collectionId, subCollectionAlias.id),
+        )
+        .where(inArray(subCollectionAlias.id, childIds))
+        .orderBy(desc(itemsTable.createdAt));
+
+      subItems = rows.map(
+        ({ subCollectionId, subCollectionTitle, ...item }) => ({
+          ...item,
+          subCollection: { id: subCollectionId, title: subCollectionTitle },
+        }),
+      );
+    }
+
     return {
       ...collection,
       role: membership.role,
-      items,
+      items: [...rootItems, ...subItems],
       parentId: resolved.parentId,
       children,
     };
@@ -333,14 +375,22 @@ export class CollectionService {
     const resolved = await resolveCollection(collectionId);
 
     await db.transaction(async (tx) => {
-      await tx
+      const removedMembership = await tx
         .delete(collectionItemsTable)
         .where(
           and(
             eq(collectionItemsTable.collectionId, collectionId),
             eq(collectionItemsTable.itemId, itemId),
           ),
-        );
+        )
+        .returning({ itemId: collectionItemsTable.itemId });
+
+      if (removedMembership.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Item is not part of the selected collection",
+        });
+      }
 
       const remaining = item.collections.filter(
         (ci) => ci.collectionId !== collectionId,
@@ -675,7 +725,7 @@ export class CollectionService {
     const toRoot = (await resolveCollection(toCollectionId)).rootId;
 
     await db.transaction(async (tx) => {
-      await tx
+      const movedMembership = await tx
         .update(collectionItemsTable)
         .set({ collectionId: toCollectionId })
         .where(
@@ -683,7 +733,15 @@ export class CollectionService {
             eq(collectionItemsTable.collectionId, fromCollectionId),
             eq(collectionItemsTable.itemId, itemId),
           ),
-        );
+        )
+        .returning({ itemId: collectionItemsTable.itemId });
+
+      if (movedMembership.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Item is not part of the source collection",
+        });
+      }
 
       const rootIds = Array.from(new Set([fromRoot, toRoot]));
       await tx

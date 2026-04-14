@@ -21,7 +21,6 @@ interface DraggedItem {
   url: string;
   image?: string | null;
   favicon?: string | null;
-  collectionId: string;
 }
 
 function DragPreview({
@@ -124,9 +123,19 @@ export function DndProvider({ children }: { children: React.ReactNode }) {
       over.data.current?.type === "collection"
     ) {
       const itemId = active.id as string;
-      const fromCollectionId = active.data.current.collectionId as string;
+      const fromCollectionId =
+        (active.data.current.sourceCollectionId as string | undefined) ??
+        (active.data.current.collectionId as string | undefined);
+      const viewCollectionId = active.data.current.viewCollectionId as
+        | string
+        | undefined;
       // Read collection ID from droppable data — IDs may be namespaced (e.g. "sidebar:xyz")
       const toCollectionId = over.data.current?.collection?.id as string;
+
+      if (!fromCollectionId || !toCollectionId) {
+        setActiveItem(null);
+        return;
+      }
 
       // Don't move if it's the same collection
       if (fromCollectionId === toCollectionId) {
@@ -153,9 +162,15 @@ export function DndProvider({ children }: { children: React.ReactNode }) {
         },
         {
           onSuccess: () => {
-            // Invalidate both collections
-            utils.collections.get.invalidate({ id: fromCollectionId });
-            utils.collections.get.invalidate({ id: toCollectionId });
+            const idsToInvalidate = [
+              viewCollectionId,
+              fromCollectionId,
+              toCollectionId,
+            ].filter((id): id is string => Boolean(id));
+
+            idsToInvalidate.forEach((id) => {
+              utils.collections.get.invalidate({ id });
+            });
             toast.dismiss(loadingToast);
             toast.success(
               isMoving ? "Item moved successfully" : "Item copied successfully",

@@ -1,6 +1,7 @@
 import { lazy, Suspense, memo } from "react";
 import {
   Globe,
+  Hash,
   LucideSquareArrowOutUpRight,
   MoreHorizontal,
   Trash2,
@@ -18,12 +19,12 @@ import {
 import { AnimatedGroup } from "@repo/ui/components/ui/animated-group";
 import { getDomainFromUrl } from "~/lib/utils";
 import { useCollectionItem } from "../use-collection-item";
-import type { CollectionItem } from "../use-collection-item";
+import type { CollectionItem, AnyCollectionItem } from "../use-collection-item";
 
 export type { CollectionItem };
 
 interface CollectionCardProps {
-  item: CollectionItem;
+  item: AnyCollectionItem;
   collectionId?: string;
   className?: string;
 }
@@ -82,6 +83,15 @@ export const CollectionCard = memo(function CollectionCard({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+            </div>
+          )}
+          {item.subCollection && (
+            <div
+              className="absolute top-2 left-2 z-10 flex items-center gap-1 rounded-full bg-background/80 backdrop-blur-sm px-2 py-0.5 text-xs font-medium"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Hash className="h-3 w-3" />
+              {item.subCollection.title}
             </div>
           )}
           {item.image ? (

@@ -45,12 +45,17 @@ function CollectionContent() {
 
 export function Collection({ collectionId }: { collectionId: string }) {
   const [filter, setFilter] = useState<FilterType>("link");
+  const [activeSubCollection, setActiveSubCollection] = useState<string | null>(
+    null,
+  );
 
   return (
     <CollectionProvider
       collectionId={collectionId}
       filter={filter}
+      activeSubCollection={activeSubCollection}
       onFilterChange={setFilter}
+      onSubCollectionChange={setActiveSubCollection}
     >
       <CollectionContent />
     </CollectionProvider>

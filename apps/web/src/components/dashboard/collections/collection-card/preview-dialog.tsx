@@ -8,7 +8,7 @@ import { GlobeIcon, Loader2, SquareArrowOutUpRight } from "@repo/ui/icons";
 import { Link } from "react-router-dom";
 import OEmbedViewer from "./oembed-viewer";
 import { Badge } from "@repo/ui/components/ui/badge";
-import type { CollectionItem } from ".";
+import type { AnyCollectionItem } from "../use-collection-item";
 import { trpc } from "~/lib/trpc";
 import { getDomainFromUrl } from "~/lib/utils";
 import { cn } from "@repo/ui/lib/utils";
@@ -20,7 +20,7 @@ import { toast } from "@repo/ui/components/ui/sonner";
 interface PreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  item: CollectionItem;
+  item: AnyCollectionItem;
   collectionId?: string;
 }
 

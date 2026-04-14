@@ -10,11 +10,13 @@ interface CollectionContextValue {
     collection: CollectionData | undefined;
     isLoading: boolean;
     filter: FilterType;
+    activeSubCollection: string | null;
     items: CollectionData["items"];
     filteredItems: CollectionData["items"];
   };
   actions: {
     setFilter: (filter: FilterType) => void;
+    setActiveSubCollection: (id: string | null) => void;
     refetch: () => Promise<void>;
   };
   meta: {
@@ -36,14 +38,18 @@ export function useCollection() {
 interface CollectionProviderProps {
   collectionId: string;
   filter: FilterType;
+  activeSubCollection: string | null;
   onFilterChange: (filter: FilterType) => void;
+  onSubCollectionChange: (id: string | null) => void;
   children: ReactNode;
 }
 
 export function CollectionProvider({
   collectionId,
   filter,
+  activeSubCollection,
   onFilterChange,
+  onSubCollectionChange,
   children,
 }: CollectionProviderProps) {
   const { data: collection, isLoading } = trpc.collections.get.useQuery(
@@ -56,8 +62,14 @@ export function CollectionProvider({
   const items = useMemo(() => collection?.items ?? [], [collection]);
 
   const filteredItems = useMemo(() => {
-    return items.filter((item) => item.type === filter);
-  }, [items, filter]);
+    return items.filter((item) => {
+      if (item.type !== filter) return false;
+      if (activeSubCollection !== null) {
+        return item.subCollection?.id === activeSubCollection;
+      }
+      return true;
+    });
+  }, [items, filter, activeSubCollection]);
 
   const refetch = async () => {
     await utils.collections.get.invalidate({ id: collectionId });
@@ -68,11 +80,13 @@ export function CollectionProvider({
       collection,
       isLoading,
       filter,
+      activeSubCollection,
       items,
       filteredItems,
     },
     actions: {
       setFilter: onFilterChange,
+      setActiveSubCollection: onSubCollectionChange,
       refetch,
     },
     meta: {

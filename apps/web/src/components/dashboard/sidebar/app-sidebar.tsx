@@ -131,7 +131,11 @@ const CollectionMenuItem = memo(function CollectionMenuItem({
       <SidebarMenuButton
         isActive={isActive}
         asChild
-        className={cn("transition-all", isOver && "bg-secondary")}
+        className={cn(
+          "transition-all",
+          isOver && "bg-secondary",
+          isActive || isOver ? "text-foreground" : "text-muted-foreground",
+        )}
       >
         <Link
           ref={setNodeRef}
@@ -165,7 +169,7 @@ const CollectionMenuItem = memo(function CollectionMenuItem({
       {(isActive || isExpandedForDrag) &&
         subCollections &&
         subCollections.length > 0 && (
-          <SidebarMenuSub>
+          <SidebarMenuSub className="animate-in slide-in-from-top-5">
             {subCollections.map((subCollection) => (
               <SubCollectionSidebarItem
                 key={subCollection.id}

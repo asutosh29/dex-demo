@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useDroppable } from "@dnd-kit/core";
 import { Button } from "@repo/ui/components/ui/button";
@@ -12,9 +12,8 @@ import {
   DialogTrigger,
 } from "@repo/ui/components/ui/dialog";
 import { Input } from "@repo/ui/components/ui/input";
-import { Hash, LayoutGrid, List, Plus } from "@repo/ui/icons";
+import { Check, Hash, LayoutGrid, List, Plus } from "@repo/ui/icons";
 import { cn } from "@repo/ui/lib/utils";
-import { Link } from "react-router-dom";
 import { useCollection } from "./collection-context";
 import { useViewModeStore } from "~/lib/stores/view-mode-store";
 import { trpc, type RouterOutputs } from "~/lib/trpc";
@@ -24,10 +23,12 @@ type SubCollection = RouterOutputs["collections"]["getSubCollections"][number];
 
 function SubCollectionChip({
   sub,
-  parentId,
+  isActive,
+  onSelect,
 }: {
   sub: SubCollection;
-  parentId: string;
+  isActive: boolean;
+  onSelect: () => void;
 }) {
   const droppableData = useMemo(
     () => ({ type: "collection" as const, collection: sub }),
@@ -42,29 +43,28 @@ function SubCollectionChip({
   return (
     <Button
       ref={setNodeRef}
-      variant="secondary"
-      effect={"pop"}
+      variant={isActive ? "default" : "secondary"}
+      effect="pop"
+      onClick={onSelect}
       className={cn(
-        "shrink-0 transition-colors min-w-20 max-w-32 truncate",
-        isOver && "bg-secondary border-4",
+        "shrink-0 transition-colors min-w-20",
+        isOver && "ring-2 ring-primary",
       )}
-      asChild
     >
-      <Link
-        to={`/dashboard/${parentId}/${sub.id}`}
-        className={cn(isOver && "animate-pulse")}
-      >
-        <Hash />
-        {sub.title}
-      </Link>
+      {isActive ? (
+        <Check className="h-3.5 w-3.5" />
+      ) : (
+        <Hash className="h-3.5 w-3.5" />
+      )}
+      {sub.title}
     </Button>
   );
 }
 
 export function CollectionFilters() {
   return (
-    <div className="flex justify-between items-center">
-      <div>
+    <div className="flex items-center">
+      <div className="flex-1">
         <SubCollectionsView />
       </div>
       <div className="flex items-center gap-2">
@@ -140,10 +140,13 @@ const ViewModes = () => {
 
 const SubCollectionsView = () => {
   const {
-    state: { collection },
+    state: { collection, activeSubCollection },
+    actions: { setActiveSubCollection },
   } = useCollection();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newSubCollectionTitle, setNewSubCollectionTitle] = useState("");
+  const subCollectionsScrollRef = useRef<HTMLDivElement | null>(null);
+  const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
 
   // Sub-collections can only exist on root collections — skip if this is already a child
   const isSubCollection = !!collection?.parentId;
@@ -187,6 +190,26 @@ const SubCollectionsView = () => {
     });
   };
 
+  useEffect(() => {
+    const element = subCollectionsScrollRef.current;
+    if (!element) {
+      return;
+    }
+
+    const checkOverflow = () => {
+      setHasHorizontalOverflow(element.scrollWidth > element.clientWidth);
+    };
+
+    checkOverflow();
+
+    const observer = new ResizeObserver(checkOverflow);
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [subCollections]);
+
   if (!collection || isSubCollection) {
     return null;
   }
@@ -195,12 +218,24 @@ const SubCollectionsView = () => {
     <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
       <div className="flex items-center gap-2">
         {subCollections && subCollections.length > 0 && (
-          <div className="max-w-6/7 flex overflow-auto items-center gap-2 no-scrollbar mask-[linear-gradient(to_right,black_90%,transparent_100%)] pr-6 py-1">
+          <div
+            ref={subCollectionsScrollRef}
+            className={cn(
+              "max-w-[80%] flex overflow-auto items-center gap-2 no-scrollbar py-1",
+              hasHorizontalOverflow &&
+                "mask-[linear-gradient(to_right,black_90%,transparent_100%)] pr-6",
+            )}
+          >
             {subCollections?.map((sub) => (
               <SubCollectionChip
                 key={sub.id}
                 sub={sub}
-                parentId={collection.id}
+                isActive={activeSubCollection === sub.id}
+                onSelect={() =>
+                  setActiveSubCollection(
+                    activeSubCollection === sub.id ? null : sub.id,
+                  )
+                }
               />
             ))}
           </div>
