@@ -408,6 +408,13 @@ export class CollectionService {
       if (orphanIds.length > 0) {
         await tx.delete(itemsTable).where(inArray(itemsTable.id, orphanIds));
       }
+
+      if (!resolved.isRoot) {
+        await tx
+          .update(collectionsTable)
+          .set({ updatedAt: new Date() })
+          .where(eq(collectionsTable.id, resolved.rootId));
+      }
     });
 
     return { success: true };
@@ -420,11 +427,25 @@ export class CollectionService {
     const actor = await getActor(userId, collectionId);
     assertCan(actor, Action.COLLECTION_UPDATE);
 
-    const [updated] = await db
-      .update(collectionsTable)
-      .set({ title })
-      .where(eq(collectionsTable.id, collectionId))
-      .returning();
+    const resolved = await resolveCollection(collectionId);
+    const now = new Date();
+
+    const [updated] = await db.transaction(async (tx) => {
+      const [collection] = await tx
+        .update(collectionsTable)
+        .set({ title, updatedAt: now })
+        .where(eq(collectionsTable.id, collectionId))
+        .returning();
+
+      if (!resolved.isRoot) {
+        await tx
+          .update(collectionsTable)
+          .set({ updatedAt: now })
+          .where(eq(collectionsTable.id, resolved.rootId));
+      }
+
+      return [collection];
+    });
 
     return updated;
   }

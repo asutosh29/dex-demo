@@ -11,6 +11,16 @@ ALTER TABLE "collections" ADD CONSTRAINT "collections_no_self_parent" CHECK ("co
 CREATE OR REPLACE FUNCTION enforce_collection_depth() RETURNS trigger AS $$
 BEGIN
   IF NEW.parent_id IS NOT NULL THEN
+    IF EXISTS (
+      SELECT 1
+      FROM collections
+      WHERE id = NEW.parent_id
+        AND parent_id IS NOT NULL
+    ) THEN
+      RAISE EXCEPTION 'sub_collection_nesting_exceeded: parent % is already a sub-collection',
+        NEW.parent_id USING ERRCODE = 'check_violation';
+    END IF;
+
     IF EXISTS (SELECT 1 FROM collections WHERE parent_id = NEW.id) THEN
       RAISE EXCEPTION 'sub_collection_nesting_exceeded: collection % already has children',
         NEW.id USING ERRCODE = 'check_violation';
@@ -48,13 +58,13 @@ END;
 $$ LANGUAGE plpgsql;--> statement-breakpoint
 
 CREATE TRIGGER user_collections_root_guard
-BEFORE INSERT ON user_collections
+BEFORE INSERT OR UPDATE OF collection_id ON user_collections
 FOR EACH ROW EXECUTE FUNCTION enforce_collection_is_root();--> statement-breakpoint
 
 CREATE TRIGGER api_key_collections_root_guard
-BEFORE INSERT ON api_key_collections
+BEFORE INSERT OR UPDATE OF collection_id ON api_key_collections
 FOR EACH ROW EXECUTE FUNCTION enforce_collection_is_root();--> statement-breakpoint
 
 CREATE TRIGGER invitations_root_guard
-BEFORE INSERT ON invitations
+BEFORE INSERT OR UPDATE OF collection_id ON invitations
 FOR EACH ROW EXECUTE FUNCTION enforce_collection_is_root();
