@@ -8,6 +8,7 @@ import { apiKeyRouter } from "./routers/api-key.router";
 import { notificationRouter } from "./routers/notification.router";
 import { invitationRouter } from "./routers/invitation.router";
 import { aiKeyRouter } from "./routers/ai-key.router";
+import { threadRouter } from "./routers/thread.router";
 
 export const appRouter = router({
   items: itemRouter,
@@ -19,6 +20,7 @@ export const appRouter = router({
   notifications: notificationRouter,
   invitations: invitationRouter,
   aiKeys: aiKeyRouter,
+  threads: threadRouter,
 });
 
 export { createContext } from "./trpc";
