@@ -6,6 +6,7 @@ export const aiProviderEnum = pgEnum("ai_provider_enum", [
   "anthropic",
   "groq",
   "openrouter",
+  "google",
 ]);
 
 export const aiProviderKeysTable = pgTable(

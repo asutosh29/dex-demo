@@ -1,6 +1,7 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGroq } from "@ai-sdk/groq";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
 export const DEFAULT_MODEL = "groq/moonshotai/kimi-k2-instruct-0905";
 
@@ -18,6 +19,8 @@ const PROVIDERS: Record<string, any> = {
       apiKey: opts.apiKey,
       baseURL: "https://openrouter.ai/api/v1",
     })(id),
+  google: (id: string, opts: { apiKey: string }) =>
+    createGoogleGenerativeAI({ apiKey: opts.apiKey })(id),
 };
 
 export function resolveModel(
@@ -27,5 +30,13 @@ export function resolveModel(
 ) {
   const factory = PROVIDERS[provider];
   if (!factory) throw new Error(`Unsupported provider: ${provider}`);
-  return factory(modelId, { apiKey });
+
+  // Clean the "provider/model_id" format if the frontend sends it
+  let cleanModelId = modelId;
+  const prefix = `${provider}/`;
+  if (modelId.startsWith(prefix)) {
+    cleanModelId = modelId.slice(prefix.length);
+  }
+
+  return factory(cleanModelId, { apiKey });
 }

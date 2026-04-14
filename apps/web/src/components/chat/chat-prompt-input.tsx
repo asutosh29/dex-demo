@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from "react";
+import { useState, type ChangeEvent, useEffect } from "react";
 import {
   PromptInput,
   PromptInputActionMenu,
@@ -16,12 +16,8 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@repo/ui/components/ai-elements/prompt-input";
-
-const MODELS = [
-  { id: "groq/moonshot-kimi", name: "groq/moonshot-kimi" },
-  { id: "openai/gpt-4o", name: "openai/gpt-4o" },
-  { id: "anthropic/claude-sonnet", name: "anthropic/claude-sonnet" },
-];
+import { SUPPORTED_MODELS } from "~/lib/models";
+import { trpc, type RouterOutputs } from "~/lib/trpc";
 
 interface ChatPromptInputProps {
   className?: string;
@@ -29,7 +25,37 @@ interface ChatPromptInputProps {
 
 export function ChatPromptInput({ className }: ChatPromptInputProps) {
   const [text, setText] = useState("");
-  const [model, setModel] = useState(MODELS[0].id);
+  const [model, setModel] = useState(SUPPORTED_MODELS[0].id);
+
+  const { data: aiKeys } = trpc.aiKeys.list.useQuery();
+  const availableProviders = new Set(
+    aiKeys?.map((k: RouterOutputs["aiKeys"]["list"][number]) => k.provider) ||
+      [],
+  );
+
+  // Sync initial model selection if the first element isn't available but others are
+  useEffect(() => {
+    if (
+      aiKeys &&
+      aiKeys.length > 0 &&
+      !availableProviders.has(SUPPORTED_MODELS[0].provider)
+    ) {
+      const firstAvailable = SUPPORTED_MODELS.find((m) =>
+        availableProviders.has(m.provider),
+      );
+      if (firstAvailable) {
+        setModel(firstAvailable.id);
+      }
+    }
+  }, [aiKeys, availableProviders]);
+
+  const availableModels = SUPPORTED_MODELS.filter((m) =>
+    availableProviders.has(m.provider),
+  );
+  const unavailableModels = SUPPORTED_MODELS.filter(
+    (m) => !availableProviders.has(m.provider),
+  );
+  const sortedModels = [...availableModels, ...unavailableModels];
 
   return (
     <PromptInput
@@ -61,11 +87,24 @@ export function ChatPromptInput({ className }: ChatPromptInputProps) {
               <PromptInputSelectValue />
             </PromptInputSelectTrigger>
             <PromptInputSelectContent>
-              {MODELS.map((m) => (
-                <PromptInputSelectItem key={m.id} value={m.id}>
-                  {m.name}
-                </PromptInputSelectItem>
-              ))}
+              {sortedModels.map((m) => {
+                const isAvailable = availableProviders.has(m.provider);
+                return (
+                  <PromptInputSelectItem
+                    key={m.id}
+                    value={m.id}
+                    disabled={!isAvailable}
+                    className={!isAvailable ? "opacity-50" : ""}
+                  >
+                    <span>{m.name}</span>
+                    {!isAvailable && (
+                      <span className="text-muted-foreground ml-2 text-xs">
+                        (Requires Key)
+                      </span>
+                    )}
+                  </PromptInputSelectItem>
+                );
+              })}
             </PromptInputSelectContent>
           </PromptInputSelect>
         </PromptInputTools>

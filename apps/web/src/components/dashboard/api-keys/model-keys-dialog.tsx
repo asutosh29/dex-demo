@@ -22,7 +22,7 @@ import { trpc, type RouterOutputs } from "~/lib/trpc";
 import { toast } from "@repo/ui/components/ui/sonner";
 
 type AiKey = RouterOutputs["aiKeys"]["list"][number];
-type Provider = "openai" | "anthropic" | "groq" | "openrouter";
+type Provider = "openai" | "anthropic" | "groq" | "openrouter" | "google";
 
 interface ModelKeysDialogProps {
   open: boolean;
@@ -138,6 +138,7 @@ export function ModelKeysDialog({
                 <SelectItem value="anthropic">Anthropic</SelectItem>
                 <SelectItem value="groq">Groq</SelectItem>
                 <SelectItem value="openrouter">OpenRouter</SelectItem>
+                <SelectItem value="google">Google Gemini</SelectItem>
               </SelectContent>
             </Select>
           </div>

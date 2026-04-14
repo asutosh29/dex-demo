@@ -6,6 +6,7 @@ import { webSearch } from "../tools/web-search-tool";
 import { agentService } from "~/services/agent.service";
 import { aiKeyService } from "~/services/ai-key.service";
 import { resolveModel, DEFAULT_MODEL } from "~/lib/model-resolver";
+import { SUPPORTED_MODELS } from "~/constants/models";
 
 /*
  ** Request Context Schema
@@ -16,7 +17,7 @@ import { resolveModel, DEFAULT_MODEL } from "~/lib/model-resolver";
 export const dexRequestContextSchema = z.object({
   userName: z.string().describe("First name or display name of the user"),
   provider: z
-    .enum(["openai", "anthropic", "groq", "openrouter"])
+    .enum(["openai", "anthropic", "groq", "openrouter", "google"])
     .describe("The AI provider selected by the user"),
   modelId: z
     .string()
@@ -42,6 +43,7 @@ export const dexAgent = new Agent({
       | "anthropic"
       | "groq"
       | "openrouter"
+      | "google"
       | undefined;
     const modelId = requestContext?.get("modelId") as string | undefined;
     const userId = requestContext?.get("userId") as string | undefined;
@@ -54,8 +56,16 @@ export const dexAgent = new Agent({
       return DEFAULT_MODEL;
     }
 
-    // TODO: Add strict model validation to ensure the requested modelId
-    // is actively supported by the provider, preventing malformed requests.
+    const isSupported = SUPPORTED_MODELS.some(
+      (m) => m.provider === provider && m.id === modelId,
+    );
+
+    if (!isSupported) {
+      logger?.warn(
+        `Requested unsupported model: ${modelId} from provider: ${provider}`,
+      );
+      return DEFAULT_MODEL;
+    }
 
     try {
       const apiKey = await aiKeyService.getDecryptedKey(userId, provider);

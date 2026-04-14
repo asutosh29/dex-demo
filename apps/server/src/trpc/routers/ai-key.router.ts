@@ -10,7 +10,13 @@ export const aiKeyRouter = router({
   store: protectedProcedure
     .input(
       z.object({
-        provider: z.enum(["openai", "anthropic", "groq", "openrouter"]),
+        provider: z.enum([
+          "openai",
+          "anthropic",
+          "groq",
+          "openrouter",
+          "google",
+        ]),
         key: z.string().min(1),
         label: z.string().optional(),
       }),
@@ -28,7 +34,13 @@ export const aiKeyRouter = router({
   delete: protectedProcedure
     .input(
       z.object({
-        provider: z.enum(["openai", "anthropic", "groq", "openrouter"]),
+        provider: z.enum([
+          "openai",
+          "anthropic",
+          "groq",
+          "openrouter",
+          "google",
+        ]),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -38,7 +50,13 @@ export const aiKeyRouter = router({
   check: protectedProcedure
     .input(
       z.object({
-        provider: z.enum(["openai", "anthropic", "groq", "openrouter"]),
+        provider: z.enum([
+          "openai",
+          "anthropic",
+          "groq",
+          "openrouter",
+          "google",
+        ]),
       }),
     )
     .query(async ({ ctx, input }) => {

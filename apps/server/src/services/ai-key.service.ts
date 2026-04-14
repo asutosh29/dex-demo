@@ -10,7 +10,7 @@ export class AiKeyService {
    */
   async storeKey(
     userId: string,
-    provider: "openai" | "anthropic" | "groq" | "openrouter",
+    provider: "openai" | "anthropic" | "groq" | "openrouter" | "google",
     rawKey: string,
     label?: string,
   ) {
@@ -56,7 +56,7 @@ export class AiKeyService {
    */
   async getDecryptedKey(
     userId: string,
-    provider: "openai" | "anthropic" | "groq" | "openrouter",
+    provider: "openai" | "anthropic" | "groq" | "openrouter" | "google",
   ): Promise<string> {
     const record = await db.query.aiProviderKeysTable.findFirst({
       where: and(
@@ -100,7 +100,7 @@ export class AiKeyService {
    */
   async deleteKey(
     userId: string,
-    provider: "openai" | "anthropic" | "groq" | "openrouter",
+    provider: "openai" | "anthropic" | "groq" | "openrouter" | "google",
   ) {
     const exists = await this.hasKey(userId, provider);
     if (!exists) {
@@ -123,7 +123,7 @@ export class AiKeyService {
    */
   async hasKey(
     userId: string,
-    provider: "openai" | "anthropic" | "groq" | "openrouter",
+    provider: "openai" | "anthropic" | "groq" | "openrouter" | "google",
   ): Promise<boolean> {
     const result = await db
       .select({ id: aiProviderKeysTable.id })

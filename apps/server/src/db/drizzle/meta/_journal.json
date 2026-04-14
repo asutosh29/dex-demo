@@ -85,6 +85,13 @@
       "when": 1776126839837,
       "tag": "0011_foamy_earthquake",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1776197118340,
+      "tag": "0012_youthful_corsair",
+      "breakpoints": true
     }
   ]
 }
