@@ -24,6 +24,9 @@ export const env = createEnv({
     GOOGLE_CLIENT_ID: z.string(),
     GOOGLE_CLIENT_SECRET: z.string(),
 
+    // AI provider keys BYOK
+    AI_KEY_ENCRYPTION_SECRET: z.string().length(64),
+
     // waitlist, only required if waitlist is enabled
     // NOTE: Zod's default primitives coercion should not be used for booleans, since every string gets coerced to true.
     WAITLIST_ENABLED: z.string().transform((s) => s !== "false" && s !== "0"),

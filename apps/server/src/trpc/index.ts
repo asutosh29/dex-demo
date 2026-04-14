@@ -7,6 +7,7 @@ import { ogpRouter } from "./routers/ogp.router";
 import { apiKeyRouter } from "./routers/api-key.router";
 import { notificationRouter } from "./routers/notification.router";
 import { invitationRouter } from "./routers/invitation.router";
+import { aiKeyRouter } from "./routers/ai-key.router";
 
 export const appRouter = router({
   items: itemRouter,
@@ -17,6 +18,7 @@ export const appRouter = router({
   apiKeys: apiKeyRouter,
   notifications: notificationRouter,
   invitations: invitationRouter,
+  aiKeys: aiKeyRouter,
 });
 
 export { createContext } from "./trpc";
