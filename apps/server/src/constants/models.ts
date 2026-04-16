@@ -1,5 +1,12 @@
 // TODO: Move to shared workspace library in the future
-export const SUPPORTED_MODELS = [
+export type ModelProvider = "groq" | "openai" | "anthropic" | "google";
+export type Model = {
+  provider: ModelProvider;
+  id: string;
+  name: string;
+  description: string;
+};
+export const SUPPORTED_MODELS: Model[] = [
   // Groq
   {
     provider: "groq",
@@ -9,19 +16,19 @@ export const SUPPORTED_MODELS = [
   },
   {
     provider: "groq",
-    id: "groq/llama-4-scout-17b",
+    id: "groq/meta-llama/llama-4-scout-17b-16e-instruct",
     name: "Llama 4 Scout (17B)",
     description: "Solid, fast, multimodal middle ground.",
   },
   {
     provider: "groq",
-    id: "groq/gpt-oss-120b",
+    id: "groq/openai/gpt-oss-120b",
     name: "GPT-OSS 120B",
     description: "OpenAI's flagship open-weight model.",
   },
   {
     provider: "groq",
-    id: "groq/qwen3-32b",
+    id: "groq/qwen/qwen3-32b",
     name: "Qwen3 32B",
     description: "Highly capable, especially strong in coding.",
   },

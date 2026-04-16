@@ -7,6 +7,7 @@ import { TRPCProvider } from "~/components/providers/trpc-provider";
 import { ThemeProvider } from "~/components/providers/theme-provider";
 import { Toaster } from "@repo/ui/components/ui/sonner";
 import { TooltipProvider } from "@repo/ui/components/ui/tooltip";
+import { ChatProvider } from "./components/providers/chat-provider.tsx";
 
 if (import.meta.env.DEV) {
   scan({
@@ -17,12 +18,14 @@ if (import.meta.env.DEV) {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <TRPCProvider>
-      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-        <TooltipProvider>
-          <App />
-          <Toaster />
-        </TooltipProvider>
-      </ThemeProvider>
+      <ChatProvider>
+        <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+          <TooltipProvider>
+            <App />
+            <Toaster />
+          </TooltipProvider>
+        </ThemeProvider>
+      </ChatProvider>
     </TRPCProvider>
   </StrictMode>,
 );

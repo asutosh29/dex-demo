@@ -18,6 +18,7 @@ import {
 } from "@repo/ui/components/ai-elements/prompt-input";
 import { SUPPORTED_MODELS } from "~/lib/models";
 import { trpc, type RouterOutputs } from "~/lib/trpc";
+import { useChatContext } from "../providers/chat-provider";
 
 interface ChatPromptInputProps {
   className?: string;
@@ -29,7 +30,7 @@ export function ChatPromptInput({
   sendMessage,
 }: ChatPromptInputProps) {
   const [text, setText] = useState("");
-  const [model, setModel] = useState(SUPPORTED_MODELS[0].id);
+  const { selectedModel, setSelectedModel } = useChatContext();
 
   const { data: aiKeys } = trpc.aiKeys.list.useQuery();
   const availableProviders = new Set(
@@ -48,7 +49,7 @@ export function ChatPromptInput({
         availableProviders.has(m.provider),
       );
       if (firstAvailable) {
-        setModel(firstAvailable.id);
+        setSelectedModel(firstAvailable.id);
       }
     }
   }, [aiKeys, availableProviders]);
@@ -86,7 +87,10 @@ export function ChatPromptInput({
               <PromptInputActionAddAttachments />
             </PromptInputActionMenuContent>
           </PromptInputActionMenu>
-          <PromptInputSelect value={model} onValueChange={setModel}>
+          <PromptInputSelect
+            value={selectedModel}
+            onValueChange={setSelectedModel}
+          >
             <PromptInputSelectTrigger>
               <PromptInputSelectValue />
             </PromptInputSelectTrigger>

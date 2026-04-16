@@ -19,7 +19,7 @@ export const weatherAgent = new Agent({
 
       Use the weatherTool to fetch current weather data.
 `,
-  // model: "groq/llama-3.3-70b-versatile",
+  // TODO: Add input processors to sanitise the reasoning traces before sending to non reasoning models.
   model: async ({ requestContext, mastra }) => {
     const provider = requestContext?.get("provider") as
       | "openai"

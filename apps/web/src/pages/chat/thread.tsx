@@ -15,14 +15,13 @@ import {
   ToolInput,
   ToolOutput,
 } from "@repo/ui/components/ai-elements/tool";
-import { useMemo, useEffect } from "react";
+import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { authClient } from "~/lib/auth-client";
 import { trpc } from "~/lib/trpc";
 import { ChatPromptInput } from "~/components/chat/chat-prompt-input";
-import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
 import { toAISdkV5Messages } from "@mastra/ai-sdk/ui";
+import { useChatContext } from "~/components/providers/chat-provider";
 
 export default function Thread() {
   const { threadId } = useParams<{ threadId: string }>();
@@ -32,35 +31,7 @@ export default function Thread() {
     threadId: threadId!,
   });
 
-  const transport = useMemo(
-    () =>
-      new DefaultChatTransport({
-        api: "http://localhost:8787/chat",
-        prepareSendMessagesRequest({ messages, body }) {
-          console.log("messages", messages);
-          console.log("body", body);
-          // NOTE: whatever is passed in the send message goes through here.
-          // What goes to the chat is plan and simple json
-          // Use the middleware on /chat/* to intercept and inject into request context in the backend!
-          return {
-            body: {
-              messages: [messages[messages.length - 1]],
-              memory: {
-                thread: threadId,
-                resource: session?.user?.id,
-              },
-              data: body?.data,
-            },
-          };
-        },
-      }),
-    [threadId, session?.user?.id],
-  );
-
-  const { messages, sendMessage, setMessages } = useChat({
-    transport,
-    experimental_throttle: 400,
-  });
+  const { messages, sendMessage, setMessages } = useChatContext();
 
   useEffect(() => {
     if (historyData) {
@@ -125,10 +96,8 @@ export default function Thread() {
               { text },
               {
                 body: {
-                  data: {
-                    provider: "groq",
-                    model: "groq/llama-3.3-70b-versatile",
-                  },
+                  threadId,
+                  userId: session?.user?.id,
                 },
               },
             )
