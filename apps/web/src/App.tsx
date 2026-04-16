@@ -9,7 +9,6 @@ const Login = lazy(() => import("./pages/login"));
 const Dashboard = lazy(() => import("./pages/dashboard"));
 const Collection = lazy(() => import("./pages/collection"));
 const ApiKeys = lazy(() => import("./pages/api-keys"));
-const NewChat = lazy(() => import("./pages/chat/new-chat"));
 const Thread = lazy(() => import("./pages/chat/thread"));
 const NotFound = lazy(() => import("./pages/not-found"));
 
@@ -31,8 +30,7 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/:collectionId" element={<Collection />} />
               <Route path="/dashboard/api-keys" element={<ApiKeys />} />
-              <Route path="/chat" element={<NewChat />} />
-              <Route path="/chat/:threadId" element={<Thread />} />
+              <Route path="/chat/:threadId?" element={<Thread />} />
             </Route>
           </Route>
           <Route path="*" element={<NotFound />} />
