@@ -10,12 +10,12 @@ import { authClient } from "~/lib/auth-client";
 import { trpc } from "~/lib/trpc";
 import { ChatPromptInput } from "~/components/chat/chat-prompt-input";
 import { toAISdkV5Messages } from "@mastra/ai-sdk/ui";
-import { useChatContext } from "~/components/providers/chat-provider";
 import { MessageParts } from "./messages";
 import {
   Message,
   MessageContent,
 } from "@repo/ui/components/ai-elements/message";
+import { useChatContext } from "~/components/providers/chat-context";
 
 export default function Thread() {
   const { threadId } = useParams<{ threadId: string }>();

@@ -18,7 +18,7 @@ import {
 } from "@repo/ui/components/ai-elements/prompt-input";
 import { SUPPORTED_MODELS } from "~/lib/models";
 import { trpc, type RouterOutputs } from "~/lib/trpc";
-import { useChatContext } from "../providers/chat-provider";
+import { useChatContext } from "../providers/chat-context";
 
 interface ChatPromptInputProps {
   className?: string;

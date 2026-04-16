@@ -1,23 +1,8 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { SUPPORTED_MODELS, type ModelProvider } from "~/lib/models";
-
-type ChatContextType = ReturnType<typeof useChat> & {
-  selectedModel: string;
-  setSelectedModel: (model: string) => void;
-};
-
-const ChatContext = createContext<ChatContextType | undefined>(undefined);
-
+import { ChatContext, type ChatContextType } from "./chat-context";
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [selectedModel, setSelectedModel] = useState(SUPPORTED_MODELS[0].id);
   const [modelProvider, setModelProvider] = useState<ModelProvider>(
@@ -100,11 +85,4 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
-};
-
-export const useChatContext = () => {
-  const context = useContext(ChatContext);
-  if (!context)
-    throw new Error("useChatContext must be used within a ChatProvider");
-  return context;
 };
