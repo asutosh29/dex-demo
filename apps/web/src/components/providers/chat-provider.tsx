@@ -35,6 +35,12 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     () =>
       new DefaultChatTransport({
         api: "http://localhost:8787/chat",
+        fetch: async (url, init) => {
+          return fetch(url, {
+            ...init,
+            credentials: "include", // This is the magic line
+          });
+        },
         prepareSendMessagesRequest({ messages, body }) {
           console.log("messages", messages);
           console.log("body", body);

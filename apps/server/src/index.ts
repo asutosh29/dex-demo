@@ -37,6 +37,7 @@ app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 app.use("*", async (c, next) => {
   // Logs the request body and other incoming data
   console.log("Request URL:", c.req.url);
+  console.log("Requst Header:", c.req.raw.headers);
   // clones if json type and logs it
   if (c.req.header("Content-Type")?.includes("application/json")) {
     const body = await c.req.json();
@@ -45,15 +46,6 @@ app.use("*", async (c, next) => {
   await next();
 });
 
-app.use("/chat/*", async (c, next) => {
-  console.log("== Injecting requestContext ==");
-  const requestContext = c.get("requestContext");
-  const body = await c.req.json();
-  requestContext.set("model", body.data.model);
-  requestContext.set("provider", body.data.provider);
-  console.log("requestContext", requestContext);
-  await next();
-});
 // tRPC endpoint
 app.use(
   "/api/trpc/*",
@@ -62,6 +54,26 @@ app.use(
     createContext,
   }),
 );
+
+app.use("/chat/*", async (c, next) => {
+  console.log("== Injecting requestContext ==");
+  const requestContext = c.get("requestContext");
+  const body = await c.req.json();
+  requestContext.set("model", body.data.model);
+  requestContext.set("provider", body.data.provider);
+
+  console.log("== Injecting authContext ==");
+  console.log("headers", c.req.raw.headers);
+  // Uses better auth to get the userId and makes it available in the context
+  const authContext = await auth.api.getSession({
+    headers: c.req.raw.headers,
+  });
+  requestContext.set("userContext", authContext?.user);
+
+  console.log("requestContext", requestContext);
+  await next();
+});
+
 mastraServer.registerCustomApiRoutes();
 await mastraServer.registerRoutes();
 

@@ -3,11 +3,9 @@ import { weatherTool } from "../tools/weather-tool";
 import { Memory } from "@mastra/memory";
 import { SUPPORTED_MODELS } from "~/constants/models";
 import { DEFAULT_MODEL } from "~/lib/model-resolver";
+import { auth } from "~/lib/auth";
 
-export const weatherAgent = new Agent({
-  id: "weather-agent",
-  name: "Weather Agent",
-  instructions: `
+const weatherPrompt = `
       You are a helpful weather assistant that provides accurate weather information.
 
       Your primary function is to help users get weather details for specific locations. When responding:
@@ -18,7 +16,23 @@ export const weatherAgent = new Agent({
       - Keep responses concise but informative
 
       Use the weatherTool to fetch current weather data.
-`,
+`;
+
+export const weatherAgent = new Agent({
+  id: "weather-agent",
+  name: "Weather Agent",
+  instructions: ({ requestContext }) => {
+    type Session = typeof auth.$Infer.Session;
+    type User = Session["user"];
+    const user = requestContext?.get("userContext") as User;
+    if (user && user.name) {
+      return weatherPrompt + `\nYou are serving a user with name ${user.name}`;
+    }
+    return (
+      weatherPrompt +
+      `\n You don't the know the user so ask their name and remember it!`
+    );
+  },
   // TODO: Add input processors to sanitise the reasoning traces before sending to non reasoning models.
   model: async ({ requestContext, mastra }) => {
     const provider = requestContext?.get("provider") as
