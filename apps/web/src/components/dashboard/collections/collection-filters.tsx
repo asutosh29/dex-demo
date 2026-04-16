@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useDroppable } from "@dnd-kit/core";
 import { Button } from "@repo/ui/components/ui/button";
@@ -21,14 +21,14 @@ import { toast } from "@repo/ui/components/ui/sonner";
 
 type SubCollection = RouterOutputs["collections"]["getSubCollections"][number];
 
-function SubCollectionChip({
+const SubCollectionChip = memo(function SubCollectionChip({
   sub,
   isActive,
   onSelect,
 }: {
   sub: SubCollection;
   isActive: boolean;
-  onSelect: () => void;
+  onSelect: (id: string) => void;
 }) {
   const droppableData = useMemo(
     () => ({ type: "collection" as const, collection: sub }),
@@ -40,12 +40,14 @@ function SubCollectionChip({
     data: droppableData,
   });
 
+  const handleClick = useCallback(() => onSelect(sub.id), [onSelect, sub.id]);
+
   return (
     <Button
       ref={setNodeRef}
       variant={isActive ? "default" : "secondary"}
       effect="pop"
-      onClick={onSelect}
+      onClick={handleClick}
       className={cn(
         "shrink-0 transition-colors min-w-20",
         isOver && "ring-2 ring-primary",
@@ -59,7 +61,7 @@ function SubCollectionChip({
       {sub.title}
     </Button>
   );
-}
+});
 
 export function CollectionFilters() {
   return (
@@ -148,6 +150,13 @@ const SubCollectionsView = () => {
   const subCollectionsScrollRef = useRef<HTMLDivElement | null>(null);
   const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
 
+  const handleSelectSubCollection = useCallback(
+    (id: string) => {
+      setActiveSubCollection((prev) => (prev === id ? null : id));
+    },
+    [setActiveSubCollection],
+  );
+
   // Sub-collections can only exist on root collections — skip if this is already a child
   const isSubCollection = !!collection?.parentId;
 
@@ -231,11 +240,7 @@ const SubCollectionsView = () => {
                 key={sub.id}
                 sub={sub}
                 isActive={activeSubCollection === sub.id}
-                onSelect={() =>
-                  setActiveSubCollection(
-                    activeSubCollection === sub.id ? null : sub.id,
-                  )
-                }
+                onSelect={handleSelectSubCollection}
               />
             ))}
           </div>

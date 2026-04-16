@@ -1,9 +1,20 @@
-import { createContext, use, useMemo, type ReactNode } from "react";
+import {
+  createContext,
+  use,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from "react";
 import { trpc } from "~/lib/trpc";
 import type { RouterOutputs } from "~/lib/trpc";
 
 type CollectionData = RouterOutputs["collections"]["get"];
 type FilterType = "link" | "note";
+
+type SubCollectionUpdater =
+  | string
+  | null
+  | ((prev: string | null) => string | null);
 
 interface CollectionContextValue {
   state: {
@@ -16,7 +27,7 @@ interface CollectionContextValue {
   };
   actions: {
     setFilter: (filter: FilterType) => void;
-    setActiveSubCollection: (id: string | null) => void;
+    setActiveSubCollection: (value: SubCollectionUpdater) => void;
     refetch: () => Promise<void>;
   };
   meta: {
@@ -40,7 +51,7 @@ interface CollectionProviderProps {
   filter: FilterType;
   activeSubCollection: string | null;
   onFilterChange: (filter: FilterType) => void;
-  onSubCollectionChange: (id: string | null) => void;
+  onSubCollectionChange: (value: SubCollectionUpdater) => void;
   children: ReactNode;
 }
 
@@ -71,28 +82,45 @@ export function CollectionProvider({
     });
   }, [items, filter, activeSubCollection]);
 
-  const refetch = async () => {
+  const refetch = useCallback(async () => {
     await utils.collections.get.invalidate({ id: collectionId });
-  };
+  }, [utils, collectionId]);
 
-  const value: CollectionContextValue = {
-    state: {
+  const actions = useMemo(
+    () => ({
+      setFilter: onFilterChange,
+      setActiveSubCollection: onSubCollectionChange,
+      refetch,
+    }),
+    [onFilterChange, onSubCollectionChange, refetch],
+  );
+
+  const meta = useMemo(() => ({ collectionId }), [collectionId]);
+
+  const value = useMemo<CollectionContextValue>(
+    () => ({
+      state: {
+        collection,
+        isLoading,
+        filter,
+        activeSubCollection,
+        items,
+        filteredItems,
+      },
+      actions,
+      meta,
+    }),
+    [
       collection,
       isLoading,
       filter,
       activeSubCollection,
       items,
       filteredItems,
-    },
-    actions: {
-      setFilter: onFilterChange,
-      setActiveSubCollection: onSubCollectionChange,
-      refetch,
-    },
-    meta: {
-      collectionId,
-    },
-  };
+      actions,
+      meta,
+    ],
+  );
 
   return <CollectionContext value={value}>{children}</CollectionContext>;
 }

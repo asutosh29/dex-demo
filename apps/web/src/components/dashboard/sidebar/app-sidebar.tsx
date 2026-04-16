@@ -61,7 +61,7 @@ const SubCollectionSidebarItem = memo(function SubCollectionSidebarItem({
       >
         <Link
           ref={setNodeRef}
-          to={`/dashboard/${parentId}/${subCollection.id}`}
+          to={`/dashboard/${parentId}?sub=${subCollection.id}`}
           className={cn(isOver && "animate-pulse")}
         >
           <Hash />
@@ -79,7 +79,11 @@ const CollectionMenuItem = memo(function CollectionMenuItem({
   collection: UserCollection;
   isActive: boolean;
 }) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  const activeSubCollectionId = useMemo(
+    () => new URLSearchParams(search).get("sub"),
+    [search],
+  );
   // Latch: once this collection is hovered during a drag, keep sub-collections
   // visible until the drag ends — so moving onto a child chip doesn't collapse them.
   const [isExpandedForDrag, setIsExpandedForDrag] = useState(false);
@@ -176,7 +180,8 @@ const CollectionMenuItem = memo(function CollectionMenuItem({
                 subCollection={subCollection}
                 parentId={collection.id}
                 isActive={
-                  pathname === `/dashboard/${collection.id}/${subCollection.id}`
+                  pathname === `/dashboard/${collection.id}` &&
+                  activeSubCollectionId === subCollection.id
                 }
               />
             ))}
