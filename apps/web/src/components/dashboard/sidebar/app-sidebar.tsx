@@ -173,7 +173,10 @@ const CollectionMenuItem = memo(function CollectionMenuItem({
       {(isActive || isExpandedForDrag) &&
         subCollections &&
         subCollections.length > 0 && (
-          <SidebarMenuSub className="animate-in slide-in-from-top-5">
+          <SidebarMenuSub
+            data-state={isActive ? "open" : "closed"}
+            className="data-[state=open]:animate-in data-[state=open]:slide-in-from-top-5 data-[state=closed]:animate-out data-[state=closed]:fade-out-0"
+          >
             {subCollections.map((subCollection) => (
               <SubCollectionSidebarItem
                 key={subCollection.id}

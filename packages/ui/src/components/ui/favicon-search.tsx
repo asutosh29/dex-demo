@@ -170,7 +170,6 @@ const FaviconSearch = React.forwardRef<HTMLInputElement, FaviconSearchProps>(
             "placeholder:text-muted-foreground",
             "outline-none ring-offset-background",
             "transition-shadow duration-200",
-            "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             "hover:border-muted-foreground/50",
             inputClassName,
           )}
