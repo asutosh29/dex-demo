@@ -1,5 +1,13 @@
 // TODO: Move to shared workspace library in the future
-export const SUPPORTED_MODELS = [
+type SupportedProvider = "groq" | "openai" | "anthropic" | "google";
+type SupportedModel = {
+  provider: SupportedProvider;
+  id: string;
+  name: string;
+  description: string;
+};
+
+export const SUPPORTED_MODELS: SupportedModel[] = [
   // Groq
   {
     provider: "groq",

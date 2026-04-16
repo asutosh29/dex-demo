@@ -98,16 +98,9 @@ const CollectionMenuItem = memo(function CollectionMenuItem({
   );
 });
 
-// --- Mock chat threads for static UI ---
-const MOCK_THREADS = [
-  { id: "1", title: "Planning travel..." },
-  { id: "2", title: "Checking weather conditions..." },
-  { id: "3", title: "Booking accommodations..." },
-  { id: "4", title: "Creating an itinerary..." },
-  { id: "5", title: "Packing essentials..." },
-];
-
 function ChatHistoryList({ currentThreadId }: { currentThreadId?: string }) {
+  const { data, isLoading } = trpc.threads.list.useQuery({});
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Recents</SidebarGroupLabel>
@@ -118,19 +111,29 @@ function ChatHistoryList({ currentThreadId }: { currentThreadId?: string }) {
       </SidebarGroupAction>
       <SidebarGroupContent>
         <SidebarMenu>
-          {MOCK_THREADS.map((thread) => (
-            <SidebarMenuItem key={thread.id}>
-              <SidebarMenuButton
-                isActive={currentThreadId === thread.id}
-                asChild
-              >
-                <Link to={`/chat/${thread.id}`}>
-                  <MessageSquare className="size-4" />
-                  <span className="truncate max-w-[16ch]">{thread.title}</span>
-                </Link>
+          {isLoading ? (
+            <SidebarMenuItem>
+              <SidebarMenuButton>
+                <Loader2 className="animate-spin text-muted-foreground mx-auto" />
               </SidebarMenuButton>
             </SidebarMenuItem>
-          ))}
+          ) : (
+            data?.threads.map((thread) => (
+              <SidebarMenuItem key={thread.id}>
+                <SidebarMenuButton
+                  isActive={currentThreadId === thread.id}
+                  asChild
+                >
+                  <Link to={`/chat/${thread.id}`}>
+                    <MessageSquare className="size-4" />
+                    <span className="truncate max-w-[16ch]">
+                      {thread.title || "New Conversation"}
+                    </span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))
+          )}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

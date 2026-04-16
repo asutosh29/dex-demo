@@ -15,94 +15,95 @@ import {
   ToolInput,
   ToolOutput,
 } from "@repo/ui/components/ai-elements/tool";
+import { useMemo, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { authClient } from "~/lib/auth-client";
+import { trpc } from "~/lib/trpc";
 import { ChatPromptInput } from "~/components/chat/chat-prompt-input";
-
-// --- Static mock data matching the mockup ---
-const MOCK_TOOL_INPUT = {
-  databases: ["analytics"],
-  params: [{ "2024-01-01": "" }],
-  query: "SELECT COUNT(*) FROM users WHERE created_at > ?",
-};
-
-const MOCK_TOOL_OUTPUT = `| User ID | Name | Email | Created At |
-|---------|------|-------|------------|
-| 1 | John Doe | john@example.com | 2024-01-15 |
-| 2 | Jane Smith | jane@example.com | 2024-01-20 |
-| 3 | Bob Wilson | bob@example.com | 2024-02-01 |
-| 4 | Alice Brown | alice@example.com | 2024-02-12 |
-| 5 | Charlie Davis | charlie@example.com | 2024-02-15 |`;
-
-interface MockMessage {
-  id: string;
-  role: "user" | "assistant";
-  text?: string;
-  toolCall?: {
-    name: string;
-    input: Record<string, unknown>;
-    output: string;
-  };
-}
-
-const MOCK_MESSAGES: MockMessage[] = [
-  {
-    id: "1",
-    role: "user",
-    text: "Hi there whatsup!",
-  },
-  {
-    id: "2",
-    role: "assistant",
-    text: "Hi there!\nI am dex your personal assistant and gateway to your second brain!\n\nLet me know what would you like to discuss next?",
-  },
-  {
-    id: "3",
-    role: "user",
-    text: "Show me my collections",
-  },
-  {
-    id: "4",
-    role: "assistant",
-    text: "Let me use the tools at hand...",
-    toolCall: {
-      name: "database_query",
-      input: MOCK_TOOL_INPUT,
-      output: MOCK_TOOL_OUTPUT,
-    },
-  },
-];
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
+import { toAISdkV5Messages } from "@mastra/ai-sdk/ui";
 
 export default function Thread() {
+  const { threadId } = useParams<{ threadId: string }>();
+  const { data: session } = authClient.useSession();
+
+  const { data: historyData } = trpc.threads.getHistory.useQuery({
+    threadId: threadId!,
+  });
+
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "http://localhost:8787/chat",
+        prepareSendMessagesRequest({ messages }) {
+          return {
+            body: {
+              messages: [messages[messages.length - 1]],
+              memory: {
+                thread: threadId,
+                resource: session?.user?.id,
+              },
+            },
+          };
+        },
+      }),
+    [threadId, session?.user?.id],
+  );
+
+  const { messages, sendMessage, setMessages } = useChat({
+    transport,
+    experimental_throttle: 400,
+  });
+
+  useEffect(() => {
+    if (historyData) {
+      // TODO: For a later stage, avoid using useEffect to seed useChat
+      // to cleanly handle the initial mount race condition. Best practice is
+      // splitting this out into a wrapper that fetches data, formatting
+      // via @mastra/ai-sdk/ui 'toAISdkV5Messages', and passing it via initialMessages.
+      setMessages(toAISdkV5Messages(historyData.messages));
+    }
+    console.log("historyData", historyData);
+    console.log("uiMessages", toAISdkV5Messages(historyData?.messages || []));
+  }, [historyData, setMessages]);
+
   return (
     <div className="flex flex-1 flex-col h-full">
       <Conversation>
         <ConversationContent className="max-w-3xl mx-auto w-full">
-          {MOCK_MESSAGES.map((message) => (
+          {messages.map((message) => (
             <Message from={message.role} key={message.id}>
               <MessageContent>
-                {message.text && (
-                  <MessageResponse>{message.text}</MessageResponse>
-                )}
-                {message.toolCall && (
-                  <Tool defaultOpen>
-                    <ToolHeader
-                      type={
-                        ("tool-" + message.toolCall.name) as `tool-${string}`
-                      }
-                      state="output-available"
-                    />
-                    <ToolContent>
-                      <ToolInput input={message.toolCall.input} />
-                      <ToolOutput
-                        output={
-                          <MessageResponse>
-                            {message.toolCall.output}
-                          </MessageResponse>
-                        }
-                        errorText={undefined}
-                      />
-                    </ToolContent>
-                  </Tool>
-                )}
+                {/* normal message */}
+                {message.parts.map((part, partIndex) => {
+                  if (part.type === "text") {
+                    return (
+                      <MessageResponse key={`${message.id}-text-${partIndex}`}>
+                        {part.text}
+                      </MessageResponse>
+                    );
+                  }
+                  if (part.type === "tool-weatherTool") {
+                    return (
+                      <Tool defaultOpen key={`${message.id}-tool-${partIndex}`}>
+                        <ToolHeader
+                          type={part.type as `tool-${string}`}
+                          state="output-available"
+                        />
+                        <ToolContent>
+                          <ToolInput input={part.input} />
+                          <ToolOutput
+                            output={
+                              <MessageResponse>{part.output}</MessageResponse>
+                            }
+                            errorText={undefined}
+                          />
+                        </ToolContent>
+                      </Tool>
+                    );
+                  }
+                })}
               </MessageContent>
             </Message>
           ))}
@@ -111,7 +112,10 @@ export default function Thread() {
       </Conversation>
 
       <div className="sticky bottom-0 p-4 bg-background/80 backdrop-blur-sm">
-        <ChatPromptInput className="max-w-3xl mx-auto w-full" />
+        <ChatPromptInput
+          className="max-w-3xl mx-auto w-full"
+          sendMessage={(text) => sendMessage({ text })}
+        />
       </div>
     </div>
   );

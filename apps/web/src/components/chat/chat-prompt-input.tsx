@@ -21,9 +21,13 @@ import { trpc, type RouterOutputs } from "~/lib/trpc";
 
 interface ChatPromptInputProps {
   className?: string;
+  sendMessage: (text: string) => void;
 }
 
-export function ChatPromptInput({ className }: ChatPromptInputProps) {
+export function ChatPromptInput({
+  className,
+  sendMessage,
+}: ChatPromptInputProps) {
   const [text, setText] = useState("");
   const [model, setModel] = useState(SUPPORTED_MODELS[0].id);
 
@@ -60,7 +64,7 @@ export function ChatPromptInput({ className }: ChatPromptInputProps) {
   return (
     <PromptInput
       onSubmit={() => {
-        // Static — no-op for now
+        sendMessage(text);
         setText("");
       }}
       className={className}

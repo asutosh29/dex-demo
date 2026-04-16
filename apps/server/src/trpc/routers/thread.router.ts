@@ -94,6 +94,41 @@ export const threadRouter = router({
       return result;
     }),
 
+  getHistory: protectedProcedure
+    .input(
+      z.object({
+        threadId: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const memory = await getMastraMemory();
+
+      let thread = await memory.getThreadById({ threadId: input.threadId });
+
+      if (!thread) {
+        // TODO: Handle the non existent threads on frontend rather than creating it on backend
+        thread = await memory.createThread({
+          threadId: input.threadId,
+          resourceId: ctx.user.id,
+        });
+      } else {
+        // Authorization Check
+        if (thread.resourceId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "You do not have permission to view this thread",
+          });
+        }
+      }
+
+      const { messages } = await memory.recall({
+        threadId: input.threadId,
+        perPage: false,
+      });
+
+      return { messages };
+    }),
+
   rename: protectedProcedure
     .input(
       z.object({

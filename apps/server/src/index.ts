@@ -13,7 +13,7 @@ import { mastra } from "~/mastra";
 
 const app = new Hono<{ Bindings: HonoBindings; Variables: HonoVariables }>();
 const mastraServer = new MastraServer({ app, mastra, prefix: "/mastra" });
-
+mastraServer.registerContextMiddleware();
 /*
  ** Headers
  * x-mastra-dev-playground: Sent by Mastra Studio to enable dev playground
@@ -32,10 +32,21 @@ app.use(
   }),
 );
 
-await mastraServer.init();
-
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
+app.use("*", async (c, next) => {
+  // Logs the request body and other incoming data
+  // Check ift
+  console.log("Request URL:", c.req.url);
+  console.log("Request Headers:", c.req.header());
+
+  // clones if json type and logs it
+  if (c.req.header("Content-Type")?.includes("application/json")) {
+    const body = await c.req.json();
+    console.log("Request Body:", body);
+  }
+  await next();
+});
 // tRPC endpoint
 app.use(
   "/api/trpc/*",
@@ -44,6 +55,9 @@ app.use(
     createContext,
   }),
 );
+
+mastraServer.registerCustomApiRoutes();
+await mastraServer.registerRoutes();
 
 app.get("/", (c) => {
   return c.text("Hello Hono!");
