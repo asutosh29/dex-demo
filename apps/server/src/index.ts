@@ -36,15 +36,22 @@ app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
 app.use("*", async (c, next) => {
   // Logs the request body and other incoming data
-  // Check ift
   console.log("Request URL:", c.req.url);
-  console.log("Request Headers:", c.req.header());
-
   // clones if json type and logs it
   if (c.req.header("Content-Type")?.includes("application/json")) {
     const body = await c.req.json();
     console.log("Request Body:", body);
   }
+  await next();
+});
+
+app.use("/chat/*", async (c, next) => {
+  console.log("== Injecting requestContext ==");
+  const requestContext = c.get("requestContext");
+  const body = await c.req.json();
+  requestContext.set("model", body.data.model);
+  requestContext.set("provider", body.data.provider);
+  console.log("requestContext", requestContext);
   await next();
 });
 // tRPC endpoint
@@ -55,7 +62,6 @@ app.use(
     createContext,
   }),
 );
-
 mastraServer.registerCustomApiRoutes();
 await mastraServer.registerRoutes();
 

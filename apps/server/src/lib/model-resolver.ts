@@ -3,7 +3,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGroq } from "@ai-sdk/groq";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
-export const DEFAULT_MODEL = "groq/moonshotai/kimi-k2-instruct-0905";
+export const DEFAULT_MODEL = "groq/llama-3.3-70b-versatile";
 
 // We use any for Model factory return since AI SDK has complex polymorphic types
 const PROVIDERS: Record<string, any> = {

@@ -36,7 +36,12 @@ export default function Thread() {
     () =>
       new DefaultChatTransport({
         api: "http://localhost:8787/chat",
-        prepareSendMessagesRequest({ messages }) {
+        prepareSendMessagesRequest({ messages, body }) {
+          console.log("messages", messages);
+          console.log("body", body);
+          // NOTE: whatever is passed in the send message goes through here.
+          // What goes to the chat is plan and simple json
+          // Use the middleware on /chat/* to intercept and inject into request context in the backend!
           return {
             body: {
               messages: [messages[messages.length - 1]],
@@ -44,6 +49,7 @@ export default function Thread() {
                 thread: threadId,
                 resource: session?.user?.id,
               },
+              data: body?.data,
             },
           };
         },
@@ -114,7 +120,19 @@ export default function Thread() {
       <div className="sticky bottom-0 p-4 bg-background/80 backdrop-blur-sm">
         <ChatPromptInput
           className="max-w-3xl mx-auto w-full"
-          sendMessage={(text) => sendMessage({ text })}
+          sendMessage={(text) =>
+            sendMessage(
+              { text },
+              {
+                body: {
+                  data: {
+                    provider: "groq",
+                    model: "groq/llama-3.3-70b-versatile",
+                  },
+                },
+              },
+            )
+          }
         />
       </div>
     </div>

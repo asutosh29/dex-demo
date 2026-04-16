@@ -1,6 +1,8 @@
 import { Agent } from "@mastra/core/agent";
 import { weatherTool } from "../tools/weather-tool";
 import { Memory } from "@mastra/memory";
+import { SUPPORTED_MODELS } from "~/constants/models";
+import { DEFAULT_MODEL } from "~/lib/model-resolver";
 
 export const weatherAgent = new Agent({
   id: "weather-agent",
@@ -17,7 +19,37 @@ export const weatherAgent = new Agent({
 
       Use the weatherTool to fetch current weather data.
 `,
-  model: "groq/llama-3.3-70b-versatile",
+  // model: "groq/llama-3.3-70b-versatile",
+  model: async ({ requestContext, mastra }) => {
+    const provider = requestContext?.get("provider") as
+      | "openai"
+      | "anthropic"
+      | "groq"
+      | "openrouter"
+      | "google"
+      | undefined;
+    const model = requestContext?.get("model") as string | undefined;
+    const logger = mastra?.getLogger();
+    logger?.info(JSON.stringify(requestContext));
+    if (!model || !provider) {
+      logger?.warn(
+        "Failed to resolve dynamic model for user, using default model.",
+      );
+      return DEFAULT_MODEL;
+    }
+    const isSupported = SUPPORTED_MODELS.some(
+      (m) => m.provider === provider && m.id === model,
+    );
+    if (!isSupported) {
+      logger?.warn(
+        `Requested unsupported model: ${model} from provider: ${provider}`,
+      );
+      return DEFAULT_MODEL;
+    }
+
+    logger?.info(`Resolved model: ${model} from provider: ${provider}`);
+    return model;
+  },
   tools: { weatherTool },
   memory: new Memory(),
 });
