@@ -69,6 +69,8 @@ app.use("/chat/*", async (c, next) => {
     headers: c.req.raw.headers,
   });
   requestContext.set("userContext", authContext?.user);
+  requestContext.set("userName", authContext?.user?.name);
+  requestContext.set("userId", authContext?.user?.id);
 
   console.log("requestContext", requestContext);
   await next();

@@ -19,7 +19,7 @@ export const dexRequestContextSchema = z.object({
   provider: z
     .enum(["openai", "anthropic", "groq", "openrouter", "google"])
     .describe("The AI provider selected by the user"),
-  modelId: z
+  model: z
     .string()
     .describe("The specific model ID to request from the provider"),
   userId: z.string().describe("The unique Better-Auth ID of the user"),
@@ -45,7 +45,7 @@ export const dexAgent = new Agent({
       | "openrouter"
       | "google"
       | undefined;
-    const modelId = requestContext?.get("modelId") as string | undefined;
+    const modelId = requestContext?.get("model") as string | undefined;
     const userId = requestContext?.get("userId") as string | undefined;
 
     const logger = mastra?.getLogger();

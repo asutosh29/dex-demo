@@ -3,18 +3,7 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from "@repo/ui/components/ai-elements/conversation";
-import {
-  Message,
-  MessageContent,
-  MessageResponse,
-} from "@repo/ui/components/ai-elements/message";
-import {
-  Tool,
-  ToolHeader,
-  ToolContent,
-  ToolInput,
-  ToolOutput,
-} from "@repo/ui/components/ai-elements/tool";
+
 import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { authClient } from "~/lib/auth-client";
@@ -22,6 +11,11 @@ import { trpc } from "~/lib/trpc";
 import { ChatPromptInput } from "~/components/chat/chat-prompt-input";
 import { toAISdkV5Messages } from "@mastra/ai-sdk/ui";
 import { useChatContext } from "~/components/providers/chat-provider";
+import { MessageParts } from "./messages";
+import {
+  Message,
+  MessageContent,
+} from "@repo/ui/components/ai-elements/message";
 
 export default function Thread() {
   const { threadId } = useParams<{ threadId: string }>();
@@ -31,7 +25,7 @@ export default function Thread() {
     threadId: threadId!,
   });
 
-  const { messages, sendMessage, setMessages } = useChatContext();
+  const { messages, sendMessage, setMessages, status } = useChatContext();
 
   useEffect(() => {
     if (historyData) {
@@ -44,53 +38,31 @@ export default function Thread() {
     console.log("historyData", historyData);
     console.log("uiMessages", toAISdkV5Messages(historyData?.messages || []));
   }, [historyData, setMessages]);
-
+  const isStreaming = status === "streaming";
   return (
-    <div className="flex flex-1 flex-col h-full">
+    <div className="flex flex-col h-full">
       <Conversation>
         <ConversationContent className="max-w-3xl mx-auto w-full">
-          {messages.map((message) => (
+          {/* <DebugPanel messages={messages} /> */}
+          {messages.map((message, index) => (
             <Message from={message.role} key={message.id}>
               <MessageContent>
-                {/* normal message */}
-                {message.parts.map((part, partIndex) => {
-                  if (part.type === "text") {
-                    return (
-                      <MessageResponse key={`${message.id}-text-${partIndex}`}>
-                        {part.text}
-                      </MessageResponse>
-                    );
-                  }
-                  if (part.type === "tool-weatherTool") {
-                    return (
-                      <Tool defaultOpen key={`${message.id}-tool-${partIndex}`}>
-                        <ToolHeader
-                          type={part.type as `tool-${string}`}
-                          state="output-available"
-                        />
-                        <ToolContent>
-                          <ToolInput input={part.input} />
-                          <ToolOutput
-                            output={
-                              <MessageResponse>{part.output}</MessageResponse>
-                            }
-                            errorText={undefined}
-                          />
-                        </ToolContent>
-                      </Tool>
-                    );
-                  }
-                })}
+                <MessageParts
+                  key={message.id}
+                  message={message}
+                  isLastMessage={index === messages.length - 1}
+                  isStreaming={isStreaming}
+                />
               </MessageContent>
             </Message>
           ))}
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
-
-      <div className="sticky bottom-0 p-4 bg-background/80 backdrop-blur-sm">
+      {/* Add a linear gradient bg-background at bottom and fade it out to the top */}
+      <div className="sticky bottom-0 bg-linear-to-t from-background from-50% to-transparent pt-12 pb-4">
         <ChatPromptInput
-          className="max-w-3xl mx-auto w-full"
+          className="max-w-3xl mx-auto w-full bg-background rounded-lg"
           sendMessage={(text) =>
             sendMessage(
               { text },

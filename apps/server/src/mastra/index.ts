@@ -5,10 +5,9 @@ import { PostgresStore } from "@mastra/pg";
 import { PinoLogger } from "@mastra/loggers";
 import { MastraEditor } from "@mastra/editor";
 import { chatRoute } from "@mastra/ai-sdk";
-import { weatherAgent } from "./agents/weather-agent";
 
 export const mastra = new Mastra({
-  agents: { dexAgent, weatherAgent },
+  agents: { dexAgent },
   storage: new PostgresStore({
     id: "pg-storage-test",
     connectionString: env.DB_URL,
@@ -18,7 +17,7 @@ export const mastra = new Mastra({
       chatRoute({
         version: "v6",
         path: "/chat",
-        agent: "weather-agent",
+        agent: "dex-agent",
         defaultOptions: {},
       }),
     ],

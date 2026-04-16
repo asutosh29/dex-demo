@@ -74,6 +74,7 @@ export class AiKeyService {
     } catch (error) {
       throw new Error(
         `Failed to decrypt API key for provider: ${provider}. The key may be corrupted.`,
+        { cause: error },
       );
     }
   }
