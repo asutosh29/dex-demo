@@ -13,10 +13,9 @@ import {
 } from "@repo/ui/components/ui/context-menu";
 import { Kbd } from "@repo/ui/components/ui/kbd";
 import { ArrowUpLeft, CopyIcon, Trash } from "@repo/ui/icons";
-import {
-  useCollectionItem,
-  type AnyCollectionItem,
-} from "./use-collection-item";
+import { type AnyCollectionItem } from "./use-collection-item";
+import { trpc } from "~/lib/trpc";
+import { toast } from "@repo/ui/components/ui/sonner";
 
 export function CollectionItems() {
   const {
@@ -74,9 +73,28 @@ function ActionsContextMenu({
   item: AnyCollectionItem;
   children: React.ReactNode;
 }) {
-  const {
-    actions: { handleDelete },
-  } = useCollectionItem({ item, collectionId });
+  const utils = trpc.useUtils();
+  const sourceCollectionId = item.subCollection?.id ?? collectionId;
+  const deleteMutation = trpc.collections.removeItem.useMutation({
+    onSuccess: () => {
+      [collectionId, sourceCollectionId]
+        .filter((id): id is string => Boolean(id))
+        .forEach((id) => utils.collections.get.invalidate({ id }));
+      toast.success("Item deleted successfully");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to delete item");
+    },
+  });
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    deleteMutation.mutate({
+      collectionId: sourceCollectionId,
+      itemId: item.id,
+    });
+  };
+
   return (
     <ContextMenu>
       <ContextMenuTrigger>{children}</ContextMenuTrigger>
