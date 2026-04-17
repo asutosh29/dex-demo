@@ -3,6 +3,7 @@ import { DefaultChatTransport } from "ai";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { SUPPORTED_MODELS, type ModelProvider } from "~/lib/models";
 import { ChatContext, type ChatContextType } from "./chat-context";
+import { toast } from "@repo/ui/components/ui/sonner";
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [selectedModel, setSelectedModel] = useState(SUPPORTED_MODELS[0].id);
   const [modelProvider, setModelProvider] = useState<ModelProvider>(
@@ -55,6 +56,10 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const chat = useChat({
     transport,
     experimental_throttle: 400,
+    onError: (error) => {
+      console.log("error", error);
+      toast.error(error.message);
+    },
   });
 
   useEffect(() => {

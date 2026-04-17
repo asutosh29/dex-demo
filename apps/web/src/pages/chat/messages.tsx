@@ -55,7 +55,7 @@ export const MessageParts = ({
         if (part.type.startsWith("tool-")) {
           const toolPart = part as ToolUIPart;
           return (
-            <Tool defaultOpen key={`${message.id}-tool-${partIndex}`}>
+            <Tool key={`${message.id}-tool-${partIndex}`}>
               <ToolHeader
                 type={toolPart.type as `tool-${string}`}
                 state="output-available"
