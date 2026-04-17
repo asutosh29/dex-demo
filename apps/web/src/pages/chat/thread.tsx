@@ -10,7 +10,7 @@ import { authClient } from "~/lib/auth-client";
 import { trpc } from "~/lib/trpc";
 import { ChatPromptInput } from "~/components/chat/chat-prompt-input";
 import { toAISdkV5Messages } from "@mastra/ai-sdk/ui";
-import { MessageParts } from "./messages";
+import { MessageParts } from "~/components/chat/message-parts";
 import {
   Message,
   MessageContent,

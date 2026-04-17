@@ -13,6 +13,12 @@ import {
   ReasoningTrigger,
 } from "@repo/ui/components/ai-elements/reasoning";
 import type { ToolUIPart } from "ai";
+import TestEcho, {
+  type TestEchoInput,
+  type TestEchoOutput,
+} from "./gen-ui/test-echo";
+import { Loader } from "@repo/ui/icons";
+import { TEST_ECHO } from "~/lib/chat/tools/utils";
 
 export const MessageParts = ({
   message,
@@ -54,6 +60,32 @@ export const MessageParts = ({
         }
         if (part.type.startsWith("tool-")) {
           const toolPart = part as ToolUIPart;
+          // TODO: Abstract this out into a component mapper
+          if (toolPart.type === `tool-${TEST_ECHO}`) {
+            const input = toolPart.input as TestEchoInput;
+            const output = toolPart.output as TestEchoOutput;
+            // return <TestEcho key={`${message.id}-tool-${partIndex}`} message={toolPart.input as string} />
+            switch (toolPart.state) {
+              case "input-available":
+                return <Loader key={`${message.id}-tool-${partIndex}`} />;
+              case "output-available":
+                return (
+                  <TestEcho
+                    key={`${message.id}-tool-${partIndex}`}
+                    input={input}
+                    output={output}
+                  />
+                );
+              case "output-error":
+                return (
+                  <div key={`${message.id}-tool-${partIndex}`}>
+                    Error: {"Some Error"}
+                  </div>
+                );
+              default:
+                return null;
+            }
+          }
           return (
             <Tool key={`${message.id}-tool-${partIndex}`}>
               <ToolHeader
