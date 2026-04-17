@@ -1,6 +1,6 @@
 {
-  "id": "0777d60a-b1dd-4be8-9820-c64591cc988a",
-  "prevId": "c67493b4-4aef-4f29-9f9e-09353147c0ef",
+  "id": "3c015f37-fdcd-4e85-8471-c6bf0e9a8120",
+  "prevId": "8ca1023b-c633-4fc5-b616-cd4145102857",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -20,6 +20,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp",
@@ -35,12 +41,43 @@
           "default": "now()"
         }
       },
-      "indexes": {},
-      "foreignKeys": {},
+      "indexes": {
+        "idx_collections_parent_id": {
+          "name": "idx_collections_parent_id",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "collections_parent_id_collections_id_fk": {
+          "name": "collections_parent_id_collections_id_fk",
+          "tableFrom": "collections",
+          "tableTo": "collections",
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "collections_no_self_parent": {
+          "name": "collections_no_self_parent",
+          "value": "\"collections\".\"parent_id\" IS NULL OR \"collections\".\"parent_id\" <> \"collections\".\"id\""
+        }
+      },
       "isRLSEnabled": false
     },
     "public.items": {
@@ -1537,7 +1574,7 @@
     "public.ai_provider_enum": {
       "name": "ai_provider_enum",
       "schema": "public",
-      "values": ["openai", "anthropic", "groq", "openrouter"]
+      "values": ["openai", "anthropic", "groq", "openrouter", "google"]
     }
   },
   "schemas": {},
