@@ -14,7 +14,14 @@ export {
 export { RolePermissions, ApiKeyPermissions } from "./permissions";
 
 // Actor management (DB-dependent)
-export { createApiKeyActor, getActor, can, assertCan } from "./actor";
+export {
+  createApiKeyActor,
+  getActor,
+  can,
+  canAsync,
+  assertCan,
+  assertCanAsync,
+} from "./actor";
 
 // Pure helper functions (no DB dependencies, safe for frontend)
 export {

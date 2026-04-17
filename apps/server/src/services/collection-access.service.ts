@@ -10,6 +10,7 @@ import { getActor, assertCan, Action, Role } from "./rbac";
 import { env } from "~/lib/env";
 import { activityService } from "./activity.service";
 import { notificationService } from "./notification.service";
+import { resolveCollection, assertRoot } from "./collection/resolve";
 
 export class CollectionAccessService {
   /* ─────────────────────────────────────────────
@@ -87,6 +88,7 @@ export class CollectionAccessService {
    * ───────────────────────────────────────────── */
 
   async getMembers(userId: string, collectionId: string) {
+    assertRoot(await resolveCollection(collectionId));
     const actor = await getActor(userId, collectionId);
     assertCan(actor, Action.COLLECTION_VIEW_MEMBERS);
 
@@ -121,6 +123,7 @@ export class CollectionAccessService {
     targetUserId: string,
     role: "member" | "admin",
   ) {
+    assertRoot(await resolveCollection(collectionId));
     const actor = await getActor(actorId, collectionId);
     assertCan(actor, Action.COLLECTION_MANAGE_MEMBERS);
 
@@ -175,6 +178,7 @@ export class CollectionAccessService {
     collectionId: string,
     targetUserId: string,
   ) {
+    assertRoot(await resolveCollection(collectionId));
     const actor = await getActor(actorId, collectionId);
     assertCan(actor, Action.COLLECTION_MANAGE_MEMBERS);
 
@@ -246,6 +250,7 @@ export class CollectionAccessService {
     collectionId: string,
     targetUserId: string,
   ) {
+    assertRoot(await resolveCollection(collectionId));
     const actor = await getActor(actorId, collectionId);
     assertCan(actor, Action.COLLECTION_MANAGE_MEMBERS);
 
@@ -299,6 +304,7 @@ export class CollectionAccessService {
     collectionId: string,
     targetUserId: string,
   ) {
+    assertRoot(await resolveCollection(collectionId));
     const actor = await getActor(actorId, collectionId);
 
     // Get target user's current role
@@ -359,6 +365,7 @@ export class CollectionAccessService {
     collectionId: string,
     newOwnerId: string,
   ) {
+    assertRoot(await resolveCollection(collectionId));
     const actor = await getActor(actorId, collectionId);
     assertCan(actor, Action.COLLECTION_CHANGE_ROLES);
 
@@ -458,6 +465,7 @@ export class CollectionAccessService {
    * ───────────────────────────────────────────── */
 
   async leaveCollection(userId: string, collectionId: string) {
+    assertRoot(await resolveCollection(collectionId));
     const actor = await getActor(userId, collectionId);
     assertCan(actor, Action.COLLECTION_LEAVE);
 

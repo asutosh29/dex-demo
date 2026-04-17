@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useState, useRef } from "react";
 
-import { useDroppable } from "@dnd-kit/core";
+import { useDroppable, useDndMonitor } from "@dnd-kit/core";
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +14,9 @@ import {
   SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
 } from "@repo/ui/components/ui/sidebar";
 import { Tabs, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
@@ -59,6 +62,47 @@ import { toast } from "@repo/ui/components/ui/sonner";
 type UserCollection =
   RouterOutputs["collections"]["getUserCollections"][number];
 
+type SubCollection = RouterOutputs["collections"]["getSubCollections"][number];
+
+const SubCollectionSidebarItem = memo(function SubCollectionSidebarItem({
+  subCollection,
+  parentId,
+  isActive,
+}: {
+  subCollection: SubCollection;
+  parentId: string;
+  isActive: boolean;
+}) {
+  const droppableData = useMemo(
+    () => ({ type: "collection" as const, collection: subCollection }),
+    [subCollection],
+  );
+
+  const { setNodeRef, isOver } = useDroppable({
+    id: `sidebar:${subCollection.id}`,
+    data: droppableData,
+  });
+
+  return (
+    <SidebarMenuSubItem>
+      <SidebarMenuSubButton
+        asChild
+        isActive={isActive}
+        className={cn(isOver && "bg-secondary")}
+      >
+        <Link
+          ref={setNodeRef}
+          to={`/dashboard/${parentId}?sub=${subCollection.id}`}
+          className={cn(isOver && "animate-pulse")}
+        >
+          <Hash />
+          {subCollection.title}
+        </Link>
+      </SidebarMenuSubButton>
+    </SidebarMenuSubItem>
+  );
+});
+
 const CollectionMenuItem = memo(function CollectionMenuItem({
   collection,
   isActive,
@@ -66,6 +110,15 @@ const CollectionMenuItem = memo(function CollectionMenuItem({
   collection: UserCollection;
   isActive: boolean;
 }) {
+  const { pathname, search } = useLocation();
+  const activeSubCollectionId = useMemo(
+    () => new URLSearchParams(search).get("sub"),
+    [search],
+  );
+  // Latch: once this collection is hovered during a drag, keep sub-collections
+  // visible until the drag ends — so moving onto a child chip doesn't collapse them.
+  const [isExpandedForDrag, setIsExpandedForDrag] = useState(false);
+
   const droppableData = useMemo(
     () => ({
       type: "collection" as const,
@@ -79,6 +132,16 @@ const CollectionMenuItem = memo(function CollectionMenuItem({
     data: droppableData,
   });
 
+  // Latch open when this root collection is first hovered during a drag;
+  // reset when the drag ends so it collapses back to its default state.
+  useDndMonitor({
+    onDragOver: ({ over }) => {
+      if (over?.id === collection.id) setIsExpandedForDrag(true);
+    },
+    onDragEnd: () => setIsExpandedForDrag(false),
+    onDragCancel: () => setIsExpandedForDrag(false),
+  });
+
   const { data: members, isLoading } =
     trpc.collectionAccess.getMembers.useQuery(
       {
@@ -89,14 +152,28 @@ const CollectionMenuItem = memo(function CollectionMenuItem({
       },
     );
 
+  const { data: subCollections } = trpc.collections.getSubCollections.useQuery(
+    {
+      parentId: collection.id,
+    },
+    {
+      enabled: isActive || isExpandedForDrag,
+    },
+  );
+
   return (
-    <SidebarMenuItem ref={setNodeRef}>
+    <SidebarMenuItem>
       <SidebarMenuButton
         isActive={isActive}
         asChild
-        className={cn("transition-all", isOver && "bg-secondary")}
+        className={cn(
+          "transition-all",
+          isOver && "bg-secondary",
+          isActive || isOver ? "text-foreground" : "text-muted-foreground",
+        )}
       >
         <Link
+          ref={setNodeRef}
           to={`/dashboard/${collection.id}`}
           prefetch="intent"
           className={cn(
@@ -124,6 +201,26 @@ const CollectionMenuItem = memo(function CollectionMenuItem({
           )}
         </Link>
       </SidebarMenuButton>
+      {(isActive || isExpandedForDrag) &&
+        subCollections &&
+        subCollections.length > 0 && (
+          <SidebarMenuSub
+            data-state={isActive ? "open" : "closed"}
+            className="data-[state=open]:animate-in data-[state=open]:slide-in-from-top-5 data-[state=closed]:animate-out data-[state=closed]:fade-out-0"
+          >
+            {subCollections.map((subCollection) => (
+              <SubCollectionSidebarItem
+                key={subCollection.id}
+                subCollection={subCollection}
+                parentId={collection.id}
+                isActive={
+                  pathname === `/dashboard/${collection.id}` &&
+                  activeSubCollectionId === subCollection.id
+                }
+              />
+            ))}
+          </SidebarMenuSub>
+        )}
     </SidebarMenuItem>
   );
 });
