@@ -2,6 +2,21 @@ import { CollectionCard } from "./collection-card";
 import { CollectionListRow } from "./collection-list-row";
 import { useCollection } from "./collection-context";
 import { useViewModeStore } from "~/lib/stores/view-mode-store";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuGroup,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuTrigger,
+} from "@repo/ui/components/ui/context-menu";
+import { Kbd } from "@repo/ui/components/ui/kbd";
+import { ArrowUpLeft, CopyIcon, Trash } from "@repo/ui/icons";
+import {
+  useCollectionItem,
+  type AnyCollectionItem,
+} from "./use-collection-item";
 
 export function CollectionItems() {
   const {
@@ -23,11 +38,13 @@ export function CollectionItems() {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredItems.map((item) => (
-          <CollectionCard
-            key={item.id}
-            item={item}
+          <ActionsContextMenu
             collectionId={collectionId}
-          />
+            item={item}
+            key={item.id}
+          >
+            <CollectionCard item={item} collectionId={collectionId} />
+          </ActionsContextMenu>
         ))}
       </div>
     );
@@ -36,12 +53,56 @@ export function CollectionItems() {
   return (
     <div className="flex flex-col">
       {filteredItems.map((item) => (
-        <CollectionListRow
+        <ActionsContextMenu
           key={item.id}
           item={item}
           collectionId={collectionId}
-        />
+        >
+          <CollectionListRow item={item} collectionId={collectionId} />
+        </ActionsContextMenu>
       ))}
     </div>
+  );
+}
+
+function ActionsContextMenu({
+  collectionId,
+  item,
+  children,
+}: {
+  collectionId: string;
+  item: AnyCollectionItem;
+  children: React.ReactNode;
+}) {
+  const {
+    actions: { handleDelete },
+  } = useCollectionItem({ item, collectionId });
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger>{children}</ContextMenuTrigger>
+      <ContextMenuContent className="w-48">
+        <ContextMenuGroup>
+          <ContextMenuItem>
+            <ArrowUpLeft /> Move
+            <ContextMenuShortcut>
+              <Kbd>Drag</Kbd>
+            </ContextMenuShortcut>
+          </ContextMenuItem>
+          <ContextMenuItem>
+            <CopyIcon />
+            Copy
+            <ContextMenuShortcut>
+              <Kbd>Shift + Drag</Kbd>
+            </ContextMenuShortcut>
+          </ContextMenuItem>
+        </ContextMenuGroup>
+        <ContextMenuSeparator />
+        <ContextMenuGroup>
+          <ContextMenuItem onClick={handleDelete} variant="destructive">
+            <Trash /> Delete
+          </ContextMenuItem>
+        </ContextMenuGroup>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,7 @@ import { Hash, Check, Plus } from "@repo/ui/icons";
 import { toast } from "@repo/ui/components/ui/sonner";
 import { cn } from "@repo/ui/lib/utils";
 import { trpc, type RouterOutputs } from "~/lib/trpc";
+import { useUserCollections } from "~/lib/hooks/use-user-collections";
 import { useCollection } from "./collection-context";
 
 type SubCollection = RouterOutputs["collections"]["getSubCollections"][number];
@@ -65,7 +66,6 @@ export function PasteUrlDialog() {
   const {
     meta: { collectionId },
     state: { collection, activeSubCollection },
-    actions: { refetch },
   } = useCollection();
 
   const [open, setOpen] = useState(false);
@@ -74,16 +74,63 @@ export function PasteUrlDialog() {
     string | null
   >(null);
 
-  const isSubCollection = !!collection?.parentId;
-  const parentIdForSubQuery = collection?.parentId ?? collection?.id;
+  const parentIdForSubQuery = collection?.parentId ?? collection?.id ?? null;
 
-  const { data: subCollections } = trpc.collections.getSubCollections.useQuery(
-    { parentId: parentIdForSubQuery as string },
-    { enabled: !!parentIdForSubQuery },
+  const { data: subCollectionsData } =
+    trpc.collections.getSubCollections.useQuery(
+      { parentId: parentIdForSubQuery ?? "" },
+      { enabled: Boolean(parentIdForSubQuery) },
+    );
+
+  const subCollections = useMemo(
+    () => subCollectionsData ?? [],
+    [subCollectionsData],
+  );
+
+  const subCollectionsById = useMemo(
+    () => new Map(subCollections.map((sub) => [sub.id, sub])),
+    [subCollections],
   );
 
   const utils = trpc.useUtils();
-  const { mutate: createItem } = trpc.items.create.useMutation();
+  const { mutateAsync: createItem } = trpc.items.create.useMutation();
+  const { data: userCollections } = useUserCollections();
+
+  const parentCollection = collection?.parentId
+    ? (userCollections?.find((c) => c.id === collection.parentId) ?? null)
+    : null;
+
+  const selection = useMemo(() => {
+    const selectedSub = selectedSubCollection
+      ? (subCollectionsById.get(selectedSubCollection) ?? null)
+      : null;
+
+    const rootTitle =
+      parentCollection?.title ?? collection?.title ?? "Select collection";
+
+    if (selectedSub) {
+      return {
+        targetCollectionId: selectedSub.id,
+        targetCollectionTitle: selectedSub.title,
+        dialogTitle: `${rootTitle} / ${selectedSub.title}`,
+        selectedSubId: selectedSub.id,
+      };
+    }
+
+    return {
+      targetCollectionId: collection?.parentId ?? collectionId,
+      targetCollectionTitle: rootTitle,
+      dialogTitle: rootTitle,
+      selectedSubId: null,
+    };
+  }, [
+    selectedSubCollection,
+    subCollectionsById,
+    parentCollection?.title,
+    collection?.title,
+    collection?.parentId,
+    collectionId,
+  ]);
 
   const handlePaste = useCallback(
     (e: ClipboardEvent) => {
@@ -103,12 +150,12 @@ export function PasteUrlDialog() {
         setUrl(text.trim());
         setSelectedSubCollection(
           activeSubCollection ??
-            (isSubCollection ? (collection?.id ?? null) : null),
+            (collection?.parentId ? (collection?.id ?? null) : null),
         );
         setOpen(true);
       }
     },
-    [activeSubCollection, isSubCollection, collection?.id],
+    [activeSubCollection, collection?.parentId, collection?.id],
   );
 
   useEffect(() => {
@@ -120,40 +167,28 @@ export function PasteUrlDialog() {
     setSelectedSubCollection((prev) => (prev === id ? null : id));
   }, []);
 
-  const targetCollectionId = selectedSubCollection ?? collectionId;
-  const targetName =
-    selectedSubCollection && subCollections
-      ? subCollections.find((s) => s.id === selectedSubCollection)?.title
-      : collection?.title;
-
   const handleSubmit = useCallback(() => {
     const trimmed = url.trim();
     if (!trimmed) return;
-
-    const target = targetCollectionId;
-    const subId = selectedSubCollection;
 
     setOpen(false);
     setUrl("");
     setSelectedSubCollection(null);
 
     toast.promise(
-      new Promise<void>((resolve, reject) => {
-        createItem(
-          { url: trimmed, collectionId: target },
-          {
-            onSuccess: async () => {
-              await refetch();
-              await utils.collections.getUserCollections.invalidate();
-              if (subId) {
-                await utils.collections.get.invalidate({ id: subId });
-              }
-              resolve();
-            },
-            onError: (error) => reject(error),
-          },
-        );
-      }),
+      (async () => {
+        await createItem({
+          url: trimmed,
+          collectionId: selection.targetCollectionId,
+        });
+
+        await utils.collections.getUserCollections.invalidate();
+        if (selection.selectedSubId) {
+          await utils.collections.get.invalidate({
+            id: selection.selectedSubId,
+          });
+        }
+      })(),
       {
         loading: "Adding item...",
         success: "Item added successfully!",
@@ -163,34 +198,11 @@ export function PasteUrlDialog() {
     );
   }, [
     url,
-    targetCollectionId,
-    selectedSubCollection,
     createItem,
-    refetch,
+    selection.targetCollectionId,
+    selection.selectedSubId,
     utils,
   ]);
-
-  const subCollectionsScrollRef = useRef<HTMLDivElement>(null);
-  const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    const element = subCollectionsScrollRef.current;
-    if (!element) return;
-
-    const checkOverflow = () => {
-      setHasHorizontalOverflow(element.scrollWidth > element.clientWidth);
-    };
-
-    checkOverflow();
-
-    const observer = new ResizeObserver(checkOverflow);
-    observer.observe(element);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [subCollections, open]);
 
   const addButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -218,8 +230,10 @@ export function PasteUrlDialog() {
           }
         }}
       >
-        <DialogHeader className="sr-only">
-          <DialogTitle>Add Link</DialogTitle>
+        <DialogHeader>
+          <DialogTitle className="font-display font-normal inline-flex items-center gap-2">
+            <Hash className="size-4" /> {selection.dialogTitle}
+          </DialogTitle>
         </DialogHeader>
 
         {/* URL input */}
@@ -232,15 +246,11 @@ export function PasteUrlDialog() {
         />
 
         {/* Sub-collection selection */}
-        {subCollections && subCollections.length > 0 && (
+        {subCollections.length > 0 ? (
           <div className="space-y-2 w-full min-w-0">
-            <p className="text-xs text-muted-foreground font-medium">Add to:</p>
             <div
-              ref={subCollectionsScrollRef}
               className={cn(
                 "flex gap-2 overflow-auto no-scrollbar w-full min-w-0",
-                hasHorizontalOverflow &&
-                  "mask-[linear-gradient(to_right,black_90%,transparent_100%)] pr-6",
               )}
             >
               {subCollections.map((sub) => (
@@ -253,15 +263,11 @@ export function PasteUrlDialog() {
               ))}
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Actions */}
         <DialogFooter className="flex-row gap-3 sm:justify-between">
-          <Button
-            variant="ghost"
-            onClick={() => setOpen(false)}
-            className="flex-1 gap-2"
-          >
+          <Button variant="ghost" onClick={() => setOpen(false)}>
             Cancel
             <Kbd>Esc</Kbd>
           </Button>
@@ -271,7 +277,10 @@ export function PasteUrlDialog() {
             disabled={!url.trim()}
             className="flex-1 gap-2"
           >
-            <Plus /> {targetName ? `#${targetName}` : "collection"}
+            <Plus />
+            {selection.targetCollectionTitle
+              ? `#${selection.targetCollectionTitle}`
+              : "collection"}
             <Kbd className="bg-muted/50 text-foreground">⏎</Kbd>
           </Button>
         </DialogFooter>
