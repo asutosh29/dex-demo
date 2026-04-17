@@ -19,6 +19,13 @@ import {
 import { SUPPORTED_MODELS } from "~/lib/models";
 import { trpc, type RouterOutputs } from "~/lib/trpc";
 import { useChatContext } from "../providers/chat-context";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@repo/ui/components/ui/hover-card";
+import { Button } from "@repo/ui/components/ui/button";
+import { Link } from "react-router-dom";
 
 interface ChatPromptInputProps {
   className?: string;
@@ -61,6 +68,8 @@ export function ChatPromptInput({
     (m) => !availableProviders.has(m.provider),
   );
   const sortedModels = [...availableModels, ...unavailableModels];
+
+  const isNoModelAvailable = availableModels.length === 0;
 
   return (
     <PromptInput
@@ -116,7 +125,27 @@ export function ChatPromptInput({
             </PromptInputSelectContent>
           </PromptInputSelect>
         </PromptInputTools>
-        <PromptInputSubmit disabled={!text.trim()} />
+        {isNoModelAvailable ? (
+          <HoverCard openDelay={200}>
+            <HoverCardTrigger asChild>
+              <div className="flex">
+                <PromptInputSubmit disabled />
+              </div>
+            </HoverCardTrigger>
+            <HoverCardContent side="top" className="w-80">
+              <div className="flex flex-col gap-2">
+                <p className="text-sm">
+                  You need add API keys first before to proceed!
+                </p>
+                <Button asChild size="sm" className="w-full">
+                  <Link to="/dashboard/api-keys">Add api keys</Link>
+                </Button>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
+        ) : (
+          <PromptInputSubmit disabled={!text.trim()} />
+        )}
       </PromptInputFooter>
     </PromptInput>
   );

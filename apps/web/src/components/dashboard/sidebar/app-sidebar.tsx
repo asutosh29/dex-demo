@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo } from "react";
+import { memo, useEffect, useMemo, useState, useRef } from "react";
 
 import { useDroppable } from "@dnd-kit/core";
 import {
@@ -11,12 +11,23 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
 } from "@repo/ui/components/ui/sidebar";
 import { Tabs, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
-import { Hash, Loader2, MessageSquare, Plus } from "@repo/ui/icons";
+import {
+  Hash,
+  Loader2,
+  MessageSquare,
+  Plus,
+  Ellipsis,
+  Pencil,
+  Trash2,
+  Check,
+  X,
+} from "@repo/ui/icons";
 import { cn } from "@repo/ui/lib/utils";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { authClient } from "~/lib/auth-client";
@@ -25,6 +36,25 @@ import { useUserCollections } from "~/lib/hooks/use-user-collections";
 import { AddCollectionDialogTrigger } from "./add-collection-dialog";
 import { NavUser } from "./nav-user";
 import { MemberAvatarGroup } from "../collections/manage-members/member-avatar-group";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@repo/ui/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@repo/ui/components/ui/alert-dialog";
+import { Input } from "@repo/ui/components/ui/input";
+import { Button } from "@repo/ui/components/ui/button";
+import { toast } from "@repo/ui/components/ui/sonner";
 
 type UserCollection =
   RouterOutputs["collections"]["getUserCollections"][number];
@@ -98,6 +128,173 @@ const CollectionMenuItem = memo(function CollectionMenuItem({
   );
 });
 
+type Thread = RouterOutputs["threads"]["list"]["threads"][number];
+
+const ThreadMenuItem = memo(function ThreadMenuItem({
+  thread,
+  isActive,
+}: {
+  thread: Thread;
+  isActive: boolean;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(thread.title || "");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+  const utils = trpc.useUtils();
+
+  const { mutate: rename, isPending: isRenaming } =
+    trpc.threads.rename.useMutation({
+      onSuccess: (newThread) => {
+        setIsEditing(false);
+        utils.threads.list.invalidate();
+        if (isActive) {
+          navigate(`/chat/${newThread.id}`, { replace: true });
+        }
+        toast.success("Thread renamed");
+      },
+      onError: (err) => {
+        toast.error(err.message || "Failed to rename thread");
+      },
+    });
+
+  const { mutate: deleteThread, isPending: isDeleting } =
+    trpc.threads.delete.useMutation({
+      onSuccess: () => {
+        utils.threads.list.invalidate();
+        if (isActive) {
+          navigate("/chat", { replace: true });
+        }
+        toast.success("Thread deleted");
+      },
+      onError: (err) => {
+        toast.error(err.message || "Failed to delete thread");
+      },
+    });
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [isEditing]);
+
+  const handleRename = () => {
+    if (editValue.trim() === "" || editValue === thread.title) {
+      setIsEditing(false);
+      setEditValue(thread.title || "");
+      return;
+    }
+    rename({ threadId: thread.id, title: editValue.trim() });
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleRename();
+    } else if (e.key === "Escape") {
+      setIsEditing(false);
+      setEditValue(thread.title || "");
+    }
+  };
+
+  return (
+    <>
+      <SidebarMenuItem>
+        {isEditing ? (
+          <div className="flex items-center gap-1 overflow-hidden px-2 h-8 w-full group-data-[collapsible=icon]:hidden">
+            <Input
+              ref={inputRef}
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={onKeyDown}
+              className="h-7 text-sm px-2 py-0 focus-visible:ring-1"
+              disabled={isRenaming}
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-7 shrink-0"
+              onClick={handleRename}
+              disabled={isRenaming}
+            >
+              <Check className="size-3.5" />
+            </Button>
+            <button
+              className="inline-flex items-center justify-center p-0 size-7 shrink-0 hover:bg-accent hover:text-accent-foreground rounded-md disabled:opacity-50"
+              onClick={() => {
+                setIsEditing(false);
+                setEditValue(thread.title || "");
+              }}
+              disabled={isRenaming}
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        ) : (
+          <>
+            <SidebarMenuButton isActive={isActive} asChild>
+              <Link to={`/chat/${thread.id}`}>
+                {/* <MessageSquare className="size-4" /> */}
+                <span className="truncate max-w-[16ch]">
+                  {thread.title || "New Conversation"}
+                </span>
+              </Link>
+            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuAction showOnHover>
+                  <Ellipsis />
+                  <span className="sr-only">More</span>
+                </SidebarMenuAction>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="right" align="start">
+                <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                  <Pencil className="size-4" />
+                  <span>Rename</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="size-4" />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        )}
+      </SidebarMenuItem>
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your
+              chat history for this thread.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault();
+                deleteThread({ threadId: thread.id });
+                setDeleteConfirmOpen(false);
+              }}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete Thread"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+});
+
 function ChatHistoryList({ currentThreadId }: { currentThreadId?: string }) {
   const { data, isLoading } = trpc.threads.list.useQuery({});
 
@@ -119,19 +316,11 @@ function ChatHistoryList({ currentThreadId }: { currentThreadId?: string }) {
             </SidebarMenuItem>
           ) : (
             data?.threads.map((thread) => (
-              <SidebarMenuItem key={thread.id}>
-                <SidebarMenuButton
-                  isActive={currentThreadId === thread.id}
-                  asChild
-                >
-                  <Link to={`/chat/${thread.id}`}>
-                    <MessageSquare className="size-4" />
-                    <span className="truncate max-w-[16ch]">
-                      {thread.title || "New Conversation"}
-                    </span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <ThreadMenuItem
+                key={thread.id}
+                thread={thread}
+                isActive={currentThreadId === thread.id}
+              />
             ))
           )}
         </SidebarMenu>
