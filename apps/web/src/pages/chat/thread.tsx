@@ -80,7 +80,7 @@ export default function Thread() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-[calc(100svh-3.5rem)]">
       {showGreeting ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-8 px-4 pb-20">
           <div className="flex flex-col items-center gap-2 text-center">
@@ -114,7 +114,7 @@ export default function Thread() {
       )}
 
       {/* Add a linear gradient bg-background at bottom and fade it out to the top */}
-      <div className="sticky bottom-0 bg-linear-to-t from-background from-50% to-transparent pt-12 pb-4">
+      <div className="sticky bottom-0 bg-linear-to-t from-background from-50% to-transparent pt-4 pb-4">
         <ChatPromptInput
           className={
             showGreeting
