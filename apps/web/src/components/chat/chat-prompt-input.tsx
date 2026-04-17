@@ -1,10 +1,6 @@
-import { useState, type ChangeEvent, useEffect } from "react";
+import { useState, type ChangeEvent, useEffect, useMemo } from "react";
 import {
   PromptInput,
-  PromptInputActionMenu,
-  PromptInputActionMenuContent,
-  PromptInputActionMenuTrigger,
-  PromptInputActionAddAttachments,
   PromptInputBody,
   PromptInputFooter,
   PromptInputSelect,
@@ -19,13 +15,16 @@ import {
 import { SUPPORTED_MODELS } from "~/lib/models";
 import { trpc, type RouterOutputs } from "~/lib/trpc";
 import { useChatContext } from "../providers/chat-context";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@repo/ui/components/ui/hover-card";
 import { Button } from "@repo/ui/components/ui/button";
 import { Link } from "react-router-dom";
+import { CircleDashed, Square } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@repo/ui/components/ui/dialog";
 
 interface ChatPromptInputProps {
   className?: string;
@@ -37,29 +36,37 @@ export function ChatPromptInput({
   sendMessage,
 }: ChatPromptInputProps) {
   const [text, setText] = useState("");
-  const { selectedModel, setSelectedModel } = useChatContext();
+  const { selectedModel, setSelectedModel, status, stop } = useChatContext();
+  const [showApiKeyAlert, setShowApiKeyAlert] = useState(false);
 
   const { data: aiKeys } = trpc.aiKeys.list.useQuery();
-  const availableProviders = new Set(
-    aiKeys?.map((k: RouterOutputs["aiKeys"]["list"][number]) => k.provider) ||
-      [],
+  const availableProviders = useMemo(
+    () =>
+      new Set(
+        aiKeys?.map(
+          (k: RouterOutputs["aiKeys"]["list"][number]) => k.provider,
+        ) || [],
+      ),
+    [aiKeys],
   );
 
-  // Sync initial model selection if the first element isn't available but others are
+  // Sync initial model selection if the current selected model isn't available
   useEffect(() => {
-    if (
-      aiKeys &&
-      aiKeys.length > 0 &&
-      !availableProviders.has(SUPPORTED_MODELS[0].provider)
-    ) {
-      const firstAvailable = SUPPORTED_MODELS.find((m) =>
-        availableProviders.has(m.provider),
-      );
-      if (firstAvailable) {
-        setSelectedModel(firstAvailable.id);
+    if (aiKeys && aiKeys.length > 0) {
+      const currentModel = SUPPORTED_MODELS.find((m) => m.id === selectedModel);
+      const isCurrentAvailable =
+        currentModel && availableProviders.has(currentModel.provider);
+
+      if (!isCurrentAvailable) {
+        const firstAvailable = SUPPORTED_MODELS.find((m) =>
+          availableProviders.has(m.provider),
+        );
+        if (firstAvailable) {
+          setSelectedModel(firstAvailable.id);
+        }
       }
     }
-  }, [aiKeys, availableProviders]);
+  }, [aiKeys, availableProviders, selectedModel, setSelectedModel]);
 
   const availableModels = SUPPORTED_MODELS.filter((m) =>
     availableProviders.has(m.provider),
@@ -70,83 +77,108 @@ export function ChatPromptInput({
   const sortedModels = [...availableModels, ...unavailableModels];
 
   const isNoModelAvailable = availableModels.length === 0;
+  const isGenerating = status === "streaming" || status === "submitted";
+
+  const handleTextareaInteraction = (e: React.SyntheticEvent) => {
+    if (isNoModelAvailable) {
+      e.preventDefault();
+      if ("blur" in e.target && typeof e.target.blur === "function") {
+        e.target.blur();
+      }
+      setShowApiKeyAlert(true);
+    }
+  };
 
   return (
-    <PromptInput
-      onSubmit={() => {
-        sendMessage(text);
-        setText("");
-      }}
-      className={className}
-    >
-      <PromptInputBody>
-        <PromptInputTextarea
-          value={text}
-          onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-            setText(e.target.value)
-          }
-          placeholder="Ask dex"
-        />
-      </PromptInputBody>
-      <PromptInputFooter>
-        <PromptInputTools>
-          <PromptInputActionMenu>
-            <PromptInputActionMenuTrigger />
-            <PromptInputActionMenuContent>
-              <PromptInputActionAddAttachments />
-            </PromptInputActionMenuContent>
-          </PromptInputActionMenu>
-          <PromptInputSelect
-            value={selectedModel}
-            onValueChange={setSelectedModel}
+    <>
+      <PromptInput
+        onSubmit={() => {
+          sendMessage(text);
+          setText("");
+        }}
+        className={className}
+      >
+        <PromptInputBody>
+          <PromptInputTextarea
+            value={text}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
+              if (isNoModelAvailable) return;
+              setText(e.target.value);
+            }}
+            onClick={handleTextareaInteraction}
+            onFocus={handleTextareaInteraction}
+            placeholder="Ask dex"
+            readOnly={isNoModelAvailable}
+          />
+        </PromptInputBody>
+        <PromptInputFooter>
+          <PromptInputTools>
+            <PromptInputSelect
+              value={selectedModel}
+              onValueChange={setSelectedModel}
+            >
+              <PromptInputSelectTrigger>
+                <PromptInputSelectValue />
+              </PromptInputSelectTrigger>
+              <PromptInputSelectContent>
+                {sortedModels.map((m) => {
+                  const isAvailable = availableProviders.has(m.provider);
+                  return (
+                    <PromptInputSelectItem
+                      key={m.id}
+                      value={m.id}
+                      disabled={!isAvailable}
+                      className={!isAvailable ? "opacity-50" : ""}
+                    >
+                      <span>{m.name}</span>
+                      {!isAvailable && (
+                        <span className="text-muted-foreground ml-2 text-xs">
+                          (Requires Key)
+                        </span>
+                      )}
+                    </PromptInputSelectItem>
+                  );
+                })}
+              </PromptInputSelectContent>
+            </PromptInputSelect>
+          </PromptInputTools>
+
+          <PromptInputSubmit
+            status={status}
+            onStop={() => {
+              stop();
+            }}
+            disabled={(!text.trim() && !isGenerating) || isNoModelAvailable}
           >
-            <PromptInputSelectTrigger>
-              <PromptInputSelectValue />
-            </PromptInputSelectTrigger>
-            <PromptInputSelectContent>
-              {sortedModels.map((m) => {
-                const isAvailable = availableProviders.has(m.provider);
-                return (
-                  <PromptInputSelectItem
-                    key={m.id}
-                    value={m.id}
-                    disabled={!isAvailable}
-                    className={!isAvailable ? "opacity-50" : ""}
-                  >
-                    <span>{m.name}</span>
-                    {!isAvailable && (
-                      <span className="text-muted-foreground ml-2 text-xs">
-                        (Requires Key)
-                      </span>
-                    )}
-                  </PromptInputSelectItem>
-                );
-              })}
-            </PromptInputSelectContent>
-          </PromptInputSelect>
-        </PromptInputTools>
-        {isNoModelAvailable ? (
-          <HoverCard openDelay={200}>
-            <HoverCardTrigger asChild>
-              <div className="flex">
-                <PromptInputSubmit disabled />
+            {isGenerating ? (
+              <div className="relative flex items-center justify-center text-destructive">
+                <CircleDashed className="size-4 animate-spin" />
+                <Square className="absolute size-1.5 fill-current" />
               </div>
-            </HoverCardTrigger>
-            <HoverCardContent side="top" className="w-80">
-              <div className="flex flex-col gap-2">
-                <p className="text-sm">
-                  You need add API keys first before to proceed!
-                </p>
-                <Button asChild size="sm" className="w-full">
-                  <Link to="/dashboard/api-keys">Add api keys</Link>
-                </Button>
-              </div>
-            </HoverCardContent>
-          </HoverCard>
-        ) : (
-          <PromptInputSubmit disabled={!text.trim()} />
-        )}
-      </PromptInputFooter>
-    </PromptInput>
+            ) : undefined}
+          </PromptInputSubmit>
+        </PromptInputFooter>
+      </PromptInput>
+
+      <Dialog open={showApiKeyAlert} onOpenChange={setShowApiKeyAlert}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>API Key Required</DialogTitle>
+            <DialogDescription>
+              You need to add an API key first before you can proceed with
+              chatting.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowApiKeyAlert(false)}>
+              Cancel
+            </Button>
+            <Button asChild>
+              <Link to="/dashboard/api-keys">Add API Keys</Link>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

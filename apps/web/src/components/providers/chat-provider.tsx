@@ -5,15 +5,21 @@ import { SUPPORTED_MODELS, type ModelProvider } from "~/lib/models";
 import { ChatContext, type ChatContextType } from "./chat-context";
 import { toast } from "@repo/ui/components/ui/sonner";
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
-  const [selectedModel, setSelectedModel] = useState(SUPPORTED_MODELS[0].id);
+  const [selectedModel, setSelectedModel] = useState<string>(
+    () => localStorage.getItem("dex-selected-model") || SUPPORTED_MODELS[0].id,
+  );
   const [modelProvider, setModelProvider] = useState<ModelProvider>(
-    SUPPORTED_MODELS[0].provider,
+    () =>
+      (localStorage.getItem("dex-model-provider") as ModelProvider) ||
+      SUPPORTED_MODELS[0].provider,
   );
   const prevModelRef = useRef<string>(selectedModel);
 
   const latestStateRef = useRef({ selectedModel, modelProvider });
 
   useEffect(() => {
+    localStorage.setItem("dex-selected-model", selectedModel);
+    localStorage.setItem("dex-model-provider", modelProvider);
     latestStateRef.current = { selectedModel, modelProvider };
   }, [selectedModel, modelProvider]);
 
