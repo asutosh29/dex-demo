@@ -2,12 +2,6 @@ import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { itemService } from "./item.service";
 import { collectionService } from "./collection.service";
-import type { ApiKeyActor } from "~/services/rbac";
-
-// TODO: Unify ToolActor type for both web UI (UserActor) and MCP (ApiKeyActor)
-// contexts. Currently we just extract userId from whichever is available.
-// Future: add collection-level access scoping for MCP keys here.
-
 function getUserId(context: any): string {
   const userId =
     context?.requestContext?.get("userId") ??
@@ -22,11 +16,11 @@ const testEcho = createTool({
   inputSchema: z.object({
     message: z.string().describe("Message to echo back"),
   }),
-  execute: async ({ message }, context) => {
+  execute: async ({ message }) => {
     return {
       echoedMessage: message,
       timestamp: new Date().toISOString(),
-      serverName: "dex-mcp-server",
+      serverName: "dex-agent-server",
     };
   },
 });
@@ -36,25 +30,8 @@ const viewCollections = createTool({
   description: "View the list of collections you have access to",
   inputSchema: z.object({}),
   execute: async (_input, context) => {
-    // In Phase 1, we handle both MCP Key actor context and web request context
-    // If it's MCP context, we can replicate previous logic
-    const actor = context?.mcp?.extra?.authInfo as ApiKeyActor | undefined;
-
-    if (actor) {
-      if (actor.type === "api_key") {
-        return {
-          collections:
-            actor.mode === "full_access"
-              ? actor.userCollections
-              : actor.mode === "collection_specific"
-                ? actor.grantedCollections
-                : [],
-        };
-      }
-    }
-
-    // Fallback to general user ID processing (for regular web ui request)
     const userId = getUserId(context);
+    // TODO: Add Pagination
     const result = await collectionService.getUserCollections(userId);
     return { collections: result };
   },
@@ -71,24 +48,6 @@ const addItemToCollection = createTool({
     url: z.string().describe("URL of the item to add"),
   }),
   execute: async ({ collectionId, url }, context) => {
-    const actor = context?.mcp?.extra?.authInfo as ApiKeyActor | undefined;
-
-    // Check for permissions
-    if (actor && actor.type === "api_key") {
-      const hasAccess =
-        (actor.mode === "full_access" &&
-          actor.userCollections?.some((uc: any) => uc.id === collectionId)) ||
-        (actor.mode === "collection_specific" &&
-          actor.grantedCollections?.some((gc: any) => gc.id === collectionId));
-
-      if (!hasAccess) {
-        return {
-          error: "Permission denied: You don't have access to this collection",
-          collectionId,
-        };
-      }
-    }
-
     const userId = getUserId(context);
 
     // Add item to collection
@@ -145,30 +104,136 @@ const searchItems = createTool({
 
 const createCollection = createTool({
   id: "create_collection",
-  description: "Create a new collection",
+  description:
+    "Create a new collection. You can also create a sub-collection by providing an optional parentId.",
   inputSchema: z.object({
     title: z.string().min(1).describe("Title of the new collection"),
+    parentId: z
+      .string()
+      .optional()
+      .describe(
+        "Optional parent collection id. When provided, creates a sub-collection exactly one level deep under the specified parent collection.",
+      ),
   }),
-  execute: async ({ title }, context) => {
-    const actor = context?.mcp?.extra?.authInfo as ApiKeyActor | undefined;
-
-    if (actor && actor.type === "api_key" && actor.mode !== "full_access") {
-      return {
-        error:
-          "Permission denied: You don't have permission to create collections",
-      };
-    }
-
+  execute: async ({ title, parentId }, context) => {
     const userId = getUserId(context);
-    const collection = await collectionService.createCollection(userId, title);
+    const collection = await collectionService.createCollection(
+      userId,
+      title,
+      parentId,
+    );
 
     return {
       success: true,
       collection: {
         id: collection.id,
         title: collection.title,
+        parentId: collection.parentId,
       },
     };
+  },
+});
+
+const getCollectionItems = createTool({
+  id: "get_collection_items",
+  description:
+    "Get items present within a specific collection using safe pagination",
+  inputSchema: z.object({
+    collectionId: z
+      .string()
+      .describe("ID of the collection to fetch items from"),
+    limit: z
+      .number()
+      .min(1)
+      .max(50)
+      .optional()
+      .describe(
+        "Number of items to fetch. Min: 1, Max: 50. Recommended: 10-25.",
+      ),
+    cursor: z
+      .uuid()
+      .optional()
+      .describe(
+        "Pagination cursor returned from a previous call's nextCursor field. Do not provide on the first call.",
+      ),
+  }),
+  execute: async ({ collectionId, limit, cursor }, context) => {
+    const userId = getUserId(context);
+
+    try {
+      const fetchLimit = limit || 25; // Default safe limit
+      const collection = await collectionService.getCollection(
+        collectionId,
+        userId,
+        fetchLimit,
+        cursor,
+      );
+
+      return {
+        success: true,
+        pagination: collection.pagination,
+        collection: {
+          id: collection.id,
+          title: collection.title,
+          role: collection.role,
+          resultCount: collection.items.length,
+          items: collection.items.map((item) => ({
+            id: item.id,
+            title: item.title,
+            url: item.url,
+            tldr: item.tldr,
+            tags: item.tags,
+          })),
+        },
+      };
+    } catch (error) {
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch collection items",
+      };
+    }
+  },
+});
+
+const getItemsById = createTool({
+  id: "get_items_by_id",
+  description:
+    "Retrieve specific items by their IDs. Only specify IDs you are absolutely sure of. If you need to find IDs, use other available tools.",
+  inputSchema: z.object({
+    itemIds: z
+      .array(z.string())
+      .min(1)
+      .max(5)
+      .describe(
+        "List of item IDs to retrieve. Only provide valid IDs that you have obtained from other tools. Minimum 1 and Maximum 5",
+      ),
+  }),
+  execute: async ({ itemIds }, context) => {
+    const userId = getUserId(context);
+
+    try {
+      const items = await itemService.getItemsByIds(userId, itemIds);
+      return {
+        success: true,
+        resultCount: items.length,
+        items: items.map((item) => ({
+          id: item.id,
+          title: item.title,
+          url: item.url,
+          tldr: item.tldr,
+          tags: item.tags,
+        })),
+      };
+    } catch (error) {
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch items by ID",
+      };
+    }
   },
 });
 
@@ -180,6 +245,8 @@ export class AgentService {
       addItemToCollection,
       searchItems,
       createCollection,
+      getCollectionItems,
+      getItemsById,
     };
   }
 }

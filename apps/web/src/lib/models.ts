@@ -143,22 +143,22 @@ export const SUPPORTED_MODELS: Model[] = [
   // Gemini
   {
     provider: "google",
-    id: "google/gemini-3.1-pro",
-    modelId: "gemini-3.1-pro",
+    id: "google/gemini-3.1-pro-preview",
+    modelId: "gemini-3.1-pro-preview",
     name: "Gemini 3.1 Pro",
     description: "Most advanced model for vibe coding and deep agentic tasks.",
   },
   {
     provider: "google",
-    id: "google/gemini-3-flash",
-    modelId: "gemini-3-flash",
+    id: "google/gemini-3-flash-preview",
+    modelId: "gemini-3-flash-preview",
     name: "Gemini 3 Flash",
     description: "Extremely fast, cost-effective models.",
   },
   {
     provider: "google",
-    id: "google/gemini-3.1-flash-lite",
-    modelId: "gemini-3.1-flash-lite",
+    id: "google/gemini-3.1-flash-lite-preview",
+    modelId: "gemini-3.1-flash-lite-preview",
     name: "Gemini 3.1 Flash-Lite",
     description: "Extremely fast, cost-effective models.",
   },

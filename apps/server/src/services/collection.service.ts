@@ -126,6 +126,7 @@ export class CollectionService {
     sortBy: "createdAt" | "updatedAt" | "title" = "createdAt",
     order: "asc" | "desc" = "desc",
   ) {
+    // TODO: Add Pagination
     const ucMembers = alias(userCollectionsTable, "uc_members");
 
     const userCollections = await db
