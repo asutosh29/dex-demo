@@ -7,6 +7,7 @@ import { agentService } from "~/services/agent.service";
 import { aiKeyService } from "~/services/ai-key.service";
 import { resolveModel, DEFAULT_MODEL } from "~/lib/model-resolver";
 import { SUPPORTED_MODELS } from "~/constants/models";
+import { ReasoningToMessageProcessor } from "../processors/normalise-reasoning";
 
 /*
  ** Request Context Schema
@@ -36,7 +37,7 @@ export const dexAgent = new Agent({
     if (!userName) return DEX_PROMPT;
     return `${DEX_PROMPT}\n\nYou are currently helping ${userName}. Personalize your responses.`;
   },
-
+  inputProcessors: [new ReasoningToMessageProcessor()],
   model: async ({ requestContext, mastra }) => {
     const provider = requestContext?.get("provider") as
       | "openai"
