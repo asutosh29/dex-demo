@@ -1,5 +1,10 @@
 // TODO: Move to shared workspace library in the future
-export type ModelProvider = "groq" | "openai" | "anthropic" | "google";
+export type ModelProvider =
+  | "groq"
+  | "openai"
+  | "anthropic"
+  | "google"
+  | "openrouter";
 export type Model = {
   provider: ModelProvider;
   id: string;
@@ -19,6 +24,22 @@ export const SUPPORTED_MODELS: Model[] = [
   //   reasoning: false,
   //   toolCalling: false,
   // },
+  {
+    provider: "openrouter",
+    id: "openrouter/moonshotai/kimi-k2-thinking",
+    modelId: "moonshotai/kimi-k2-thinking",
+    name: "Kimi K2 Thinking",
+    description: "Solid, fast, multimodal middle ground.",
+    reasoning: true,
+  },
+  {
+    provider: "openrouter",
+    id: "openrouter/deepseek/deepseek-v4-pro",
+    modelId: "deepseek/deepseek-v4-pro",
+    name: "DeepSeek V4 Pro",
+    description: "Solid, fast, multimodal middle ground.",
+    reasoning: true,
+  },
   {
     provider: "groq",
     id: "groq/meta-llama/llama-4-scout-17b-16e-instruct",

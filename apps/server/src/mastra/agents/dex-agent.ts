@@ -98,8 +98,8 @@ export const dexAgent = new Agent({
 - **Current Goal**: [Current task you are working on]
 
 ## Task List (Todos) [Add tasks when needed and mark them off when done]
-- [ ] Task 1: 
-- [ ] Task 2: 
+- [ ] Task 1:
+- [ ] Task 2:
 
 ## Notepad
 - **Key Findings**: [Brief notes]
