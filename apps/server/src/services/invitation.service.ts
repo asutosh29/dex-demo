@@ -138,7 +138,7 @@ export class InvitationService {
       });
     }
 
-    if (invitation.status !== "pending") {
+    if (invitation.status !== "pending" && invitation.status !== "expired") {
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: `Invitation is ${invitation.status}`,

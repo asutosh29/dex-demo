@@ -24,12 +24,14 @@ interface NotificationItemProps {
   notification: Notification;
   variant: "unread" | "read";
   isPending: "accept" | "reject" | null;
+  isExpired: boolean;
 }
 
 export const NotificationItem = memo(function NotificationItem({
   notification,
   variant,
   isPending,
+  isExpired,
 }: NotificationItemProps) {
   const { actions } = useInboxContext();
   const activity = notification.activity;
@@ -67,6 +69,7 @@ export const NotificationItem = memo(function NotificationItem({
             activity={activity}
             isPending={isPending}
             isUnread={isUnread}
+            isExpired={isExpired}
           />
 
           <p className="text-xs text-muted-foreground mt-1">{timeAgo}</p>
@@ -85,10 +88,12 @@ const NotificationContent = memo(function NotificationContent({
   activity,
   isPending,
   isUnread,
+  isExpired,
 }: {
   activity: Notification["activity"];
   isPending: "accept" | "reject" | null;
   isUnread: boolean;
+  isExpired: boolean;
 }) {
   const { actions } = useInboxContext();
   if (!activity) return null;
@@ -96,6 +101,7 @@ const NotificationContent = memo(function NotificationContent({
   const data = activity.data as Record<string, string>;
   const collectionTitle = activity.collection?.title ?? "Unknown Collection";
   const actorName = activity.actor?.name ?? "Someone";
+  const isActionable = !isExpired;
 
   switch (activity.type) {
     case "invitation_sent":
@@ -107,6 +113,7 @@ const NotificationContent = memo(function NotificationContent({
           invitationId={data.invitationId}
           isPending={isPending}
           isUnread={isUnread}
+          isActionable={isActionable}
           onAccept={actions.acceptInvitation}
           onReject={actions.rejectInvitation}
         />
@@ -186,6 +193,7 @@ const InvitationContent = memo(function InvitationContent({
   invitationId,
   isPending,
   isUnread,
+  isActionable,
   onAccept,
   onReject,
 }: {
@@ -195,6 +203,7 @@ const InvitationContent = memo(function InvitationContent({
   invitationId: string;
   isPending: "accept" | "reject" | null;
   isUnread: boolean;
+  isActionable: boolean;
   onAccept: (id: string) => void;
   onReject: (id: string) => void;
 }) {

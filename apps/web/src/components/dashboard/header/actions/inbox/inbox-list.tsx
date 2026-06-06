@@ -86,6 +86,7 @@ const UnreadSection = memo(function UnreadSection({
         )?.invitationId as string | undefined;
         const isInvitation = notification.activity?.type === "invitation_sent";
         const isPending = isInvitation && pendingInvitationId === invitationId;
+        const isExpired = notification.invitation?.isExpired ?? false;
 
         return (
           <NotificationItem
@@ -93,6 +94,7 @@ const UnreadSection = memo(function UnreadSection({
             notification={notification}
             variant="unread"
             isPending={isPending ? pendingAction : null}
+            isExpired={isExpired}
           />
         );
       })}
@@ -124,6 +126,7 @@ const ReadSection = memo(function ReadSection({
         )?.invitationId as string | undefined;
         const isInvitation = notification.activity?.type === "invitation_sent";
         const isPending = isInvitation && pendingInvitationId === invitationId;
+        const isExpired = notification.invitation?.isExpired ?? false;
 
         return (
           <NotificationItem
@@ -131,6 +134,7 @@ const ReadSection = memo(function ReadSection({
             notification={notification}
             variant="read"
             isPending={isPending ? pendingAction : null}
+            isExpired={isExpired}
           />
         );
       })}
