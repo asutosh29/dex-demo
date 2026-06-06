@@ -7,8 +7,14 @@ import type { RouterOutputs } from "~/lib/trpc";
 export type CollectionItem =
   RouterOutputs["collections"]["get"]["items"][number];
 
+// Permissive item type for components that receive items from endpoints other
+// than collections.get (e.g. search), which don't carry subCollection data.
+export type AnyCollectionItem = Omit<CollectionItem, "subCollection"> & {
+  subCollection?: CollectionItem["subCollection"];
+};
+
 interface UseCollectionItemOptions {
-  item: CollectionItem;
+  item: AnyCollectionItem;
   collectionId?: string;
 }
 
@@ -17,6 +23,7 @@ export function useCollectionItem({
   collectionId,
 }: UseCollectionItemOptions) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const sourceCollectionId = item.subCollection?.id ?? collectionId;
 
   // Draggable setup
   const draggable = useDraggable({
@@ -24,7 +31,8 @@ export function useCollectionItem({
     data: {
       type: "item",
       item,
-      collectionId,
+      sourceCollectionId,
+      viewCollectionId: collectionId,
     },
     disabled: !collectionId,
   });
@@ -33,7 +41,13 @@ export function useCollectionItem({
   const utils = trpc.useUtils();
   const deleteMutation = trpc.collections.removeItem.useMutation({
     onSuccess: () => {
-      utils.collections.get.invalidate({ id: collectionId! });
+      const idsToInvalidate = [collectionId, sourceCollectionId].filter(
+        (id): id is string => Boolean(id),
+      );
+
+      idsToInvalidate.forEach((id) => {
+        utils.collections.get.invalidate({ id });
+      });
       toast.success("Item deleted successfully");
     },
     onError: (error) => {
@@ -43,8 +57,12 @@ export function useCollectionItem({
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!sourceCollectionId) {
+      return;
+    }
+
     deleteMutation.mutate({
-      collectionId: collectionId!,
+      collectionId: sourceCollectionId,
       itemId: item.id,
     });
   };

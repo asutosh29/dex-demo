@@ -1,5 +1,5 @@
 {
-  "id": "c67493b4-4aef-4f29-9f9e-09353147c0ef",
+  "id": "9a06e557-a53e-45be-a4f2-c63277ddcc6c",
   "prevId": "d49c3177-4912-4477-bac5-8d86208e6790",
   "version": "7",
   "dialect": "postgresql",
@@ -20,6 +20,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp",
@@ -35,12 +41,43 @@
           "default": "now()"
         }
       },
-      "indexes": {},
-      "foreignKeys": {},
+      "indexes": {
+        "idx_collections_parent_id": {
+          "name": "idx_collections_parent_id",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "collections_parent_id_collections_id_fk": {
+          "name": "collections_parent_id_collections_id_fk",
+          "tableFrom": "collections",
+          "tableTo": "collections",
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "collections_no_self_parent": {
+          "name": "collections_no_self_parent",
+          "value": "\"collections\".\"parent_id\" IS NULL OR \"collections\".\"parent_id\" <> \"collections\".\"id\""
+        }
+      },
       "isRLSEnabled": false
     },
     "public.items": {
@@ -1408,86 +1445,6 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
-    },
-    "public.ai_provider_keys": {
-      "name": "ai_provider_keys",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "provider": {
-          "name": "provider",
-          "type": "ai_provider_enum",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "encrypted_key": {
-          "name": "encrypted_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "iv": {
-          "name": "iv",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "auth_tag": {
-          "name": "auth_tag",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "label": {
-          "name": "label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "ai_provider_keys_user_id_user_id_fk": {
-          "name": "ai_provider_keys_user_id_user_id_fk",
-          "tableFrom": "ai_provider_keys",
-          "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -1527,11 +1484,6 @@
       "name": "UserStatus",
       "schema": "public",
       "values": ["waitlist", "active", "suspended"]
-    },
-    "public.ai_provider_enum": {
-      "name": "ai_provider_enum",
-      "schema": "public",
-      "values": ["openai", "anthropic", "groq", "openrouter"]
     }
   },
   "schemas": {},

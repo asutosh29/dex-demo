@@ -3,6 +3,7 @@ import { db } from "~/db/client";
 import { and, eq } from "drizzle-orm";
 import { RolePermissions, ApiKeyPermissions } from "./permissions";
 import type { Actor, ApiKeyActor, Action, Role, ApiKeyMode } from "./types";
+import { resolveCollection } from "~/services/collection/resolve";
 
 /** Build API key actor with appropriate permissions */
 export function createApiKeyActor(
@@ -42,15 +43,20 @@ export function createApiKeyActor(
   };
 }
 
-/** Get actor (user or API key) for a specific collection */
+/**
+ * Get actor for a collection. Sub-collections inherit their root's membership —
+ * resolution is transparent to callers.
+ */
 export async function getActor(
   userId: string,
   collectionId: string,
 ): Promise<Actor> {
+  const { rootId } = await resolveCollection(collectionId);
+
   const userCollection = await db.query.userCollectionsTable.findFirst({
     where: and(
       eq(userCollectionsTable.userId, userId),
-      eq(userCollectionsTable.collectionId, collectionId),
+      eq(userCollectionsTable.collectionId, rootId),
     ),
   });
 
@@ -65,7 +71,10 @@ export async function getActor(
   };
 }
 
-/** Check if actor can perform an action */
+/**
+ * Synchronous permission check. When passing `collectionId`, the caller must
+ * already have resolved it to its root id. Use `canAsync` otherwise.
+ */
 export function can(
   actor: Actor,
   action: Action,
@@ -90,13 +99,37 @@ export function can(
   return RolePermissions[actor.role].includes(action);
 }
 
-/** Assert that actor can perform an action, throw if not */
+/**
+ * Async variant that resolves a (possibly nested) collection id to its root
+ * before comparing against actor-scoped collection lists.
+ */
+export async function canAsync(
+  actor: Actor,
+  action: Action,
+  collectionId?: string,
+): Promise<boolean> {
+  const rootId = collectionId
+    ? (await resolveCollection(collectionId)).rootId
+    : undefined;
+  return can(actor, action, rootId);
+}
+
 export function assertCan(
   actor: Actor,
   action: Action,
   collectionId?: string,
 ): void {
   if (!can(actor, action, collectionId)) {
+    throw new Error(`Forbidden: missing permission ${action}`);
+  }
+}
+
+export async function assertCanAsync(
+  actor: Actor,
+  action: Action,
+  collectionId?: string,
+): Promise<void> {
+  if (!(await canAsync(actor, action, collectionId))) {
     throw new Error(`Forbidden: missing permission ${action}`);
   }
 }

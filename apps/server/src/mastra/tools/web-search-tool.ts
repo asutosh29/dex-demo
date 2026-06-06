@@ -5,7 +5,8 @@ import { env } from "~/lib/env";
 
 export const webSearch = createTool({
   id: "web-search",
-  description: "Used to Search the web for reference and latest information",
+  description:
+    "Searches the web to find relevant URLs and brief summaries for a given query. Always use this tool first to discover sources before attempting to read full pages.",
   inputSchema: z.object({
     query: z.string().min(1).max(50).describe("The search query"),
   }),

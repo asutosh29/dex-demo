@@ -7,6 +7,11 @@ import { mcpAuthMiddleware, type McpContext } from "./middleware";
 import { itemService } from "~/services/item.service";
 import { collectionService } from "~/services/collection.service";
 import { getGrantedCollections } from "./utils";
+import { db } from "~/db/client";
+import { collectionsTable } from "~/db/schema";
+import { inArray } from "drizzle-orm";
+import { resolveCollection } from "~/services/collection/resolve";
+
 export const createMcpServer = () => {
   const server = new McpServer(
     {
@@ -59,12 +64,51 @@ export const createMcpServer = () => {
     },
     async () => {
       const { actor } = getMcpContext();
+
+      const rootCollections =
+        actor.mode === "full_access"
+          ? (actor.userCollections ?? []).map((c) => ({
+              id: c.id,
+              title: c.title,
+            }))
+          : actor.type === "api_key" && actor.mode === "collection_specific"
+            ? (actor.grantedCollections ?? []).map((c) => ({
+                id: c.id,
+                title: c.title,
+              }))
+            : [];
+
+      let children: Array<{ id: string; title: string; parentId: string }> = [];
+      if (rootCollections.length > 0) {
+        const childRows = await db
+          .select({
+            id: collectionsTable.id,
+            title: collectionsTable.title,
+            parentId: collectionsTable.parentId,
+          })
+          .from(collectionsTable)
+          .where(
+            inArray(
+              collectionsTable.parentId,
+              rootCollections.map((c) => c.id),
+            ),
+          );
+        children = childRows.map((c) => ({
+          id: c.id,
+          title: c.title,
+          parentId: c.parentId!,
+        }));
+      }
+
       return {
         content: [
           {
             type: "text",
             text: JSON.stringify({
-              collections: getGrantedCollections(actor) || [],
+              collections: [
+                ...rootCollections.map((c) => ({ ...c, parentId: null })),
+                ...children,
+              ],
             }),
           },
         ],
@@ -87,9 +131,13 @@ export const createMcpServer = () => {
     async ({ collectionId, url }) => {
       const { actor } = getMcpContext();
 
-      // Check for permissions
-      const granted = getGrantedCollections(actor);
-      const hasAccess = granted?.some((c) => c.id === collectionId);
+      // Sub-collections inherit their parent's grant — resolve to root first.
+      const { rootId } = await resolveCollection(collectionId);
+      const hasAccess =
+        (actor.mode === "full_access" &&
+          actor.userCollections?.some((uc) => uc.id === rootId)) ||
+        (actor.mode === "collection_specific" &&
+          actor.grantedCollections?.some((gc) => gc.id === rootId));
 
       if (!hasAccess) {
         return {
@@ -261,12 +309,19 @@ export const createMcpServer = () => {
   server.registerTool(
     "create_collection",
     {
-      description: "Create a new collection",
+      description:
+        "Create a new collection. Pass parentId to create a sub-collection under an existing root (one level of nesting only).",
       inputSchema: z.object({
         title: z.string().min(1).describe("Title of the new collection"),
+        parentId: z
+          .string()
+          .optional()
+          .describe(
+            "Optional parent collection id. When provided, creates a sub-collection.",
+          ),
       }),
     },
-    async ({ title }) => {
+    async ({ title, parentId }) => {
       const { actor } = getMcpContext();
 
       if (actor.mode !== "full_access") {
@@ -284,11 +339,31 @@ export const createMcpServer = () => {
         };
       }
 
-      // Create collection
-      // Note: Implement collectionService.createCollection accordingly
+      if (parentId) {
+        const hasParent = actor.userCollections?.some(
+          (uc) => uc.id === parentId,
+        );
+        if (!hasParent) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  error:
+                    "Permission denied: You don't have access to the parent collection",
+                  parentId,
+                }),
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+
       const collection = await collectionService.createCollection(
         actor.userId,
         title,
+        parentId,
       );
 
       return {
@@ -300,6 +375,7 @@ export const createMcpServer = () => {
               collection: {
                 id: collection.id,
                 title: collection.title,
+                parentId: collection.parentId,
               },
             }),
           },

@@ -32,6 +32,7 @@
     "ai": "^6.0.159",
     "better-auth": "^1.4.7",
     "date-fns": "^4.1.0",
+    "lucide-react": "^0.561.0",
     "motion": "^12.26.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -43,6 +44,7 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.31.0",
     "@eslint/js": "^9.39.1",
+    "@repo/server": "workspace:*",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^24.10.4",

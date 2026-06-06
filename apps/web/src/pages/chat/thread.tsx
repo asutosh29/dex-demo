@@ -10,7 +10,7 @@ import { authClient } from "~/lib/auth-client";
 import { trpc } from "~/lib/trpc";
 import { ChatPromptInput } from "~/components/chat/chat-prompt-input";
 import { toAISdkV5Messages } from "@mastra/ai-sdk/ui";
-import { MessageParts } from "./messages";
+import { MessageParts } from "~/components/chat/message-parts";
 import {
   Message,
   MessageContent,
@@ -33,7 +33,50 @@ export default function Thread() {
     { enabled: !!threadId },
   );
 
-  const { messages, sendMessage, setMessages, status } = useChatContext();
+  const {
+    messages,
+    sendMessage,
+    setMessages,
+    status,
+    selectedModel,
+    setSelectedModel,
+  } = useChatContext();
+
+  const activeThreadIdKey = threadId || "new";
+
+  // When we switch to a new thread, load its saved model (or fallback)
+  useEffect(() => {
+    try {
+      const threadModels = JSON.parse(
+        localStorage.getItem("dex-thread-models") || "{}",
+      );
+      if (
+        threadModels[activeThreadIdKey] &&
+        threadModels[activeThreadIdKey] !== selectedModel
+      ) {
+        setSelectedModel(threadModels[activeThreadIdKey]);
+      }
+    } catch {}
+    // We intentionally exclude selectedModel from dependencies to avoid overriding manual user changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeThreadIdKey, setSelectedModel]);
+
+  // When selectedModel changes, save it for the current thread
+  useEffect(() => {
+    if (!selectedModel) return;
+    try {
+      const threadModels = JSON.parse(
+        localStorage.getItem("dex-thread-models") || "{}",
+      );
+      if (threadModels[activeThreadIdKey] !== selectedModel) {
+        threadModels[activeThreadIdKey] = selectedModel;
+        localStorage.setItem("dex-thread-models", JSON.stringify(threadModels));
+      }
+    } catch {}
+  }, [selectedModel, activeThreadIdKey]);
+
+  // const showSuggestions = !isAiKeysLoading && (aiKeys?.length ?? 0) > 0;
+  const showSuggestions = false;
 
   // Reset state when threadId changes (including navigating to /chat with no threadId)
   useEffect(() => {
@@ -91,6 +134,26 @@ export default function Thread() {
               What should we explore?
             </h2>
           </div>
+
+          {showSuggestions && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl w-full mt-4">
+              {/* TODO: Make this dynamic by referring to recent activity and making an LLM call */}
+              {[
+                "Summarize my recent collections",
+                "What APIs did I save recently?",
+                "Help me categorize my ungrouped items",
+                "Show me resources about React",
+              ].map((suggestion, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleSend(suggestion)}
+                  className="text-left p-4 rounded-xl border bg-card hover:bg-muted transition-colors text-sm text-muted-foreground hover:text-foreground"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         <Conversation>

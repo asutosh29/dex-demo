@@ -8,7 +8,7 @@ import { GlobeIcon, Loader2, SquareArrowOutUpRight } from "@repo/ui/icons";
 import { Link } from "react-router-dom";
 import OEmbedViewer from "./oembed-viewer";
 import { Badge } from "@repo/ui/components/ui/badge";
-import type { CollectionItem } from ".";
+import type { AnyCollectionItem } from "../use-collection-item";
 import { trpc } from "~/lib/trpc";
 import { getDomainFromUrl } from "~/lib/utils";
 import { cn } from "@repo/ui/lib/utils";
@@ -20,7 +20,7 @@ import { toast } from "@repo/ui/components/ui/sonner";
 interface PreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  item: CollectionItem;
+  item: AnyCollectionItem;
   collectionId?: string;
 }
 
@@ -33,16 +33,28 @@ export default function PreviewDialog({
   const { data: session } = authClient.useSession();
   const utils = trpc.useUtils();
 
+  // Subscribe to the collection query so dialog fields reflect optimistic cache
+  // updates immediately while the dialog is open.
+  const { data: liveCollection } = trpc.collections.get.useQuery(
+    { id: collectionId ?? "" },
+    { enabled: open && !!collectionId },
+  );
+
+  const liveItem =
+    liveCollection?.items.find(
+      (collectionItem) => collectionItem.id === item.id,
+    ) ?? item;
+
   const { data: oembedData, isLoading: isLoadingEmbed } =
-    trpc.ogp.getOembed.useQuery({ url: item.url }, { enabled: open });
+    trpc.ogp.getOembed.useQuery({ url: liveItem.url }, { enabled: open });
 
   const { data: canIframe } = trpc.ogp.canIframe.useQuery(
-    { url: item.url },
+    { url: liveItem.url },
     { enabled: open },
   );
 
   // Check if current user can edit (is the creator)
-  const canEdit = session?.user?.id === item.creatorId;
+  const canEdit = session?.user?.id === liveItem.creatorId;
 
   // Update item mutation with optimistic updates
   const updateMutation = trpc.items.update.useMutation({
@@ -61,7 +73,7 @@ export default function PreviewDialog({
         return {
           ...old,
           items: old.items.map((i) =>
-            i.id === item.id ? { ...i, ...newData } : i,
+            i.id === newData.id ? { ...i, ...newData } : i,
           ),
         };
       });
@@ -102,9 +114,9 @@ export default function PreviewDialog({
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 max-w-full">
-            {item.favicon ? (
+            {liveItem.favicon ? (
               <img
-                src={item.favicon}
+                src={liveItem.favicon ?? undefined}
                 alt="favicon"
                 className="size-5 shrink-0"
               />
@@ -113,7 +125,7 @@ export default function PreviewDialog({
             )}
             <EditableField
               type="text"
-              value={item.title || item.url}
+              value={liveItem.title || liveItem.url}
               placeholder="Enter title..."
               disabled={!canEdit}
               className="w-1/2"
@@ -121,7 +133,7 @@ export default function PreviewDialog({
               inputClassName="text-lg"
               onSave={async (value) => {
                 await updateMutation.mutateAsync({
-                  id: item.id,
+                  id: liveItem.id,
                   title: value as string,
                 });
               }}
@@ -142,14 +154,14 @@ export default function PreviewDialog({
               />
             ) : canIframe ? (
               <iframe
-                src={item.url}
-                title={item.title || "Preview"}
+                src={liveItem.url}
+                title={liveItem.title || "Preview"}
                 className="w-full h-full rounded-lg"
               />
-            ) : item.image ? (
+            ) : liveItem.image ? (
               <img
-                src={item.image}
-                alt={item.title || "Preview Image"}
+                src={liveItem.image}
+                alt={liveItem.title || "Preview Image"}
                 className="max-w-full max-h-full object-contain rounded-lg p-4"
               />
             ) : (
@@ -168,14 +180,14 @@ export default function PreviewDialog({
                   "bg-linear-to-t from-background/70 via-background/30 to-background/0 to-99%",
               )}
             >
-              <Link to={item.url} target="_blank" rel="noopener noreferrer">
+              <Link to={liveItem.url} target="_blank" rel="noopener noreferrer">
                 <Button
                   variant={"outline"}
                   className="bg-background/50! backdrop-blur-2xl shadow-md cursor-pointer"
                   effect={"pop"}
                 >
                   <SquareArrowOutUpRight />
-                  {getDomainFromUrl(item.url)}{" "}
+                  {getDomainFromUrl(liveItem.url)}{" "}
                 </Button>
               </Link>
             </div>
@@ -184,13 +196,13 @@ export default function PreviewDialog({
           <div className="basis-2/7 overflow-y-auto overflow-x-hidden space-y-4 pr-2">
             <EditableField
               type="multiline"
-              value={item.tldr || ""}
+              value={liveItem.tldr || ""}
               label="TL;DR"
               placeholder="Enter summary..."
               disabled={!canEdit}
               onSave={async (value) => {
                 await updateMutation.mutateAsync({
-                  id: item.id,
+                  id: liveItem.id,
                   tldr: value as string,
                 });
               }}
@@ -200,12 +212,12 @@ export default function PreviewDialog({
 
             <EditableField
               type="tags"
-              value={item.tags || []}
+              value={liveItem.tags || []}
               label="Tags"
               disabled={!canEdit}
               onSave={async (value) => {
                 await updateMutation.mutateAsync({
-                  id: item.id,
+                  id: liveItem.id,
                   tags: value as string[],
                 });
               }}

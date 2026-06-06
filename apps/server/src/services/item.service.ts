@@ -19,6 +19,8 @@ import { parseHtmlContent } from "./utils/html-parser";
 import { WebpageTaggerAgent, WebpageTaggerAgentWithTitle } from "./agent/tag";
 import { AgentResponse } from "~/lib/types";
 import z from "zod";
+import { getActor, assertCan, Action } from "./rbac";
+import { resolveCollection } from "./collection/resolve";
 
 export class ItemService {
   /**
@@ -38,6 +40,12 @@ export class ItemService {
       !normalizedUrl.startsWith("https://")
     ) {
       normalizedUrl = `https://${normalizedUrl}`;
+    }
+
+    // Access check must precede side effects (OGP fetch, agent calls).
+    if (data.collectionId) {
+      const actor = await getActor(userId, data.collectionId);
+      assertCan(actor, Action.ITEM_ADD);
     }
 
     console.log("Normalized URL:", normalizedUrl);
@@ -102,8 +110,11 @@ export class ItemService {
         })
         .returning();
 
-      // If collectionId is provided, add item to collection
+      // If collectionId is provided, add item to collection and touch the
+      // root's updatedAt so top-level sorting reflects activity in children.
       if (data.collectionId) {
+        const rootId = (await resolveCollection(data.collectionId)).rootId;
+
         await tx.insert(collectionItemsTable).values({
           collectionId: data.collectionId,
           itemId: item.id,
@@ -114,7 +125,7 @@ export class ItemService {
           .set({
             updatedAt: new Date(),
           })
-          .where(eq(collectionsTable.id, data.collectionId));
+          .where(eq(collectionsTable.id, rootId));
       }
 
       return item;
@@ -169,6 +180,8 @@ export class ItemService {
   }
 
   async getRecents(userId: string, limit: number = 5) {
+    // Inherited access: membership lives on the root. For items in a sub-
+    // collection, we join user_collections on the parent id.
     const results = await db
       .select({
         ...getTableColumns(itemsTable),
@@ -186,7 +199,7 @@ export class ItemService {
       .innerJoin(
         userCollectionsTable,
         and(
-          eq(userCollectionsTable.collectionId, collectionsTable.id),
+          sql`${userCollectionsTable.collectionId} = COALESCE(${collectionsTable.parentId}, ${collectionsTable.id})`,
           eq(userCollectionsTable.userId, userId),
         ),
       )
@@ -263,17 +276,17 @@ export class ItemService {
         eq(itemsTable.id, collectionItemsTable.itemId),
       )
       .innerJoin(
+        collectionsTable,
+        eq(collectionItemsTable.collectionId, collectionsTable.id),
+      )
+      .innerJoin(
         userCollectionsTable,
-        eq(
-          collectionItemsTable.collectionId,
-          userCollectionsTable.collectionId,
-        ),
+        sql`${userCollectionsTable.collectionId} = COALESCE(${collectionsTable.parentId}, ${collectionsTable.id})`,
       )
       .where(
         and(
           eq(itemsTable.url, normalizedUrl),
           eq(userCollectionsTable.userId, userId),
-          // If specific collection IDs are provided, filter to only those
         ),
       );
 

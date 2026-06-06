@@ -21,7 +21,6 @@ interface DraggedItem {
   url: string;
   image?: string | null;
   favicon?: string | null;
-  collectionId: string;
 }
 
 function DragPreview({
@@ -41,13 +40,9 @@ function DragPreview({
       <div className="rounded-full p-1.5 border absolute top-2 left-2 z-5 text-muted-foreground">
         {" "}
         {isShiftPressed ? (
-          <>
-            <ArrowUpLeft className="size-3 animate-pulse" />
-          </>
+          <CopyIcon className="size-3 animate-pulse" />
         ) : (
-          <>
-            <CopyIcon className="size-3 animate-pulse" />
-          </>
+          <ArrowUpLeft className="size-3 animate-pulse" />
         )}
       </div>
       <div
@@ -128,8 +123,19 @@ export function DndProvider({ children }: { children: React.ReactNode }) {
       over.data.current?.type === "collection"
     ) {
       const itemId = active.id as string;
-      const fromCollectionId = active.data.current.collectionId as string;
-      const toCollectionId = over.id as string;
+      const fromCollectionId =
+        (active.data.current.sourceCollectionId as string | undefined) ??
+        (active.data.current.collectionId as string | undefined);
+      const viewCollectionId = active.data.current.viewCollectionId as
+        | string
+        | undefined;
+      // Read collection ID from droppable data — IDs may be namespaced (e.g. "sidebar:xyz")
+      const toCollectionId = over.data.current?.collection?.id as string;
+
+      if (!fromCollectionId || !toCollectionId) {
+        setActiveItem(null);
+        return;
+      }
 
       // Don't move if it's the same collection
       if (fromCollectionId === toCollectionId) {
@@ -140,8 +146,8 @@ export function DndProvider({ children }: { children: React.ReactNode }) {
       // Clear immediately to allow drop animation
       setActiveItem(null);
 
-      // Use shift key to determine copy vs move (default is copy)
-      const isMoving = isShiftPressed;
+      // Default is move; hold shift to copy instead
+      const isMoving = !isShiftPressed;
       const loadingToast = toast.loading(
         isMoving ? "Moving item..." : "Copying item...",
       );
@@ -156,9 +162,15 @@ export function DndProvider({ children }: { children: React.ReactNode }) {
         },
         {
           onSuccess: () => {
-            // Invalidate both collections
-            utils.collections.get.invalidate({ id: fromCollectionId });
-            utils.collections.get.invalidate({ id: toCollectionId });
+            const idsToInvalidate = [
+              viewCollectionId,
+              fromCollectionId,
+              toCollectionId,
+            ].filter((id): id is string => Boolean(id));
+
+            idsToInvalidate.forEach((id) => {
+              utils.collections.get.invalidate({ id });
+            });
             toast.dismiss(loadingToast);
             toast.success(
               isMoving ? "Item moved successfully" : "Item copied successfully",

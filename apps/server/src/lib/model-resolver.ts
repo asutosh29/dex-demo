@@ -28,6 +28,12 @@ export function resolveModel(
   modelId: string,
   apiKey: string,
 ) {
+  if (provider === "openrouter") {
+    return modelId.startsWith("openrouter/")
+      ? modelId
+      : `openrouter/${modelId}`;
+  }
+
   const factory = PROVIDERS[provider];
   if (!factory) throw new Error(`Unsupported provider: ${provider}`);
 

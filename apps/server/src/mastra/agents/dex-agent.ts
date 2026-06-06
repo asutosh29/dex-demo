@@ -8,6 +8,7 @@ import { aiKeyService } from "~/services/ai-key.service";
 import { resolveModel, DEFAULT_MODEL } from "~/lib/model-resolver";
 import { SUPPORTED_MODELS } from "~/constants/models";
 import { ReasoningToMessageProcessor } from "../processors/normalise-reasoning";
+import { webFetch } from "../tools/web-fetch-tool";
 
 /*
  ** Request Context Schema
@@ -83,10 +84,28 @@ export const dexAgent = new Agent({
     }
   },
 
-  tools: { webSearch, ...agentService.getTools() },
+  tools: { webSearch, webFetch, ...agentService.getTools() },
   memory: new Memory({
     options: {
       generateTitle: true,
+      workingMemory: {
+        enabled: true,
+        scope: "thread",
+        template: `
+# Execution Plan
+- **Primary Objective**: [What the user wants to achieve]
+- **Current Phase**: [Planning, Executing, Reviewing]
+- **Current Goal**: [Current task you are working on]
+
+## Task List (Todos) [Add tasks when needed and mark them off when done]
+- [ ] Task 1:
+- [ ] Task 2:
+
+## Notepad
+- **Key Findings**: [Brief notes]
+- **Custom Instruction:** [Custom instruction given by the user]
+      `,
+      },
     },
   }),
 });

@@ -1,5 +1,5 @@
 import { lazy, Suspense, memo } from "react";
-import { Globe, MoreHorizontal, Trash2 } from "@repo/ui/icons";
+import { Globe, Hash, MoreHorizontal, Trash2 } from "@repo/ui/icons";
 import { Button } from "@repo/ui/components/ui/button";
 
 const PreviewDialog = lazy(() => import("./collection-card/preview-dialog"));
@@ -13,10 +13,10 @@ import {
 import { cn } from "@repo/ui/lib/utils";
 import { AnimatedGroup } from "@repo/ui/components/ui/animated-group";
 import { useCollectionItem } from "./use-collection-item";
-import type { CollectionItem } from "./use-collection-item";
+import type { AnyCollectionItem } from "./use-collection-item";
 
 interface CollectionListRowProps {
-  item: CollectionItem;
+  item: AnyCollectionItem;
   collectionId?: string;
   className?: string;
 }
@@ -102,6 +102,12 @@ export const CollectionListRow = memo(function CollectionListRow({
           key={item.id}
           className="flex gap-1 flex-wrap max-w-md"
         >
+          {item.subCollection && (
+            <Badge variant="secondary" className="text-xs gap-1">
+              <Hash className="h-3 w-3" />
+              {item.subCollection.title}
+            </Badge>
+          )}
           {item.tags?.slice(0, 3).map((tag) => (
             <Badge key={tag} variant="secondary" className="text-xs">
               #{tag}
@@ -150,6 +156,7 @@ export const CollectionListRow = memo(function CollectionListRow({
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           item={item}
+          collectionId={collectionId}
         />
       </Suspense>
     </>

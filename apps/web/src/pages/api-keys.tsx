@@ -100,13 +100,10 @@ export default function ApiKeys() {
             </h2>
             <p className="text-sm text-muted-foreground">
               Bring your own API keys for AI models (OpenAI, Anthropic, Groq,
-              OpenRouter).
+              Gemini).
             </p>
           </div>
-          <Button
-            onClick={() => setModelKeyDialogOpen(true)}
-            variant="secondary"
-          >
+          <Button onClick={() => setModelKeyDialogOpen(true)}>
             <Plus />
             Add Provider Key
           </Button>

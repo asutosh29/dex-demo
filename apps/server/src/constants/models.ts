@@ -1,5 +1,10 @@
 // TODO: Move to shared workspace library in the future
-export type ModelProvider = "groq" | "openai" | "anthropic" | "google";
+export type ModelProvider =
+  | "groq"
+  | "openai"
+  | "anthropic"
+  | "google"
+  | "openrouter";
 export type Model = {
   provider: ModelProvider;
   id: string;
@@ -19,6 +24,22 @@ export const SUPPORTED_MODELS: Model[] = [
   //   reasoning: false,
   //   toolCalling: false,
   // },
+  {
+    provider: "openrouter",
+    id: "openrouter/moonshotai/kimi-k2-thinking",
+    modelId: "moonshotai/kimi-k2-thinking",
+    name: "Kimi K2 Thinking",
+    description: "Solid, fast, multimodal middle ground.",
+    reasoning: true,
+  },
+  {
+    provider: "openrouter",
+    id: "openrouter/deepseek/deepseek-v4-pro",
+    modelId: "deepseek/deepseek-v4-pro",
+    name: "DeepSeek V4 Pro",
+    description: "Solid, fast, multimodal middle ground.",
+    reasoning: true,
+  },
   {
     provider: "groq",
     id: "groq/meta-llama/llama-4-scout-17b-16e-instruct",
@@ -143,22 +164,22 @@ export const SUPPORTED_MODELS: Model[] = [
   // Gemini
   {
     provider: "google",
-    id: "google/gemini-3.1-pro",
-    modelId: "gemini-3.1-pro",
+    id: "google/gemini-3.1-pro-preview",
+    modelId: "gemini-3.1-pro-preview",
     name: "Gemini 3.1 Pro",
     description: "Most advanced model for vibe coding and deep agentic tasks.",
   },
   {
     provider: "google",
-    id: "google/gemini-3-flash",
-    modelId: "gemini-3-flash",
+    id: "google/gemini-3-flash-preview",
+    modelId: "gemini-3-flash-preview",
     name: "Gemini 3 Flash",
     description: "Extremely fast, cost-effective models.",
   },
   {
     provider: "google",
-    id: "google/gemini-3.1-flash-lite",
-    modelId: "gemini-3.1-flash-lite",
+    id: "google/gemini-3.1-flash-lite-preview",
+    modelId: "gemini-3.1-flash-lite-preview",
     name: "Gemini 3.1 Flash-Lite",
     description: "Extremely fast, cost-effective models.",
   },
