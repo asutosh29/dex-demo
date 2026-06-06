@@ -36,6 +36,7 @@
   "pipelines": [],
   "secrets_store_secrets": [],
   "unsafe_hello_world": [],
+  "flagship": [],
   "worker_loaders": [],
   "ratelimits": [],
   "vpc_services": [],
