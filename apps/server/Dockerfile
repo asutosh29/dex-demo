@@ -14,8 +14,8 @@ WORKDIR /app
 # ==========================================
 FROM base AS pruner
 
-# Install turbo globally using pnpm
-RUN pnpm add -g turbo
+# Install turbo globally
+RUN npm install -g turbo
 
 COPY . .
 RUN turbo prune @repo/server --docker
@@ -39,7 +39,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 FROM installer AS builder
 
 # Build the app using turbo
-RUN pnpm turbo run  build --filter=@repo/server
+RUN turbo run build --filter=@repo/server
 
 # ==========================================
 # Stage 5: Runner - Production image

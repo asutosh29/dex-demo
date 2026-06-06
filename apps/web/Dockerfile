@@ -14,8 +14,8 @@ WORKDIR /app
 # ==========================================
 FROM base AS pruner
 
-# Install turbo globally using pnpm
-RUN pnpm add -g turbo
+# Install turbo globally
+RUN npm install -g turbo
 
 COPY . .
 RUN turbo prune @repo/web --docker
@@ -43,7 +43,7 @@ ARG VITE_BACKEND_URL
 ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
 
 # Build the app using turbo
-RUN pnpm turbo run build --filter=@repo/web
+RUN turbo run build --filter=@repo/web
 
 # ==========================================
 # Stage 5: Runner - Production image
