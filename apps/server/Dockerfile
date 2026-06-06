@@ -7,15 +7,13 @@ FROM node:22-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME/bin:$PATH"
 RUN corepack enable
+RUN npm install -g turbo
 WORKDIR /app
 
 # ==========================================
 # Stage 2: Pruner - Create pruned monorepo
 # ==========================================
 FROM base AS pruner
-
-# Install turbo globally
-RUN npm install -g turbo
 
 COPY . .
 RUN turbo prune @repo/server --docker
