@@ -26,7 +26,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
-        api: "http://localhost:8787/chat",
+        api: `${import.meta.env.VITE_BACKEND_URL || "http://localhost:8787/"}chat`,
         fetch: async (url, init) => {
           return fetch(url, {
             ...init,
