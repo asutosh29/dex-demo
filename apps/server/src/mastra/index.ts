@@ -1,16 +1,22 @@
 import { Mastra } from "@mastra/core";
 import { dexAgent } from "./agents/dex-agent";
 import { env } from "~/lib/env";
-import { PostgresStore } from "@mastra/pg";
+import { PostgresStoreVNext } from "@mastra/pg";
 import { PinoLogger } from "@mastra/loggers";
 import { MastraEditor } from "@mastra/editor";
 import { chatRoute } from "@mastra/ai-sdk";
+import { createObservability } from "./observability";
 
 export const mastra = new Mastra({
   agents: { dexAgent },
-  storage: new PostgresStore({
+  observability: createObservability(),
+  storage: new PostgresStoreVNext({
     id: "pg-storage-test",
     connectionString: env.DB_URL,
+    observability: {
+      connectionString: env.OBSERVABILITY_DB_URL ?? env.DB_URL,
+      schemaName: "dex_observability",
+    },
   }),
   server: {
     apiRoutes: [

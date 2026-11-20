@@ -85,6 +85,13 @@
       "when": 1776432163143,
       "tag": "0011_public_flatman",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1776432163144,
+      "tag": "0012_ai_provider_keys",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,15 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import { auth } from "~/lib/auth";
 
-export async function createContext(opts: FetchCreateContextFnOptions) {
+export type Context = {
+  session: typeof auth.$Infer.Session | null;
+  user: (typeof auth.$Infer.Session)["user"] | undefined;
+  headers: Headers;
+};
+
+export async function createContext(
+  opts: FetchCreateContextFnOptions,
+): Promise<Context> {
   const session = await auth.api.getSession({
     headers: opts.req.headers,
   });
@@ -13,8 +21,6 @@ export async function createContext(opts: FetchCreateContextFnOptions) {
     headers: opts.req.headers,
   };
 }
-
-export type Context = Awaited<ReturnType<typeof createContext>>;
 
 const t = initTRPC.context<Context>().create();
 

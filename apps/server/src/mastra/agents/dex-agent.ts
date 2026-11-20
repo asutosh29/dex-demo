@@ -41,12 +41,7 @@ export const dexAgent = new Agent({
   inputProcessors: [new ReasoningToMessageProcessor()],
   model: async ({ requestContext, mastra }) => {
     const provider = requestContext?.get("provider") as
-      | "openai"
-      | "anthropic"
-      | "groq"
-      | "openrouter"
-      | "google"
-      | undefined;
+      "openai" | "anthropic" | "groq" | "openrouter" | "google" | undefined;
     const modelId = requestContext?.get("model") as string | undefined;
     const userId = requestContext?.get("userId") as string | undefined;
 
@@ -72,7 +67,7 @@ export const dexAgent = new Agent({
     try {
       const apiKey = await aiKeyService.getDecryptedKey(userId, provider);
       const model = resolveModel(provider, modelId, apiKey);
-      logger?.info("Resolved model", model);
+      logger?.info("Resolved model", { provider, modelId });
       return model;
     } catch (e) {
       logger?.error(

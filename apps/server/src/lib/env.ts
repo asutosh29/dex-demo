@@ -10,6 +10,7 @@ export const env = createEnv({
   server: {
     // db
     DB_URL: z.url(),
+    OBSERVABILITY_DB_URL: z.url().optional(),
 
     BACKEND_URL: z.url(),
     FRONTEND_URL: z.url(),
